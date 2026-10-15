@@ -25,7 +25,7 @@ cp .env.example .env              # PowerShell: Copy-Item .env.example .env
 docker compose up --build --watch
 ```
 
-Cuando vea `API en http://localhost:3000/api/v1`, abra **http://localhost:5173**.
+Cuando vea `API en http://localhost:3000/api/v1` (es la dirección *dentro* del contenedor), abra **http://localhost:5173**.
 
 ### Usuarios de prueba
 
@@ -45,12 +45,12 @@ Contraseña de todos: **`Viaticos2026*`**
 | Servicio | URL / puerto | Qué hace |
 |----------|--------------|----------|
 | `web` | http://localhost:5173 | React 19 con Vite. Reenvía `/api` a la API |
-| `api` | http://localhost:3000/api/v1 | NestJS con recarga en caliente |
+| `api` | http://localhost:5173/api/v1 (a través de la web) | NestJS con recarga en caliente. No publica puerto propio para no chocar con otros proyectos |
 | `db` | `localhost:5432` | PostgreSQL 17. Los datos persisten en el volumen `viaticos_db-data` |
 | `migraciones` | — | Aplica migraciones y carga datos de prueba, y termina |
 | `adminer` *(opcional)* | http://localhost:8080 | Explorador web de la base de datos |
 
-Los puertos se cambian en `.env` (`WEB_PORT`, `API_PORT`, `DB_PORT`) si ya los usa otra aplicación.
+Los puertos se cambian en `.env` (`WEB_PORT`, `DB_PORT`) si ya los usa otra aplicación.
 
 ## 4. Trabajo diario
 
@@ -114,7 +114,8 @@ Usa las mismas imágenes que se desplegarán:
 
 | Síntoma | Solución |
 |---------|----------|
-| `port is already allocated` | Otro programa usa el puerto: cambie `WEB_PORT`, `API_PORT` o `DB_PORT` en `.env` |
+| `port is already allocated` | Otro programa usa el puerto: cambie `WEB_PORT` o `DB_PORT` en `.env` |
+| `http proxy error … getaddrinfo ENOTFOUND api` | La web no encuentra la API en la red de Docker. Ejecute `docker compose down` y `docker compose up --build --watch`; si persiste, `docker compose up --force-recreate --no-deps api` muestra el error de Docker |
 | `Defina JWT_SECRET en .env` | No copió `.env.example` a `.env` |
 | `unknown flag: --watch` | Actualice Docker Desktop (se necesita Compose ≥ 2.22) |
 | Los cambios no se reflejan | Asegúrese de haber arrancado con `--watch` |

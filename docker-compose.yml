@@ -54,8 +54,9 @@ services:
     environment:
       <<: *entorno-api
       PORT: 3000
-    ports:
-      - "${API_PORT:-3000}:3000"
+    # Sin puerto publicado a propósito: la API se usa a través de la web en
+    # http://localhost:5173/api/v1 (mismo origen) y así no choca con otros proyectos
+    # que usen el puerto 3000 en su equipo.
     depends_on:
       migraciones:
         condition: service_completed_successfully
@@ -83,6 +84,13 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    # Sano solo si la web responde Y alcanza la API a través del proxy (detecta problemas de red entre contenedores).
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5173/api/v1/salud || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
     develop:
       watch:
         - { action: sync, path: ./apps/web/src, target: /app/apps/web/src }
