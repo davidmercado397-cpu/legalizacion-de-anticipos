@@ -88,9 +88,9 @@ import { AutenticacionGuard } from './presentation/autenticacion.guard';
     },
     {
       provide: APP_GUARD,
-      useFactory: (c: Configuracion, reflector: Reflector, tokens: EmisorTokensAcceso) =>
-        new AutenticacionGuard(c.AUTH_MODE, reflector, tokens),
-      inject: [CONFIGURACION, Reflector, EMISOR_TOKENS_ACCESO],
+      useFactory: (c: Configuracion, reflector: Reflector, tokens: EmisorTokensAcceso, consultar: ConsultarUsuarioUseCase) =>
+        new AutenticacionGuard(c.AUTH_MODE, reflector, tokens, async (id) => [...((await consultar.ejecutar(id))?.roles ?? [])]),
+      inject: [CONFIGURACION, Reflector, EMISOR_TOKENS_ACCESO, ConsultarUsuarioUseCase],
     },
   ],
   exports: [EstablecerContrasenaUseCase],

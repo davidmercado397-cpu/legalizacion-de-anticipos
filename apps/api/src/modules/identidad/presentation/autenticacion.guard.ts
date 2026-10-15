@@ -1,7 +1,8 @@
-import { UnauthorizedException, type CanActivate, type ExecutionContext } from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException, type CanActivate, type ExecutionContext } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import {
   ES_PUBLICO,
+  ROLES_REQUERIDOS,
   type ModoAutenticacion,
   type RequestAutenticado,
 } from '../../../shared/presentation/autenticacion';
@@ -17,6 +18,8 @@ export class AutenticacionGuard implements CanActivate {
     private readonly modo: ModoAutenticacion,
     private readonly reflector: Reflector,
     private readonly tokens: EmisorTokensAcceso,
+    /** Solo modo dev: los roles se leen del directorio (no hay token). */
+    private readonly rolesDe: (usuarioId: string) => Promise<string[]>,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -26,14 +29,21 @@ export class AutenticacionGuard implements CanActivate {
     if (this.modo === 'dev') {
       const usuarioId = request.header('x-usuario-id')?.trim();
       if (!usuarioId) throw new UnauthorizedException('Falta la cabecera x-usuario-id (modo desarrollo)');
-      request.usuario = { id: usuarioId, roles: [] };
-      return true;
+      request.usuario = { id: usuarioId, roles: await this.rolesDe(usuarioId) };
+    } else {
+      const [esquema, token] = request.header('authorization')?.split(' ') ?? [];
+      if (esquema?.toLowerCase() !== 'bearer' || !token) throw new UnauthorizedException('Falta el token de acceso');
+      const claims = await this.tokens.verificar(token);
+      request.usuario = { id: claims.usuarioId, roles: claims.roles };
     }
 
-    const [esquema, token] = request.header('authorization')?.split(' ') ?? [];
-    if (esquema?.toLowerCase() !== 'bearer' || !token) throw new UnauthorizedException('Falta el token de acceso');
-    const claims = await this.tokens.verificar(token);
-    request.usuario = { id: claims.usuarioId, roles: claims.roles };
+    const requeridos = this.reflector.getAllAndOverride<string[] | undefined>(ROLES_REQUERIDOS, [
+      ctx.getHandler(),
+      ctx.getClass(),
+    ]);
+    if (requeridos?.length && !requeridos.some((r) => request.usuario!.roles.includes(r))) {
+      throw new ForbiddenException('No tiene permiso para esta operación');
+    }
     return true;
   }
 }

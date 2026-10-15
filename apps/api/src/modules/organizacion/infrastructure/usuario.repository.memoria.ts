@@ -54,6 +54,16 @@ export const USUARIOS_DESARROLLO: readonly Usuario[] = [
     activo: true,
   },
   {
+    id: 'u-tesoreria',
+    nombre: 'Tomás Tesorero',
+    email: 'tomas@empresa.co',
+    cargoId: 'ANALISTA',
+    jefeInmediatoId: 'u-directivo',
+    jefeDirectivoId: 'u-directivo',
+    roles: ['TESORERIA'],
+    activo: true,
+  },
+  {
     id: 'u-contabilidad',
     nombre: 'Laura Contable',
     email: 'laura@empresa.co',

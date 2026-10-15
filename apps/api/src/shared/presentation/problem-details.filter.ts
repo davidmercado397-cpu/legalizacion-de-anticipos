@@ -49,7 +49,8 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     }
     if (error instanceof HttpException) {
       const status = error.getStatus();
-      const codigo = status === 401 ? 'NO_AUTENTICADO' : status === 404 ? 'RUTA_NO_ENCONTRADA' : `HTTP_${status}`;
+      const codigo =
+        status === 401 ? 'NO_AUTENTICADO' : status === 403 ? 'SIN_PERMISO' : status === 404 ? 'RUTA_NO_ENCONTRADA' : `HTTP_${status}`;
       return { type: `urn:viaticos:error:${codigo}`, title: error.message, status, code: codigo };
     }
     this.logger.error(error instanceof Error ? error.stack : String(error));

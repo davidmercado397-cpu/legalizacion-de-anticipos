@@ -93,6 +93,22 @@ describe('API HTTP (e2e)', () => {
     expect(final.body.estado).toBe('APROBADA');
 
     await como('u-contabilidad').get(`/solicitudes/${id}`).expect(404);
+
+    // La aprobación final crea el anticipo (registrado en el ERP simulado)
+    const [anticipo] = (await como('u-viajero').get('/anticipos/mios').expect(200)).body;
+    expect(anticipo).toMatchObject({ solicitudId: id, estado: 'POR_DESEMBOLSAR', monto: { monto: '475.00', moneda: 'USD' } });
+    expect(anticipo.viaje).toMatchObject({ fechaInicio: '2026-11-02', fechaFin: '2026-11-06' });
+
+    // Solo tesorería ve la bandeja y registra el desembolso
+    await como('u-viajero').get('/anticipos').expect(403);
+    const bandeja = await como('u-tesoreria').get('/anticipos').expect(200);
+    expect(bandeja.body.map((a: { id: string }) => a.id)).toContain(anticipo.id);
+    await como('u-viajero').post(`/anticipos/${anticipo.id}/desembolso`).send({ fecha: '2026-10-15', medio: 'TRANSFERENCIA' }).expect(403);
+    const pagado = await como('u-tesoreria')
+      .post(`/anticipos/${anticipo.id}/desembolso`)
+      .send({ fecha: '2026-10-15', medio: 'TRANSFERENCIA', referencia: 'TR-889' })
+      .expect(200);
+    expect(pagado.body).toMatchObject({ estado: 'DESEMBOLSADO', desembolso: { medio: 'TRANSFERENCIA', registradoPor: 'Tomás Tesorero' } });
   });
 
   it('detecta duplicados sin revelar a otros viajeros', async () => {

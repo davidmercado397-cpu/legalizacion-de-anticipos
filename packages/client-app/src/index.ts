@@ -4,3 +4,4 @@ export { crearApiConSesion, restaurarSesion } from './sesion/api-con-sesion';
 export { useCerrarSesion, useIniciarSesion } from './sesion/sesion.hooks';
 export * from './solicitudes/solicitudes.queries';
 export * from './solicitudes/reglas-ui';
+export * from './anticipos/anticipos.queries';

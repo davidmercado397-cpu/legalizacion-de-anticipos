@@ -151,6 +151,8 @@ export class SolicitudViaje extends AgregadoRaiz {
         ocurridoEn: ahora,
         viajeroId: this.viajeroId,
         totalAnticipo: this.presupuesto.totalAnticipo.toDto(),
+        motivo: this.motivo,
+        destinos: this.destinos.map((d) => d.toDatos()),
       } satisfies SolicitudAprobada);
     }
   }

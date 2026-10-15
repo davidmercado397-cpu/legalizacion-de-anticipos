@@ -6,3 +6,5 @@ export const PROVEEDOR_TASA_CAMBIO = Symbol('ProveedorTasaCambio');
 export const CONFIGURACION = Symbol('Configuracion');
 /** ConexionBaseDatos, o null con PERSISTENCIA=memoria. */
 export const CONEXION_BASE_DATOS = Symbol('ConexionBaseDatos');
+/** Mismo bus: publica y permite suscribirse (BusEventos). */
+export const BUS_EVENTOS = PUBLICADOR_EVENTOS;

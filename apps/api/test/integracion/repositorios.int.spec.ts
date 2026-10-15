@@ -1,5 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { FechaCalendario } from '@viaticos/shared-kernel';
+import { Money } from '@viaticos/shared-kernel';
+import { Anticipo } from '../../src/modules/anticipos/domain/anticipo';
+import { AnticipoRepositoryDrizzle } from '../../src/modules/anticipos/infrastructure/persistencia/anticipo.repository.drizzle';
 import { DetectorDuplicados } from '../../src/modules/comprobantes/domain/duplicados/detector-duplicados';
 import { HuellaComprobante } from '../../src/modules/comprobantes/domain/duplicados/huella-comprobante';
 import { HuellaRepositoryDrizzle } from '../../src/modules/comprobantes/infrastructure/persistencia/huella.repository.drizzle';
@@ -136,6 +139,47 @@ describe.runIf(URL_PRUEBAS)('Repositorios PostgreSQL (integración)', () => {
       await expect(
         repo.registrar({ comprobanteId: 'nuevo', viajeroId: 'ana', huella: huella({ sha256: sha(301) }) }),
       ).resolves.toBeUndefined();
+    });
+  });
+  describe('AnticipoRepositoryDrizzle', () => {
+    const nuevo = (id: string, solicitudId: string) =>
+      Anticipo.crearDesdeSolicitud({
+        id,
+        solicitudId,
+        viajeroId: 'u-viajero',
+        monto: Money.of('1900000', 'COP'),
+        viaje: { motivo: 'Cliente', destinos: [{ paisCodigo: 'BR', ciudad: 'Rio', fechaInicio: '2026-11-02', fechaFin: '2026-11-06' }] },
+        ahora: new Date('2026-10-20T15:00:00Z'),
+      });
+
+    it('persiste el ciclo completo hasta el desembolso', async () => {
+      const repo = new AnticipoRepositoryDrizzle(conexion.db);
+      const a = nuevo('10000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001');
+      await repo.guardar(a);
+      const leido = (await repo.obtenerPorId(a.id))!;
+      leido.registradoEnErp('SIESA-9', new Date());
+      await repo.guardar(leido);
+      const otraVez = (await repo.obtenerPorId(a.id))!;
+      otraVez.registrarDesembolso({
+        fecha: FechaCalendario.of('2026-10-20'),
+        medio: 'EFECTIVO',
+        referencia: null,
+        tesoreroId: 'u-tesoreria',
+        ahora: new Date('2026-10-20T16:00:00Z'),
+      });
+      await repo.guardar(otraVez);
+      const final = (await repo.obtenerPorSolicitud(a.solicitudId))!;
+      expect(final.estado).toBe('DESEMBOLSADO');
+      expect(final.monto.toDto()).toEqual({ monto: '1900000.00', moneda: 'COP' });
+      expect(final.desembolso?.fecha.toString()).toBe('2026-10-20');
+      expect((await repo.listarPorEstados(['DESEMBOLSADO'])).map((x) => x.id)).toContain(a.id);
+    });
+
+    it('una solicitud no puede tener dos anticipos (índice único)', async () => {
+      const repo = new AnticipoRepositoryDrizzle(conexion.db);
+      const solicitud = '20000000-0000-4000-8000-000000000002';
+      await repo.guardar(nuevo('10000000-0000-4000-8000-000000000002', solicitud));
+      await expect(repo.guardar(nuevo('10000000-0000-4000-8000-000000000003', solicitud))).rejects.toThrow();
     });
   });
 });

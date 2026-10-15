@@ -46,7 +46,11 @@ function useAlActualizarSolicitud() {
   const queryClient = useQueryClient();
   return (solicitud: SolicitudResponse) => {
     queryClient.setQueryData(clavesSolicitudes.detalle(solicitud.id), solicitud);
-    return queryClient.invalidateQueries({ queryKey: clavesSolicitudes.todas });
+    // Una aprobación final crea un anticipo: también se refrescan los anticipos.
+    return Promise.all([
+      queryClient.invalidateQueries({ queryKey: clavesSolicitudes.todas }),
+      queryClient.invalidateQueries({ queryKey: ['anticipos'] }),
+    ]);
   };
 }
 

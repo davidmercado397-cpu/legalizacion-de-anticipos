@@ -13,6 +13,9 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAprobacionesRouteImport } from './routes/_app/aprobaciones'
+import { Route as AppTesoreriaRouteImport } from './routes/_app/tesoreria'
+import { Route as AppAnticiposIndexRouteImport } from './routes/_app/anticipos/index'
+import { Route as AppAnticiposAnticipoIdRouteImport } from './routes/_app/anticipos/$anticipoId'
 import { Route as AppSolicitudesIndexRouteImport } from './routes/_app/solicitudes/index'
 import { Route as AppSolicitudesSolicitudIdRouteImport } from './routes/_app/solicitudes/$solicitudId'
 import { Route as AppSolicitudesNuevaRouteImport } from './routes/_app/solicitudes/nueva'
@@ -36,6 +39,21 @@ const AppAprobacionesRoute = AppAprobacionesRouteImport.update({
   path: '/aprobaciones',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTesoreriaRoute = AppTesoreriaRouteImport.update({
+  id: '/tesoreria',
+  path: '/tesoreria',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAnticiposIndexRoute = AppAnticiposIndexRouteImport.update({
+  id: '/anticipos/',
+  path: '/anticipos/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAnticiposAnticipoIdRoute = AppAnticiposAnticipoIdRouteImport.update({
+  id: '/anticipos/$anticipoId',
+  path: '/anticipos/$anticipoId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSolicitudesIndexRoute = AppSolicitudesIndexRouteImport.update({
   id: '/solicitudes/',
   path: '/solicitudes/',
@@ -57,16 +75,22 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/aprobaciones': typeof AppAprobacionesRoute
+  '/tesoreria': typeof AppTesoreriaRoute
+  '/anticipos/$anticipoId': typeof AppAnticiposAnticipoIdRoute
   '/solicitudes/$solicitudId': typeof AppSolicitudesSolicitudIdRoute
   '/solicitudes/nueva': typeof AppSolicitudesNuevaRoute
+  '/anticipos/': typeof AppAnticiposIndexRoute
   '/solicitudes/': typeof AppSolicitudesIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/aprobaciones': typeof AppAprobacionesRoute
+  '/tesoreria': typeof AppTesoreriaRoute
   '/': typeof AppIndexRoute
+  '/anticipos/$anticipoId': typeof AppAnticiposAnticipoIdRoute
   '/solicitudes/$solicitudId': typeof AppSolicitudesSolicitudIdRoute
   '/solicitudes/nueva': typeof AppSolicitudesNuevaRoute
+  '/anticipos': typeof AppAnticiposIndexRoute
   '/solicitudes': typeof AppSolicitudesIndexRoute
 }
 export interface FileRoutesById {
@@ -74,9 +98,12 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/aprobaciones': typeof AppAprobacionesRoute
+  '/_app/tesoreria': typeof AppTesoreriaRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/anticipos/$anticipoId': typeof AppAnticiposAnticipoIdRoute
   '/_app/solicitudes/$solicitudId': typeof AppSolicitudesSolicitudIdRoute
   '/_app/solicitudes/nueva': typeof AppSolicitudesNuevaRoute
+  '/_app/anticipos/': typeof AppAnticiposIndexRoute
   '/_app/solicitudes/': typeof AppSolicitudesIndexRoute
 }
 export interface FileRouteTypes {
@@ -85,25 +112,34 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/aprobaciones'
+    | '/tesoreria'
+    | '/anticipos/$anticipoId'
     | '/solicitudes/$solicitudId'
     | '/solicitudes/nueva'
+    | '/anticipos/'
     | '/solicitudes/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
     | '/aprobaciones'
+    | '/tesoreria'
     | '/'
+    | '/anticipos/$anticipoId'
     | '/solicitudes/$solicitudId'
     | '/solicitudes/nueva'
+    | '/anticipos'
     | '/solicitudes'
   id:
     | '__root__'
     | '/_app'
     | '/login'
     | '/_app/aprobaciones'
+    | '/_app/tesoreria'
     | '/_app/'
+    | '/_app/anticipos/$anticipoId'
     | '/_app/solicitudes/$solicitudId'
     | '/_app/solicitudes/nueva'
+    | '/_app/anticipos/'
     | '/_app/solicitudes/'
   fileRoutesById: FileRoutesById
 }
@@ -142,6 +178,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAprobacionesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/tesoreria': {
+      id: '/_app/tesoreria'
+      path: '/tesoreria'
+      fullPath: '/tesoreria'
+      preLoaderRoute: typeof AppTesoreriaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/anticipos/': {
+      id: '/_app/anticipos/'
+      path: '/anticipos'
+      fullPath: '/anticipos/'
+      preLoaderRoute: typeof AppAnticiposIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/anticipos/$anticipoId': {
+      id: '/_app/anticipos/$anticipoId'
+      path: '/anticipos/$anticipoId'
+      fullPath: '/anticipos/$anticipoId'
+      preLoaderRoute: typeof AppAnticiposAnticipoIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/solicitudes/': {
       id: '/_app/solicitudes/'
       path: '/solicitudes'
@@ -168,17 +225,23 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAprobacionesRoute: typeof AppAprobacionesRoute
+  AppTesoreriaRoute: typeof AppTesoreriaRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAnticiposAnticipoIdRoute: typeof AppAnticiposAnticipoIdRoute
   AppSolicitudesSolicitudIdRoute: typeof AppSolicitudesSolicitudIdRoute
   AppSolicitudesNuevaRoute: typeof AppSolicitudesNuevaRoute
+  AppAnticiposIndexRoute: typeof AppAnticiposIndexRoute
   AppSolicitudesIndexRoute: typeof AppSolicitudesIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAprobacionesRoute: AppAprobacionesRoute,
+  AppTesoreriaRoute: AppTesoreriaRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAnticiposAnticipoIdRoute: AppAnticiposAnticipoIdRoute,
   AppSolicitudesSolicitudIdRoute: AppSolicitudesSolicitudIdRoute,
   AppSolicitudesNuevaRoute: AppSolicitudesNuevaRoute,
+  AppAnticiposIndexRoute: AppAnticiposIndexRoute,
   AppSolicitudesIndexRoute: AppSolicitudesIndexRoute,
 }
 

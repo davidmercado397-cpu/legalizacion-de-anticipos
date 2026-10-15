@@ -22,7 +22,7 @@ function Layout() {
   const cerrar = useCerrarSesion();
   const navigate = useNavigate();
   const router = useRouter();
-  const esAprobador = usuario?.roles.includes('APROBADOR') ?? false;
+  const tiene = (rol: string) => usuario?.roles.includes(rol as never) ?? false;
 
   // Si la sesión expira mientras se usa la app, se vuelve al login conservando la ruta actual.
   useEffect(() => {
@@ -41,9 +41,17 @@ function Layout() {
             <Link to="/solicitudes" className={ENLACE} activeProps={ACTIVO}>
               Mis solicitudes
             </Link>
-            {esAprobador && (
+            <Link to="/anticipos" className={ENLACE} activeProps={ACTIVO}>
+              Mis anticipos
+            </Link>
+            {tiene('APROBADOR') && (
               <Link to="/aprobaciones" className={ENLACE} activeProps={ACTIVO}>
                 Aprobaciones
+              </Link>
+            )}
+            {tiene('TESORERIA') && (
+              <Link to="/tesoreria" className={ENLACE} activeProps={ACTIVO}>
+                Tesorería
               </Link>
             )}
           </nav>
