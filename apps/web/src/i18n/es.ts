@@ -23,6 +23,7 @@ export const es: Record<string, string> = {
   'unidad.NOCHE': 'noches',
   'unidad.DIA': 'días',
   // Errores de la API (código estable → mensaje)
+  'error.SERVIDOR_NO_DISPONIBLE': 'El servidor no responde en este momento. Intente de nuevo en unos segundos.',
   'error.SIN_CONEXION': 'No hay conexión con el servidor. Revise su red e intente de nuevo.',
   'error.CREDENCIALES_INVALIDAS': 'Correo o contraseña incorrectos.',
   'error.JUSTIFICACION_REQUERIDA': 'Esta solicitud supera la política: escriba una justificación.',

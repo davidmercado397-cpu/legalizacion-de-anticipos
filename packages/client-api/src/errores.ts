@@ -25,6 +25,10 @@ export class ApiError extends Error {
         const p = problema.data;
         return new ApiError(p.status, p.code, p.title, p.errors ?? {}, p.meta ?? {});
       }
+      // 502/503/504 sin problem+json: lo responde un proxy (Vite, nginx) porque la API no está disponible.
+      if ([502, 503, 504].includes(error.response.status)) {
+        return new ApiError(error.response.status, 'SERVIDOR_NO_DISPONIBLE', 'El servidor no está disponible');
+      }
       return new ApiError(error.response.status, `HTTP_${error.response.status}`, error.message);
     }
     return new ApiError(0, 'ERROR_DESCONOCIDO', error instanceof Error ? error.message : String(error));

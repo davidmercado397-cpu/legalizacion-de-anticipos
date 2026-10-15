@@ -87,6 +87,13 @@ describe('cliente HTTP', () => {
     });
   });
 
+  it('distingue cuando el proxy no alcanza la API (502)', async () => {
+    servidor.use(rest.get(`${BASE}/solicitudes`, () => new HttpResponse('Bad Gateway', { status: 502 })));
+    await expect(crearApi({ baseURL: BASE, sesion: sesionFalsa('t', null) }).solicitudes.misSolicitudes()).rejects.toMatchObject({
+      codigo: 'SERVIDOR_NO_DISPONIBLE',
+    });
+  });
+
   it('rechaza respuestas que no cumplen el contrato', async () => {
     servidor.use(rest.get(`${BASE}/solicitudes/destinos-disponibles`, () => HttpResponse.json({ paises: [123] })));
     await expect(crearApi({ baseURL: BASE, sesion: sesionFalsa('t', null) }).solicitudes.destinosDisponibles()).rejects.toThrow();
