@@ -20,7 +20,10 @@ const reloj: Reloj = { ahora: () => new Date('2026-10-15T15:00:00Z'), hoy: () =>
 const tasas: ProveedorTasaCambio = {
   obtener: async (o: string, d: string, f: Fecha) => new TasaCambio(o, d, o === 'USD' ? '4000' : '0.00025', f, 'FAKE'),
 };
-const tarifas: ConsultaTarifas = { vigentes: async (_c, pais) => (pais === 'BR' ? tarifasBrasil() : []) };
+const tarifas: ConsultaTarifas = {
+  vigentes: async (_c, pais) => (pais === 'BR' ? tarifasBrasil() : []),
+  paisesDisponibles: async () => ['BR'],
+};
 const perfiles: Record<string, PerfilViajero> = {
   ana: { id: 'ana', cargoId: 'ANALISTA', jefeInmediatoId: 'carlos', jefeDirectivoId: 'diana' },
 };

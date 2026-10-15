@@ -6,6 +6,7 @@ import { EntradaInvalidaError } from './zod-validation.pipe';
 
 const STATUS_POR_TIPO: Record<TipoErrorDominio, number> = {
   VALIDACION: 422,
+  NO_AUTENTICADO: 401,
   REGLA_NEGOCIO: 422,
   NO_ENCONTRADO: 404,
   NO_AUTORIZADO: 403,

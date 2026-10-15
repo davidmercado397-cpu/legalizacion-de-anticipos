@@ -9,6 +9,10 @@ export class TarifaRepositoryEnMemoria implements TarifaRepository {
   async buscarPorCargoYPais(cargoId: string, paisCodigo: string): Promise<Tarifa[]> {
     return this.tarifas.filter((t) => t.cargoId === cargoId && t.paisCodigo === paisCodigo);
   }
+
+  async listarPaisesDeCargo(cargoId: string): Promise<string[]> {
+    return [...new Set(this.tarifas.filter((t) => t.cargoId === cargoId).map((t) => t.paisCodigo))].sort();
+  }
 }
 
 export class ConceptoViaticoRepositoryEnMemoria implements ConceptoViaticoRepository {

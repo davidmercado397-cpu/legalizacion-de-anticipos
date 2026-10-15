@@ -10,6 +10,11 @@ export class UsuarioRepositoryEnMemoria implements UsuarioRepository {
   async obtenerPorId(id: string): Promise<Usuario | null> {
     return this.usuarios.get(id) ?? null;
   }
+
+  async obtenerPorEmail(email: string): Promise<Usuario | null> {
+    const buscado = email.toLowerCase();
+    return [...this.usuarios.values()].find((u) => u.email.toLowerCase() === buscado) ?? null;
+  }
 }
 
 /** Datos de desarrollo: viajero → jefe inmediato → jefe directivo. */

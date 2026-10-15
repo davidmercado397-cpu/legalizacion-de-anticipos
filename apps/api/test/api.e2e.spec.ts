@@ -11,7 +11,7 @@ describe('API HTTP (e2e)', () => {
 
   beforeAll(async () => {
     const modulo = await Test.createTestingModule({
-      imports: [AppModule.forRoot(cargarConfiguracion({ NODE_ENV: 'test', AUTH_MODE: 'dev', TRM_DESARROLLO: '4000' }))],
+      imports: [AppModule.forRoot(cargarConfiguracion({ NODE_ENV: 'test', PERSISTENCIA: 'memoria', AUTH_MODE: 'dev', TRM_DESARROLLO: '4000' }))],
     }).compile();
     app = modulo.createNestApplication({ logger: false });
     app.setGlobalPrefix('api/v1');

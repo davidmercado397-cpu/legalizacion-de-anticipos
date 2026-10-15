@@ -1,6 +1,6 @@
 # ADR-0004: PostgreSQL + Drizzle + pg-boss
 
-- Estado: Aceptada (implementación en la iteración 2)
+- Estado: Aceptada e implementada (iteración 2)
 
 ## Contexto
 ≈50 facturas/día. Hay que procesar OCR, envíos a Siesa y notificaciones de forma asíncrona y confiable.

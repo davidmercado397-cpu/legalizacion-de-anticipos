@@ -6,6 +6,7 @@ import {
   rechazarSolicitudRequestSchema,
   type CrearSolicitudCommand,
   type EstimadoResponse,
+  type PaisesConTarifaResponse,
   type EstimarViajeCommand,
   type SolicitudResponse,
 } from '@viaticos/contracts';
@@ -18,6 +19,7 @@ import {
   CancelarSolicitudUseCase,
   RechazarSolicitudUseCase,
 } from '../application/decidir-solicitud.use-cases';
+import { DestinosDisponiblesUseCase } from '../application/destinos-disponibles.use-case';
 import { EstimarViajeUseCase } from '../application/estimar-viaje.use-case';
 import { presentarEstimado, presentarSolicitud } from './solicitud.presenter';
 
@@ -30,7 +32,14 @@ export class SolicitudesController {
     @Inject(AprobarSolicitudUseCase) private readonly aprobarSolicitud: AprobarSolicitudUseCase,
     @Inject(RechazarSolicitudUseCase) private readonly rechazarSolicitud: RechazarSolicitudUseCase,
     @Inject(CancelarSolicitudUseCase) private readonly cancelarSolicitud: CancelarSolicitudUseCase,
+    @Inject(DestinosDisponiblesUseCase) private readonly destinosDisponibles: DestinosDisponiblesUseCase,
   ) {}
+
+  /** Países con tarifa para el cargo del usuario (selector de destino). */
+  @Get('destinos-disponibles')
+  async destinos(@UsuarioActual() usuarioId: string): Promise<PaisesConTarifaResponse> {
+    return { paises: await this.destinosDisponibles.ejecutar(usuarioId) };
+  }
 
   @Post('estimar')
   @HttpCode(200)

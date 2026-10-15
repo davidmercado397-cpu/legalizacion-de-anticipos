@@ -12,7 +12,11 @@
     "dev:web": "pnpm --filter @viaticos/web dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "db:migrar": "pnpm --filter @viaticos/api db:migrar",
+    "db:sembrar": "pnpm --filter @viaticos/api db:sembrar",
+    "db:generar": "pnpm --filter @viaticos/api db:generar",
+    "test:integracion": "pnpm --filter @viaticos/api test:integracion"
   },
   "devDependencies": {
     "@types/node": "^22.19.0",

@@ -4,6 +4,7 @@
  */
 export type TipoErrorDominio =
   | 'VALIDACION'
+  | 'NO_AUTENTICADO'
   | 'NO_ENCONTRADO'
   | 'NO_AUTORIZADO'
   | 'CONFLICTO'
