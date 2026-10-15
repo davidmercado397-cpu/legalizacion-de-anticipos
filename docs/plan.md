@@ -77,8 +77,8 @@ Los casos de uso son clases TypeScript puras, sin decoradores. NestJS solo las e
 | `solicitudes` | Estimado, solicitud, ruta de aprobación, reglas de escalamiento | ✅ API + web |
 | `comprobantes` | Ingesta, OCR, clasificación, exclusiones, **detección de duplicados** | ✅ duplicados (dominio + índices únicos); resto en iteración 3 |
 | `identidad` | Login local, sesiones, (futuro) Microsoft 365 | ✅ |
-| `anticipos` | Anticipo, creación en Siesa, desembolso | Iteración 2 (espera documentación de Siesa) |
-| `legalizaciones` | Una por anticipo; ítems, alertas, saldo, revisión contable | Iteración 3 |
+| `anticipos` | Anticipo, creación en el ERP, desembolso | ✅ (adaptador de Siesa pendiente de su documentación) |
+| `legalizaciones` | Soportes, OCR, exclusiones, alertas, recibo 222, saldo, revisión contable | ✅ |
 | `conciliacion` | Perfiles de extracto, importación y cruce | Iteración 4 |
 | `integracion-erp` | Capa anticorrupción para Siesa Enterprise | Iteraciones 2–3 |
 | `whatsapp` | Webhook y flujo conversacional | Iteración 5 |
@@ -140,7 +140,7 @@ Ver [ADR-0007](adr/0007-deteccion-de-duplicados.md). Se aplica en varias capas y
 |-----------|-----------|
 | **1 ✅** | Monorepo, shared-kernel, contratos, tarifas, estimado, solicitud con ruta de aprobación y escalamiento, motor de duplicados (dominio), API HTTP con repositorios en memoria, pruebas |
 | **2 ✅** (parcial) | PostgreSQL + Drizzle, autenticación local (JWT + refresh rotativo), frontend web (estimado en vivo, solicitud, bandeja y detalle de aprobación), Docker local y CI. **Pendiente:** anticipos + adaptador Siesa y outbox (a la espera de la documentación de la API de Siesa) |
-| 3 | Comprobantes: carga, OCR, clasificación, exclusiones por línea, validación fiscal, legalización, revisión contable, recibo 222 |
+| **3 ✅** | Anticipos (creación al aprobar, ERP simulado, desembolso de tesorería), legalización completa: carga de fotos/PDF, OCR con Claude (o digitación manual), clasificación, exclusiones por línea, alertas, recibo 222 con tope, conversión de monedas, revisión contable y configuración de la política |
 | 4 | Conciliación con extractos (perfiles de mapeo), TRM automática |
 | 5 | WhatsApp Business (radicación y notificaciones) |
 | 6 | Microsoft 365 (OIDC), tableros, app móvil |

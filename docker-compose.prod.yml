@@ -36,6 +36,10 @@ services:
       AUTH_MODE: jwt
       JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET en .env}
       CORS_ORIGINS: http://localhost:8080
+      OCR_PROVEEDOR: ${OCR_PROVEEDOR:-manual}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      - almacen-prod:/app/almacen
     depends_on:
       migraciones: { condition: service_completed_successfully }
 
@@ -49,3 +53,4 @@ services:
 
 volumes:
   db-prod:
+  almacen-prod:

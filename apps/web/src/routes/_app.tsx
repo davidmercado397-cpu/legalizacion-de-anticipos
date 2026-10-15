@@ -49,6 +49,11 @@ function Layout() {
                 Aprobaciones
               </Link>
             )}
+            {tiene('CONTABILIDAD') && (
+              <Link to="/contabilidad" className={ENLACE} activeProps={ACTIVO}>
+                Contabilidad
+              </Link>
+            )}
             {tiene('TESORERIA') && (
               <Link to="/tesoreria" className={ENLACE} activeProps={ACTIVO}>
                 Tesorería

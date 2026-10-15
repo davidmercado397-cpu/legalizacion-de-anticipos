@@ -74,6 +74,13 @@ curl -s -X POST localhost:3000/api/v1/solicitudes/estimar \
 | GET | `/solicitudes/:id` | Detalle (viajero o aprobadores) |
 | POST | `/solicitudes/:id/aprobar` · `/rechazar` · `/cancelar` | Decisiones |
 | GET | `/aprobaciones/pendientes` | Bandeja del aprobador |
+| GET | `/anticipos/mios` · `/anticipos` (tesorería) · `/anticipos/:id` | Anticipos |
+| POST | `/anticipos/:id/desembolso` · `/reintentar-erp` | Tesorería |
+| GET | `/legalizaciones/por-anticipo/:anticipoId` · `/legalizaciones/:id` · `/legalizaciones` (contabilidad) | Legalizaciones |
+| POST | `/legalizaciones/:id/soportes` (multipart) · `/recibos-caja` · `/enviar` | Viajero |
+| PUT / DELETE | `/legalizaciones/:id/soportes/:soporteId/confirmacion` · `/legalizaciones/:id/soportes/:soporteId` | Viajero |
+| POST | `/legalizaciones/:id/soportes/:soporteId/decision` · `/aprobar` · `/devolver` | Contabilidad |
+| GET / PUT | `/politica-legalizacion` | NIT, topes del recibo 222, exclusiones |
 | POST | `/comprobantes/duplicados/verificar` | Verificación de duplicados |
 | GET | `/salud` | Health check (público) |
 

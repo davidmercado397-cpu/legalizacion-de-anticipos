@@ -16,9 +16,13 @@ import { Route as AppAprobacionesRouteImport } from './routes/_app/aprobaciones'
 import { Route as AppTesoreriaRouteImport } from './routes/_app/tesoreria'
 import { Route as AppAnticiposIndexRouteImport } from './routes/_app/anticipos/index'
 import { Route as AppAnticiposAnticipoIdRouteImport } from './routes/_app/anticipos/$anticipoId'
+import { Route as AppContabilidadIndexRouteImport } from './routes/_app/contabilidad/index'
+import { Route as AppContabilidadPoliticaRouteImport } from './routes/_app/contabilidad/politica'
+import { Route as AppLegalizacionesLegalizacionIdRouteImport } from './routes/_app/legalizaciones/$legalizacionId'
 import { Route as AppSolicitudesIndexRouteImport } from './routes/_app/solicitudes/index'
 import { Route as AppSolicitudesSolicitudIdRouteImport } from './routes/_app/solicitudes/$solicitudId'
 import { Route as AppSolicitudesNuevaRouteImport } from './routes/_app/solicitudes/nueva'
+import { Route as AppLegalizacionesLegalizacionIdSoportesSoporteIdRouteImport } from './routes/_app/legalizaciones/$legalizacionId_.soportes.$soporteId'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -54,6 +58,22 @@ const AppAnticiposAnticipoIdRoute = AppAnticiposAnticipoIdRouteImport.update({
   path: '/anticipos/$anticipoId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppContabilidadIndexRoute = AppContabilidadIndexRouteImport.update({
+  id: '/contabilidad/',
+  path: '/contabilidad/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppContabilidadPoliticaRoute = AppContabilidadPoliticaRouteImport.update({
+  id: '/contabilidad/politica',
+  path: '/contabilidad/politica',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLegalizacionesLegalizacionIdRoute =
+  AppLegalizacionesLegalizacionIdRouteImport.update({
+    id: '/legalizaciones/$legalizacionId',
+    path: '/legalizaciones/$legalizacionId',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppSolicitudesIndexRoute = AppSolicitudesIndexRouteImport.update({
   id: '/solicitudes/',
   path: '/solicitudes/',
@@ -70,6 +90,12 @@ const AppSolicitudesNuevaRoute = AppSolicitudesNuevaRouteImport.update({
   path: '/solicitudes/nueva',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLegalizacionesLegalizacionIdSoportesSoporteIdRoute =
+  AppLegalizacionesLegalizacionIdSoportesSoporteIdRouteImport.update({
+    id: '/legalizaciones/$legalizacionId_/soportes/$soporteId',
+    path: '/legalizaciones/$legalizacionId/soportes/$soporteId',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -77,10 +103,14 @@ export interface FileRoutesByFullPath {
   '/aprobaciones': typeof AppAprobacionesRoute
   '/tesoreria': typeof AppTesoreriaRoute
   '/anticipos/$anticipoId': typeof AppAnticiposAnticipoIdRoute
+  '/contabilidad/politica': typeof AppContabilidadPoliticaRoute
+  '/legalizaciones/$legalizacionId': typeof AppLegalizacionesLegalizacionIdRoute
   '/solicitudes/$solicitudId': typeof AppSolicitudesSolicitudIdRoute
   '/solicitudes/nueva': typeof AppSolicitudesNuevaRoute
   '/anticipos/': typeof AppAnticiposIndexRoute
+  '/contabilidad/': typeof AppContabilidadIndexRoute
   '/solicitudes/': typeof AppSolicitudesIndexRoute
+  '/legalizaciones/$legalizacionId/soportes/$soporteId': typeof AppLegalizacionesLegalizacionIdSoportesSoporteIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -88,10 +118,14 @@ export interface FileRoutesByTo {
   '/tesoreria': typeof AppTesoreriaRoute
   '/': typeof AppIndexRoute
   '/anticipos/$anticipoId': typeof AppAnticiposAnticipoIdRoute
+  '/contabilidad/politica': typeof AppContabilidadPoliticaRoute
+  '/legalizaciones/$legalizacionId': typeof AppLegalizacionesLegalizacionIdRoute
   '/solicitudes/$solicitudId': typeof AppSolicitudesSolicitudIdRoute
   '/solicitudes/nueva': typeof AppSolicitudesNuevaRoute
   '/anticipos': typeof AppAnticiposIndexRoute
+  '/contabilidad': typeof AppContabilidadIndexRoute
   '/solicitudes': typeof AppSolicitudesIndexRoute
+  '/legalizaciones/$legalizacionId/soportes/$soporteId': typeof AppLegalizacionesLegalizacionIdSoportesSoporteIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -101,10 +135,14 @@ export interface FileRoutesById {
   '/_app/tesoreria': typeof AppTesoreriaRoute
   '/_app/': typeof AppIndexRoute
   '/_app/anticipos/$anticipoId': typeof AppAnticiposAnticipoIdRoute
+  '/_app/contabilidad/politica': typeof AppContabilidadPoliticaRoute
+  '/_app/legalizaciones/$legalizacionId': typeof AppLegalizacionesLegalizacionIdRoute
   '/_app/solicitudes/$solicitudId': typeof AppSolicitudesSolicitudIdRoute
   '/_app/solicitudes/nueva': typeof AppSolicitudesNuevaRoute
   '/_app/anticipos/': typeof AppAnticiposIndexRoute
+  '/_app/contabilidad/': typeof AppContabilidadIndexRoute
   '/_app/solicitudes/': typeof AppSolicitudesIndexRoute
+  '/_app/legalizaciones/$legalizacionId_/soportes/$soporteId': typeof AppLegalizacionesLegalizacionIdSoportesSoporteIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -114,10 +152,14 @@ export interface FileRouteTypes {
     | '/aprobaciones'
     | '/tesoreria'
     | '/anticipos/$anticipoId'
+    | '/contabilidad/politica'
+    | '/legalizaciones/$legalizacionId'
     | '/solicitudes/$solicitudId'
     | '/solicitudes/nueva'
     | '/anticipos/'
+    | '/contabilidad/'
     | '/solicitudes/'
+    | '/legalizaciones/$legalizacionId/soportes/$soporteId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -125,10 +167,14 @@ export interface FileRouteTypes {
     | '/tesoreria'
     | '/'
     | '/anticipos/$anticipoId'
+    | '/contabilidad/politica'
+    | '/legalizaciones/$legalizacionId'
     | '/solicitudes/$solicitudId'
     | '/solicitudes/nueva'
     | '/anticipos'
+    | '/contabilidad'
     | '/solicitudes'
+    | '/legalizaciones/$legalizacionId/soportes/$soporteId'
   id:
     | '__root__'
     | '/_app'
@@ -137,10 +183,14 @@ export interface FileRouteTypes {
     | '/_app/tesoreria'
     | '/_app/'
     | '/_app/anticipos/$anticipoId'
+    | '/_app/contabilidad/politica'
+    | '/_app/legalizaciones/$legalizacionId'
     | '/_app/solicitudes/$solicitudId'
     | '/_app/solicitudes/nueva'
     | '/_app/anticipos/'
+    | '/_app/contabilidad/'
     | '/_app/solicitudes/'
+    | '/_app/legalizaciones/$legalizacionId_/soportes/$soporteId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -199,6 +249,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAnticiposAnticipoIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/contabilidad/': {
+      id: '/_app/contabilidad/'
+      path: '/contabilidad'
+      fullPath: '/contabilidad/'
+      preLoaderRoute: typeof AppContabilidadIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/contabilidad/politica': {
+      id: '/_app/contabilidad/politica'
+      path: '/contabilidad/politica'
+      fullPath: '/contabilidad/politica'
+      preLoaderRoute: typeof AppContabilidadPoliticaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/legalizaciones/$legalizacionId': {
+      id: '/_app/legalizaciones/$legalizacionId'
+      path: '/legalizaciones/$legalizacionId'
+      fullPath: '/legalizaciones/$legalizacionId'
+      preLoaderRoute: typeof AppLegalizacionesLegalizacionIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/solicitudes/': {
       id: '/_app/solicitudes/'
       path: '/solicitudes'
@@ -220,6 +291,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSolicitudesNuevaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/legalizaciones/$legalizacionId_/soportes/$soporteId': {
+      id: '/_app/legalizaciones/$legalizacionId_/soportes/$soporteId'
+      path: '/legalizaciones/$legalizacionId/soportes/$soporteId'
+      fullPath: '/legalizaciones/$legalizacionId/soportes/$soporteId'
+      preLoaderRoute: typeof AppLegalizacionesLegalizacionIdSoportesSoporteIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -228,10 +306,14 @@ interface AppRouteChildren {
   AppTesoreriaRoute: typeof AppTesoreriaRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAnticiposAnticipoIdRoute: typeof AppAnticiposAnticipoIdRoute
+  AppContabilidadPoliticaRoute: typeof AppContabilidadPoliticaRoute
+  AppLegalizacionesLegalizacionIdRoute: typeof AppLegalizacionesLegalizacionIdRoute
   AppSolicitudesSolicitudIdRoute: typeof AppSolicitudesSolicitudIdRoute
   AppSolicitudesNuevaRoute: typeof AppSolicitudesNuevaRoute
   AppAnticiposIndexRoute: typeof AppAnticiposIndexRoute
+  AppContabilidadIndexRoute: typeof AppContabilidadIndexRoute
   AppSolicitudesIndexRoute: typeof AppSolicitudesIndexRoute
+  AppLegalizacionesLegalizacionIdSoportesSoporteIdRoute: typeof AppLegalizacionesLegalizacionIdSoportesSoporteIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -239,10 +321,15 @@ const AppRouteChildren: AppRouteChildren = {
   AppTesoreriaRoute: AppTesoreriaRoute,
   AppIndexRoute: AppIndexRoute,
   AppAnticiposAnticipoIdRoute: AppAnticiposAnticipoIdRoute,
+  AppContabilidadPoliticaRoute: AppContabilidadPoliticaRoute,
+  AppLegalizacionesLegalizacionIdRoute: AppLegalizacionesLegalizacionIdRoute,
   AppSolicitudesSolicitudIdRoute: AppSolicitudesSolicitudIdRoute,
   AppSolicitudesNuevaRoute: AppSolicitudesNuevaRoute,
   AppAnticiposIndexRoute: AppAnticiposIndexRoute,
+  AppContabilidadIndexRoute: AppContabilidadIndexRoute,
   AppSolicitudesIndexRoute: AppSolicitudesIndexRoute,
+  AppLegalizacionesLegalizacionIdSoportesSoporteIdRoute:
+    AppLegalizacionesLegalizacionIdSoportesSoporteIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

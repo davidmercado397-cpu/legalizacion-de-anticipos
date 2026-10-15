@@ -36,9 +36,20 @@ Contraseña de todos: **`Viaticos2026*`**
 | `ana@empresa.co` | Viajera (Analista) | Crear solicitudes |
 | `carlos@empresa.co` | Jefe inmediato de Ana | Primera aprobación |
 | `diana@empresa.co` | Jefa directiva | Aprobación cuando se supera la tarifa |
-| `laura@empresa.co` | Contabilidad | (siguientes iteraciones) |
+| `tomas@empresa.co` | Tesorería | Registrar el desembolso del anticipo |
+| `laura@empresa.co` | Contabilidad | Revisar y aprobar legalizaciones; configurar NIT, topes y exclusiones |
 
 **Caso de ejemplo:** con Ana, cree un viaje a Brasil y cambie el alojamiento a 50 USD por noche (la tarifa es 30). La solicitud pedirá justificación e irá primero a Carlos y luego a Diana.
+
+### Lectura automática de facturas (opcional)
+
+Por defecto el viajero digita los datos de cada factura. Para que se lean solas con IA:
+
+1. Cree una API key en https://console.anthropic.com.
+2. En `.env`, ponga `OCR_PROVEEDOR=claude` y `ANTHROPIC_API_KEY=su-clave`.
+3. Reinicie: `docker compose up --build --watch`.
+
+El costo estimado es de unos USD 0,04–0,06 por factura. `OCR_ESFUERZO=low` lo reduce, con algo menos de precisión.
 
 ## 3. Qué se levanta
 
@@ -47,6 +58,7 @@ Contraseña de todos: **`Viaticos2026*`**
 | `web` | http://localhost:5173 | React 19 con Vite. Reenvía `/api` a la API |
 | `api` | http://localhost:5173/api/v1 (a través de la web) | NestJS con recarga en caliente. No publica puerto propio para no chocar con otros proyectos |
 | `db` | `localhost:5432` | PostgreSQL 17. Los datos persisten en el volumen `viaticos_db-data` |
+| — | volumen `viaticos_almacen-data` | Fotos y PDF de las facturas |
 | `migraciones` | — | Aplica migraciones y carga datos de prueba, y termina |
 | `adminer` *(opcional)* | http://localhost:8080 | Explorador web de la base de datos |
 

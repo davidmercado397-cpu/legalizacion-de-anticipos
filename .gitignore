@@ -7,3 +7,6 @@ coverage/
 *.log
 .DS_Store
 .tanstack/
+
+# Archivos de soportes en desarrollo local
+apps/api/almacen/

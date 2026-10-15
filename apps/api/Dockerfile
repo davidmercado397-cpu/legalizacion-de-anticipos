@@ -30,6 +30,9 @@ COPY --from=build --chown=node:node /app/apps/api/package.json ./apps/api/packag
 COPY --from=build --chown=node:node /app/apps/api/dist ./apps/api/dist
 COPY --from=build --chown=node:node /app/apps/api/drizzle ./apps/api/drizzle
 WORKDIR /app/apps/api
+# Carpeta de soportes (montar un volumen aquí, o usar un almacén en la nube)
+RUN mkdir -p /app/almacen && chown node:node /app/almacen
+ENV ALMACEN_DIR=/app/almacen
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s CMD wget -qO- http://127.0.0.1:3000/api/v1/salud || exit 1

@@ -1,7 +1,9 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { ApiError } from '@viaticos/client-api';
-import { anticipoOptions, useApi } from '@viaticos/client-app';
+import { useQuery } from '@tanstack/react-query';
+import { anticipoOptions, legalizacionPorAnticipoOptions, useApi } from '@viaticos/client-app';
+import { EnlaceLegalizacion, InsigniaEstadoLegalizacion } from '../../../features/legalizaciones/componentes';
 import { InsigniaEstadoAnticipo, resumenViaje } from '../../../features/anticipos/componentes';
 import { t } from '../../../i18n';
 import { mensajeDeError } from '../../../lib/errores';
@@ -24,6 +26,7 @@ function DetalleAnticipo() {
   const api = useApi();
   const { anticipoId } = Route.useParams();
   const { data: a } = useSuspenseQuery(anticipoOptions(api, anticipoId));
+  const legalizacion = useQuery({ ...legalizacionPorAnticipoOptions(api, anticipoId), enabled: a.estado === 'DESEMBOLSADO' || a.estado === 'LEGALIZADO' });
 
   return (
     <div className="space-y-5">
@@ -61,6 +64,18 @@ function DetalleAnticipo() {
           )}
         </div>
       </Tarjeta>
+
+      {legalizacion.data && (
+        <Tarjeta className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="font-semibold">Legalización</p>
+            <p className="text-sm text-slate-600">
+              {legalizacion.data.soportes.length} soporte(s) · <InsigniaEstadoLegalizacion estado={legalizacion.data.estado} />
+            </p>
+          </div>
+          <EnlaceLegalizacion id={legalizacion.data.id}>{legalizacion.data.editable ? 'Legalizar gastos' : 'Ver legalización'}</EnlaceLegalizacion>
+        </Tarjeta>
+      )}
 
       <Link to="/solicitudes/$solicitudId" params={{ solicitudId: a.solicitudId }} className="inline-block text-sm text-marca-700 hover:underline">
         Ver la solicitud de viaje →
