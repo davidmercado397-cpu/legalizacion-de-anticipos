@@ -46,6 +46,20 @@ export class TasaCambio {
     );
   }
 
+  /** Encadena tasas: (A→B).combinar(B→C) = A→C. Sirve para tasas cruzadas vía USD. */
+  combinar(siguiente: TasaCambio): TasaCambio {
+    if (siguiente.origen !== this.destino) {
+      throw new DomainError('TASAS_NO_ENCADENABLES', 'VALIDACION', `No se puede encadenar ${this.origen}->${this.destino} con ${siguiente.origen}->${siguiente.destino}`);
+    }
+    return new TasaCambio(
+      this.origen,
+      siguiente.destino,
+      this.valor.times(siguiente.valor).round(10).toString(),
+      this.fecha,
+      this.fuente === siguiente.fuente ? this.fuente : `${this.fuente}+${siguiente.fuente}`,
+    );
+  }
+
   toDto(): TasaCambioDto {
     return {
       origen: this.origen,

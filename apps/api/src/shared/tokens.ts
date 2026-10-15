@@ -8,3 +8,4 @@ export const CONFIGURACION = Symbol('Configuracion');
 export const CONEXION_BASE_DATOS = Symbol('ConexionBaseDatos');
 /** Mismo bus: publica y permite suscribirse (BusEventos). */
 export const BUS_EVENTOS = PUBLICADOR_EVENTOS;
+export const COLA_TRABAJOS = Symbol('ColaTrabajos');

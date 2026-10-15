@@ -19,6 +19,17 @@ export class ControlDuplicados {
     return this.detector.evaluar(huella, candidatos, comprobanteIdActual);
   }
 
+  /** Chequeo barato antes de guardar un archivo: ¿ya existe exactamente el mismo? */
+  async archivoYaRadicado(sha256: string): Promise<boolean> {
+    const resultado = await this.verificar({ sha256 });
+    return resultado.coincidencias.some((c) => c.codigo === 'ARCHIVO_IDENTICO');
+  }
+
+  /** El comprobante se eliminó o rechazó: deja de bloquear. */
+  anular(comprobanteId: string): Promise<void> {
+    return this.huellas.anular(comprobanteId);
+  }
+
   /**
    * Verifica y registra. Un DUPLICADO se rechaza; un SOSPECHOSO se registra y el
    * resultado viaja con el comprobante para que contabilidad lo revise.

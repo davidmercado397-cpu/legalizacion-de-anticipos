@@ -1,0 +1,81 @@
+import type { LegalizacionResponse, PoliticaLegalizacionResponse, SoporteResponse } from '@viaticos/contracts';
+import { Legalizacion, montosDelSoporte, requiereDecision, type Soporte } from '../domain/legalizacion';
+import type { PoliticaLegalizacion } from '../domain/politica';
+import { datosAJson } from '../infrastructure/persistencia/serializacion';
+
+export interface DirectorioNombres {
+  nombres(ids: readonly string[]): Promise<Map<string, string>>;
+}
+
+export class PresentadorLegalizaciones {
+  constructor(private readonly directorio: DirectorioNombres) {}
+
+  async una(l: Legalizacion): Promise<LegalizacionResponse> {
+    return (await this.varias([l]))[0]!;
+  }
+
+  async varias(lista: readonly Legalizacion[]): Promise<LegalizacionResponse[]> {
+    const ids = lista.flatMap((l) => [
+      l.viajeroId,
+      ...l.historial.map((h) => h.usuarioId),
+      ...l.soportes.flatMap((s) => (s.decision ? [s.decision.contadorId] : [])),
+    ]);
+    const nombres = await this.directorio.nombres(ids);
+    const nombre = (id: string) => nombres.get(id) ?? id;
+
+    return lista.map((l) => {
+      const resumen = l.resumen();
+      return {
+        id: l.id,
+        anticipoId: l.anticipoId,
+        viajeroId: l.viajeroId,
+        viajeroNombre: nombre(l.viajeroId),
+        estado: l.estado,
+        editable: l.estado === 'ABIERTA' || l.estado === 'DEVUELTA',
+        montoAnticipo: l.montoAnticipo.toDto(),
+        viaje: { inicio: l.viaje.inicio.toString(), fin: l.viaje.fin.toString() },
+        resumen: {
+          totalAceptado: resumen.totalAceptado.toDto(),
+          totalExcluido: resumen.totalExcluido.toDto(),
+          saldo: resumen.saldo.toDto(),
+        },
+        soportes: l.soportes.map((s) => presentarSoporte(s, l.montoAnticipo.moneda, nombre)),
+        historial: l.historial.map((h) => ({ tipo: h.tipo, usuarioNombre: nombre(h.usuarioId), comentario: h.comentario, en: h.en.toISOString() })),
+        creadaEn: l.creadaEn.toISOString(),
+      };
+    });
+  }
+}
+
+function presentarSoporte(s: Soporte, monedaAnticipo: string, nombre: (id: string) => string): SoporteResponse {
+  const montos = montosDelSoporte(s, monedaAnticipo);
+  return {
+    id: s.id,
+    tipo: s.tipo,
+    estado: s.estado,
+    descripcion: s.descripcionUsuario,
+    // La clave interna de almacenamiento no se expone.
+    archivo: s.archivo && { nombre: s.archivo.nombre, mime: s.archivo.mime, tamano: s.archivo.tamano },
+    extraccion: s.extraccion,
+    datos: s.datos && datosAJson(s.datos),
+    montos: { aceptado: montos.aceptado.toDto(), excluido: montos.excluido.toDto() },
+    alertas: s.alertas,
+    requiereDecision: requiereDecision(s),
+    decision: s.decision && {
+      aplica: s.decision.aplica,
+      comentario: s.decision.comentario,
+      contadorNombre: nombre(s.decision.contadorId),
+      decididoEn: s.decision.decididoEn.toISOString(),
+    },
+    beneficiario: s.beneficiario,
+    creadoEn: s.creadoEn.toISOString(),
+  };
+}
+
+export const presentarPolitica = (p: PoliticaLegalizacion): PoliticaLegalizacionResponse => ({
+  nitEmpresa: p.nitEmpresa,
+  topesReciboCaja: p.topesReciboCaja.map((t) => t.toDto()),
+  exclusiones: p.exclusiones,
+  actualizadaPor: p.actualizadaPor,
+  actualizadaEn: p.actualizadaEn?.toISOString() ?? null,
+});

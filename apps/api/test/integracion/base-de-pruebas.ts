@@ -10,7 +10,7 @@ export async function prepararBaseDePruebas(): Promise<ConexionBaseDatos> {
   await migrar(URL_PRUEBAS!);
   const conexion = new ConexionBaseDatos(URL_PRUEBAS!, 5);
   await conexion.db.execute(sql`
-    TRUNCATE anticipos, solicitudes, solicitud_destinos, solicitud_lineas, solicitud_pasos_aprobacion,
+    TRUNCATE soportes, legalizaciones, politica_legalizacion, anticipos, solicitudes, solicitud_destinos, solicitud_lineas, solicitud_pasos_aprobacion,
              huellas_comprobante, sesiones, credenciales, tarifas, conceptos_viatico,
              configuracion_escalamiento, usuarios CASCADE`);
   await sembrar(URL_PRUEBAS!);

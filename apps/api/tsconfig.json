@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "experimentalDecorators": true,
-    "types": ["node"]
+    "types": ["node", "multer"]
   },
   "include": ["src", "test"]
 }

@@ -26,7 +26,11 @@ const capaDe = (ruta: string) => relative(MODULOS, ruta).split(sep)[1] ?? '';
 const moduloDe = (ruta: string) => relative(MODULOS, ruta).split(sep)[0]!;
 const resolverRelativo = (archivo: string, imp: string) => resolve(archivo, '..', imp);
 
-const PAQUETES_PERMITIDOS_NUCLEO = ['@viaticos/shared-kernel'];
+const PAQUETES_PERMITIDOS = {
+  domain: ['@viaticos/shared-kernel'],
+  // node:crypto es cálculo puro (hash) y estándar de la plataforma; nada de frameworks ni E/S.
+  application: ['@viaticos/shared-kernel', 'node:crypto'],
+} as const;
 
 function violaciones(): string[] {
   const errores: string[] = [];
@@ -36,7 +40,7 @@ function violaciones(): string[] {
     for (const imp of importsDe(archivo)) {
       const etiqueta = `${relative(SRC, archivo)} → ${imp}`;
       if (!imp.startsWith('.')) {
-        if ((capa === 'domain' || capa === 'application') && !PAQUETES_PERMITIDOS_NUCLEO.includes(imp)) {
+        if ((capa === 'domain' || capa === 'application') && !(PAQUETES_PERMITIDOS[capa] as readonly string[]).includes(imp)) {
           errores.push(`${etiqueta}: ${capa} no puede depender de paquetes externos`);
         }
         continue;

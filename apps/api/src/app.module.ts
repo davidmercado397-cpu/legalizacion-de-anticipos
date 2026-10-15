@@ -2,6 +2,7 @@ import { Module, type DynamicModule } from '@nestjs/common';
 import { AnticiposModule } from './modules/anticipos/anticipos.module';
 import { ComprobantesModule } from './modules/comprobantes/comprobantes.module';
 import { IdentidadModule } from './modules/identidad/identidad.module';
+import { LegalizacionesModule } from './modules/legalizaciones/legalizaciones.module';
 import { TarifasModule } from './modules/tarifas/tarifas.module';
 import { SolicitudesModule } from './modules/solicitudes/solicitudes.module';
 import { SaludController } from './salud.controller';
@@ -13,7 +14,7 @@ export class AppModule {
   static forRoot(configuracion: Configuracion): DynamicModule {
     return {
       module: AppModule,
-      imports: [SharedModule.forRoot(configuracion), IdentidadModule, TarifasModule, SolicitudesModule, AnticiposModule, ComprobantesModule],
+      imports: [SharedModule.forRoot(configuracion), IdentidadModule, TarifasModule, SolicitudesModule, AnticiposModule, LegalizacionesModule, ComprobantesModule],
       controllers: [SaludController],
     };
   }

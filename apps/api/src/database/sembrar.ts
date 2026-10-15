@@ -6,6 +6,8 @@ import { usuarios } from '../modules/organizacion/infrastructure/persistencia/or
 import { USUARIOS_DESARROLLO } from '../modules/organizacion/infrastructure/usuario.repository.memoria';
 import { configuracionEscalamiento } from '../modules/solicitudes/infrastructure/persistencia/solicitudes.schema';
 import { CONFIGURACION_ESCALAMIENTO_DESARROLLO } from '../modules/solicitudes/infrastructure/configuracion-escalamiento.repository.memoria';
+import { politicaLegalizacion } from '../modules/legalizaciones/infrastructure/persistencia/legalizaciones.schema';
+import { politicaPorDefecto } from '../modules/legalizaciones/infrastructure/repositorios.memoria';
 import { conceptosViatico, tarifas } from '../modules/tarifas/infrastructure/persistencia/tarifas.schema';
 import { CONCEPTOS_DESARROLLO, TARIFAS_DESARROLLO } from '../modules/tarifas/infrastructure/repositorios.memoria';
 
@@ -60,6 +62,17 @@ export async function sembrar(url: string): Promise<void> {
       await tx
         .insert(configuracionEscalamiento)
         .values(CONFIGURACION_ESCALAMIENTO_DESARROLLO)
+        .onConflictDoNothing();
+
+      const politica = politicaPorDefecto();
+      await tx
+        .insert(politicaLegalizacion)
+        .values({
+          id: 1,
+          nitEmpresa: politica.nitEmpresa,
+          topesReciboCaja: politica.topesReciboCaja.map((t) => t.toDto()),
+          exclusiones: politica.exclusiones,
+        })
         .onConflictDoNothing();
     });
   } finally {

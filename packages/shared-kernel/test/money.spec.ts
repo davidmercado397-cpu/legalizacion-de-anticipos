@@ -30,6 +30,16 @@ describe('Money', () => {
     expect(Money.of('401235', 'COP').convertir(trm.invertir()).monto).toBe('100.00');
   });
 
+  it('combina tasas para obtener una cruzada (BRL→USD→COP)', () => {
+    const fecha = FechaCalendario.of('2026-11-03');
+    const brlUsd = new TasaCambio('USD', 'BRL', '5', fecha, 'X').invertir();
+    const usdCop = new TasaCambio('USD', 'COP', '4000', fecha, 'X');
+    const brlCop = brlUsd.combinar(usdCop);
+    expect(`${brlCop.origen}->${brlCop.destino}`).toBe('BRL->COP');
+    expect(Money.of(100, 'BRL').convertir(brlCop).monto).toBe('80000.00');
+    expect(() => usdCop.combinar(usdCop)).toThrowError(/encadenar/);
+  });
+
   it('rechaza una tasa que no corresponde a la moneda', () => {
     const trm = new TasaCambio('USD', 'COP', 4000, FechaCalendario.of('2026-10-15'), 'TRM');
     expect(() => Money.of(1, 'BRL').convertir(trm)).toThrowError(/no aplica/);

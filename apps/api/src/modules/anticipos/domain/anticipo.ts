@@ -1,4 +1,4 @@
-import { DomainError, FechaCalendario, invariante, type Money } from '@viaticos/shared-kernel';
+import { DomainError, FechaCalendario, invariante, type Money, type MoneyDto } from '@viaticos/shared-kernel';
 import { AgregadoRaiz, type EventoDominio } from '../../../shared/domain/agregado-raiz';
 
 /**
@@ -46,6 +46,9 @@ export interface AnticipoProps {
 export interface AnticipoDesembolsado extends EventoDominio {
   tipo: 'anticipos.AnticipoDesembolsado';
   viajeroId: string;
+  monto: MoneyDto;
+  viajeInicio: string;
+  viajeFin: string;
 }
 
 export class Anticipo extends AgregadoRaiz {
@@ -161,6 +164,9 @@ export class Anticipo extends AgregadoRaiz {
       agregadoId: this.id,
       ocurridoEn: datos.ahora,
       viajeroId: this.viajeroId,
+      monto: this.monto.toDto(),
+      viajeInicio: this.rangoViaje.inicio.toString(),
+      viajeFin: this.rangoViaje.fin.toString(),
     } satisfies AnticipoDesembolsado);
   }
 

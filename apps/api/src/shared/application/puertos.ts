@@ -7,6 +7,11 @@ export interface Reloj {
   hoy(): FechaCalendario;
 }
 
+/** Registro de eventos operativos (advertencias que no interrumpen el caso de uso). */
+export interface Bitacora {
+  advertencia(mensaje: string): void;
+}
+
 export interface GeneradorIds {
   nuevo(): string;
 }

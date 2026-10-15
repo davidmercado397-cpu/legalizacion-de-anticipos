@@ -8,7 +8,11 @@ import { ANTICIPO_REPOSITORY, ERP_ANTICIPOS } from './anticipos.tokens';
 import { GestionAnticipos } from './application/anticipos.use-cases';
 import type { ErpAnticiposGateway } from './application/puertos';
 import type { AnticipoRepository } from './domain/anticipo';
-import { DirectorioPersonasAdapter, suscribirCreacionDeAnticipos } from './infrastructure/adaptadores-modulos';
+import {
+  DirectorioPersonasAdapter,
+  suscribirCierreDeAnticipos,
+  suscribirCreacionDeAnticipos,
+} from './infrastructure/adaptadores-modulos';
 import { AnticipoRepositoryEnMemoria } from './infrastructure/anticipo.repository.memoria';
 import { ErpAnticiposSimulado } from './infrastructure/erp-anticipos.simulado';
 import { AnticipoRepositoryDrizzle } from './infrastructure/persistencia/anticipo.repository.drizzle';
@@ -47,5 +51,6 @@ export class AnticiposModule implements OnModuleInit {
 
   onModuleInit(): void {
     suscribirCreacionDeAnticipos(this.bus, this.anticipos);
+    suscribirCierreDeAnticipos(this.bus, this.anticipos);
   }
 }

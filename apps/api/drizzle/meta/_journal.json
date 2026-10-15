@@ -15,6 +15,13 @@
       "when": 1792102530760,
       "tag": "0001_anticipos",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792103528407,
+      "tag": "0002_legalizaciones",
+      "breakpoints": true
     }
   ]
 }

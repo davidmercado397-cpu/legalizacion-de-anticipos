@@ -1,5 +1,6 @@
 import type { BusEventos } from '../../../shared/application/puertos';
 import type { ConsultarUsuarioUseCase } from '../../organizacion/application/consultar-usuario.use-case';
+import type { LegalizacionAprobada } from '../../legalizaciones/application/eventos-publicos';
 import type { SolicitudAprobada } from '../../solicitudes/application/eventos-publicos';
 import type { GestionAnticipos } from '../application/anticipos.use-cases';
 import type { DirectorioPersonas } from '../application/puertos';
@@ -22,4 +23,11 @@ export class DirectorioPersonasAdapter implements DirectorioPersonas {
   async nombres(ids: readonly string[]): Promise<Map<string, string>> {
     return new Map((await this.consultar.varios(ids)).map((u) => [u.id, u.nombre]));
   }
+}
+
+/** La legalización aprobada cierra el anticipo. */
+export function suscribirCierreDeAnticipos(bus: BusEventos, anticipos: GestionAnticipos): void {
+  bus.suscribir<LegalizacionAprobada>('legalizaciones.LegalizacionAprobada', async (evento) => {
+    await anticipos.marcarLegalizado(evento.anticipoId);
+  });
 }
