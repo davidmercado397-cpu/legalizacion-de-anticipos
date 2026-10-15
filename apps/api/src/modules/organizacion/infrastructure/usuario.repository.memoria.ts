@@ -11,6 +11,10 @@ export class UsuarioRepositoryEnMemoria implements UsuarioRepository {
     return this.usuarios.get(id) ?? null;
   }
 
+  async obtenerVarios(ids: readonly string[]): Promise<Usuario[]> {
+    return ids.flatMap((id) => this.usuarios.get(id) ?? []);
+  }
+
   async obtenerPorEmail(email: string): Promise<Usuario | null> {
     const buscado = email.toLowerCase();
     return [...this.usuarios.values()].find((u) => u.email.toLowerCase() === buscado) ?? null;

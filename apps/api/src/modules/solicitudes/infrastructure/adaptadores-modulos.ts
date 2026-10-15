@@ -31,6 +31,10 @@ export class ConsultaTarifasAdapter implements ConsultaTarifas {
 export class DirectorioOrganizacionalAdapter implements DirectorioOrganizacional {
   constructor(private readonly consultarUsuario: ConsultarUsuarioUseCase) {}
 
+  async nombres(usuarioIds: readonly string[]): Promise<Map<string, string>> {
+    return new Map((await this.consultarUsuario.varios(usuarioIds)).map((u) => [u.id, u.nombre]));
+  }
+
   async obtenerViajero(usuarioId: string): Promise<PerfilViajero | null> {
     const usuario = await this.consultarUsuario.ejecutar(usuarioId);
     return usuario

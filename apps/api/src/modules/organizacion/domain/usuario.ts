@@ -16,4 +16,5 @@ export interface UsuarioRepository {
   obtenerPorId(id: string): Promise<Usuario | null>;
   /** Búsqueda sin distinguir mayúsculas. */
   obtenerPorEmail(email: string): Promise<Usuario | null>;
+  obtenerVarios(ids: readonly string[]): Promise<Usuario[]>;
 }

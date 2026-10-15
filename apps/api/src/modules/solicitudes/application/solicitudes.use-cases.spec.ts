@@ -27,7 +27,10 @@ const tarifas: ConsultaTarifas = {
 const perfiles: Record<string, PerfilViajero> = {
   ana: { id: 'ana', cargoId: 'ANALISTA', jefeInmediatoId: 'carlos', jefeDirectivoId: 'diana' },
 };
-const directorio: DirectorioOrganizacional = { obtenerViajero: async (id) => perfiles[id] ?? null };
+const directorio: DirectorioOrganizacional = {
+  obtenerViajero: async (id) => perfiles[id] ?? null,
+  nombres: async () => new Map(),
+};
 
 class EventosEnMemoria implements PublicadorEventos {
   publicados: EventoDominio[] = [];

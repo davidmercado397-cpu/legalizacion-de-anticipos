@@ -1,0 +1,31 @@
+{
+  "name": "@viaticos/client-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Capa de aplicación del cliente (React sin DOM): sesión, queries y mutaciones. Compartida por web y móvil.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.104.3",
+    "@viaticos/client-api": "workspace:*",
+    "@viaticos/contracts": "workspace:*",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "^19.2.0",
+    "jsdom": "^27.0.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "@types/react-dom": "^19.2.0"
+  }
+}

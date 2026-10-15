@@ -30,17 +30,27 @@ export function presentarEstimado(e: {
   return { presupuesto: presentarPresupuesto(e.presupuesto), escalamiento: e.escalamiento };
 }
 
-export function presentarSolicitud(s: SolicitudViaje): SolicitudResponse {
+/** Ids de personas que aparecen en las solicitudes (para resolver nombres en lote). */
+export const personasDe = (lista: readonly SolicitudViaje[]) =>
+  lista.flatMap((s) => [s.viajeroId, ...s.ruta.pasosSnapshot.map((p) => p.aprobadorId)]);
+
+export function presentarSolicitud(s: SolicitudViaje, nombres: ReadonlyMap<string, string>): SolicitudResponse {
+  const nombre = (id: string) => nombres.get(id) ?? id;
   return {
     id: s.id,
     estado: s.estado,
     viajeroId: s.viajeroId,
+    viajeroNombre: nombre(s.viajeroId),
     motivo: s.motivo,
     justificacion: s.justificacion,
     destinos: s.destinos.map((d) => d.toDatos()),
     presupuesto: presentarPresupuesto(s.presupuesto),
     escalamiento: s.escalamiento,
-    ruta: s.ruta.pasosSnapshot.map((p) => ({ ...p, decididoEn: p.decididoEn?.toISOString() ?? null })),
+    ruta: s.ruta.pasosSnapshot.map((p) => ({
+      ...p,
+      aprobadorNombre: nombre(p.aprobadorId),
+      decididoEn: p.decididoEn?.toISOString() ?? null,
+    })),
     creadaEn: s.creadaEn.toISOString(),
     actualizadaEn: s.actualizadaEn.toISOString(),
   };

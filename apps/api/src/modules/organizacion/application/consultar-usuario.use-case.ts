@@ -12,6 +12,11 @@ export class ConsultarUsuarioUseCase {
     return usuario?.activo ? usuario : null;
   }
 
+  /** Para mostrar nombres en listados (incluye inactivos: el historial debe seguir legible). */
+  varios(ids: readonly string[]): Promise<Usuario[]> {
+    return ids.length ? this.usuarios.obtenerVarios([...new Set(ids)]) : Promise.resolve([]);
+  }
+
   async porEmail(email: string): Promise<Usuario | null> {
     const usuario = await this.usuarios.obtenerPorEmail(email.trim());
     return usuario?.activo ? usuario : null;

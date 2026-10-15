@@ -81,6 +81,8 @@ describe('API HTTP (e2e)', () => {
       .expect(201);
     const id = creada.body.id as string;
     expect(creada.body.ruta.map((p: { aprobadorId: string }) => p.aprobadorId)).toEqual(['u-jefe', 'u-directivo']);
+    expect(creada.body.viajeroNombre).toBe('Ana Viajera');
+    expect(creada.body.ruta.map((p: { aprobadorNombre: string }) => p.aprobadorNombre)).toEqual(['Carlos Jefe', 'Diana Directiva']);
 
     await como('u-directivo').post(`/solicitudes/${id}/aprobar`).send({}).expect(403);
     const pendientes = await como('u-jefe').get('/aprobaciones/pendientes').expect(200);

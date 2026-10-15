@@ -28,6 +28,7 @@ import { ConfiguracionEscalamientoDrizzle } from './infrastructure/persistencia/
 import { SolicitudRepositoryDrizzle } from './infrastructure/persistencia/solicitud.repository.drizzle';
 import { SolicitudRepositoryEnMemoria } from './infrastructure/solicitud.repository.memoria';
 import { AprobacionesController } from './presentation/aprobaciones.controller';
+import { PresentadorSolicitudes } from './presentation/presentador';
 import { SolicitudesController } from './presentation/solicitudes.controller';
 import {
   CONFIGURACION_ESCALAMIENTO_REPOSITORY,
@@ -104,6 +105,11 @@ const cambioEstado = <T>(Clase: new (r: SolicitudRepository, c: Reloj, e: Public
       useFactory: (directorio: DirectorioOrganizacional, tarifas: ConsultaTarifas) =>
         new DestinosDisponiblesUseCase(directorio, tarifas),
       inject: [DIRECTORIO_ORGANIZACIONAL, CONSULTA_TARIFAS],
+    },
+    {
+      provide: PresentadorSolicitudes,
+      useFactory: (directorio: DirectorioOrganizacional) => new PresentadorSolicitudes(directorio),
+      inject: [DIRECTORIO_ORGANIZACIONAL],
     },
     cambioEstado(AprobarSolicitudUseCase),
     cambioEstado(RechazarSolicitudUseCase),

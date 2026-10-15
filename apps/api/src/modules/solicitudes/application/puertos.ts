@@ -17,4 +17,6 @@ export interface PerfilViajero {
 /** Datos organizacionales del viajero (lo implementa un adaptador al módulo de organización). */
 export interface DirectorioOrganizacional {
   obtenerViajero(usuarioId: string): Promise<PerfilViajero | null>;
+  /** id → nombre, para presentar solicitudes. */
+  nombres(usuarioIds: readonly string[]): Promise<Map<string, string>>;
 }

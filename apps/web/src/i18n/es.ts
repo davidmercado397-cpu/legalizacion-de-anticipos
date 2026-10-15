@@ -1,0 +1,33 @@
+export const es: Record<string, string> = {
+  // Validaciones (esquemas Zod compartidos)
+  'validation.required': 'Este campo es obligatorio',
+  'validation.decimal': 'Ingrese un valor numérico con máximo 2 decimales',
+  'validation.currency': 'Seleccione USD o COP',
+  'validation.date': 'Fecha inválida',
+  'validation.country': 'Seleccione un país',
+  'validation.minLength': 'El texto es demasiado corto',
+  'validation.endBeforeStart': 'La fecha de regreso no puede ser anterior a la de salida',
+  'validation.atLeastOneDestination': 'Agregue al menos un destino',
+  'validation.duplicatedConcept': 'Concepto repetido',
+  'validation.email': 'Correo electrónico inválido',
+  // Estados
+  'estado.EN_APROBACION': 'En aprobación',
+  'estado.APROBADA': 'Aprobada',
+  'estado.RECHAZADA': 'Rechazada',
+  'estado.CANCELADA': 'Cancelada',
+  'paso.PENDIENTE': 'Pendiente',
+  'paso.APROBADO': 'Aprobó',
+  'paso.RECHAZADO': 'Rechazó',
+  'nivel.JEFE_INMEDIATO': 'Jefe inmediato',
+  'nivel.JEFE_DIRECTIVO': 'Jefe directivo',
+  'unidad.NOCHE': 'noches',
+  'unidad.DIA': 'días',
+  // Errores de la API (código estable → mensaje)
+  'error.SIN_CONEXION': 'No hay conexión con el servidor. Revise su red e intente de nuevo.',
+  'error.CREDENCIALES_INVALIDAS': 'Correo o contraseña incorrectos.',
+  'error.JUSTIFICACION_REQUERIDA': 'Esta solicitud supera la política: escriba una justificación.',
+  'error.TARIFA_NO_DEFINIDA': 'No hay tarifas configuradas para ese país y su cargo.',
+  'error.DESTINOS_SOLAPADOS': 'Las fechas de los destinos se solapan.',
+  'error.CONFLICTO_CONCURRENCIA': 'Otra persona modificó la solicitud. Recargue la página.',
+  'error.SESION_REUTILIZADA': 'Por seguridad se cerró su sesión. Ingrese de nuevo.',
+};

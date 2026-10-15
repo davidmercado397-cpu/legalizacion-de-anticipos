@@ -107,6 +107,7 @@ export const pasoAprobacionSchema = z.object({
   orden: z.number().int(),
   nivel: z.enum(['JEFE_INMEDIATO', 'JEFE_DIRECTIVO']),
   aprobadorId: z.string(),
+  aprobadorNombre: z.string(),
   estado: z.enum(['PENDIENTE', 'APROBADO', 'RECHAZADO']),
   decididoEn: z.string().nullable(),
   comentario: z.string().nullable(),
@@ -116,6 +117,7 @@ export const solicitudResponseSchema = z.object({
   id: z.string(),
   estado: estadoSolicitudSchema,
   viajeroId: z.string(),
+  viajeroNombre: z.string(),
   motivo: z.string(),
   justificacion: z.string().nullable(),
   destinos: z.array(

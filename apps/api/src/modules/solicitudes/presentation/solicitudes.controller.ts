@@ -21,7 +21,8 @@ import {
 } from '../application/decidir-solicitud.use-cases';
 import { DestinosDisponiblesUseCase } from '../application/destinos-disponibles.use-case';
 import { EstimarViajeUseCase } from '../application/estimar-viaje.use-case';
-import { presentarEstimado, presentarSolicitud } from './solicitud.presenter';
+import { PresentadorSolicitudes } from './presentador';
+import { presentarEstimado } from './solicitud.presenter';
 
 @Controller('solicitudes')
 export class SolicitudesController {
@@ -33,6 +34,7 @@ export class SolicitudesController {
     @Inject(RechazarSolicitudUseCase) private readonly rechazarSolicitud: RechazarSolicitudUseCase,
     @Inject(CancelarSolicitudUseCase) private readonly cancelarSolicitud: CancelarSolicitudUseCase,
     @Inject(DestinosDisponiblesUseCase) private readonly destinosDisponibles: DestinosDisponiblesUseCase,
+    @Inject(PresentadorSolicitudes) private readonly presentar: PresentadorSolicitudes,
   ) {}
 
   /** Países con tarifa para el cargo del usuario (selector de destino). */
@@ -55,17 +57,17 @@ export class SolicitudesController {
     @UsuarioActual() usuarioId: string,
     @Body(new ZodValidationPipe(crearSolicitudRequestSchema)) body: CrearSolicitudCommand,
   ): Promise<SolicitudResponse> {
-    return presentarSolicitud(await this.crearSolicitud.ejecutar({ ...body, viajeroId: usuarioId }));
+    return this.presentar.una(await this.crearSolicitud.ejecutar({ ...body, viajeroId: usuarioId }));
   }
 
   @Get()
   async misSolicitudes(@UsuarioActual() usuarioId: string): Promise<SolicitudResponse[]> {
-    return (await this.consultar.listarDelViajero(usuarioId)).map(presentarSolicitud);
+    return this.presentar.varias(await this.consultar.listarDelViajero(usuarioId));
   }
 
   @Get(':id')
   async obtener(@UsuarioActual() usuarioId: string, @Param('id') id: string): Promise<SolicitudResponse> {
-    return presentarSolicitud(await this.consultar.obtener(id, usuarioId));
+    return this.presentar.una(await this.consultar.obtener(id, usuarioId));
   }
 
   @Post(':id/aprobar')
@@ -76,7 +78,7 @@ export class SolicitudesController {
     @Body(new ZodValidationPipe(aprobarSolicitudRequestSchema)) body: { comentario?: string },
   ): Promise<SolicitudResponse> {
     const s = await this.aprobarSolicitud.ejecutar({ solicitudId: id, aprobadorId: usuarioId, comentario: body.comentario });
-    return presentarSolicitud(s);
+    return this.presentar.una(s);
   }
 
   @Post(':id/rechazar')
@@ -87,12 +89,12 @@ export class SolicitudesController {
     @Body(new ZodValidationPipe(rechazarSolicitudRequestSchema)) body: { comentario: string },
   ): Promise<SolicitudResponse> {
     const s = await this.rechazarSolicitud.ejecutar({ solicitudId: id, aprobadorId: usuarioId, comentario: body.comentario });
-    return presentarSolicitud(s);
+    return this.presentar.una(s);
   }
 
   @Post(':id/cancelar')
   @HttpCode(200)
   async cancelar(@UsuarioActual() usuarioId: string, @Param('id') id: string): Promise<SolicitudResponse> {
-    return presentarSolicitud(await this.cancelarSolicitud.ejecutar({ solicitudId: id, usuarioId }));
+    return this.presentar.una(await this.cancelarSolicitud.ejecutar({ solicitudId: id, usuarioId }));
   }
 }
