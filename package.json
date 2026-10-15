@@ -1,0 +1,22 @@
+{
+  "name": "viaticos",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Legalización de anticipos de viaje: presupuesto, aprobaciones, captura de soportes y exportación a Siesa",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev:api": "pnpm --filter @viaticos/api dev",
+    "dev:web": "pnpm --filter @viaticos/web dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.12"
+  }
+}
