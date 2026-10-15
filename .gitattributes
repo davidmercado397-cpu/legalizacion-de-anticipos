@@ -1,0 +1,5 @@
+# Finales de línea LF en todo el repositorio (evita errores en contenedores Linux al clonar en Windows)
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary

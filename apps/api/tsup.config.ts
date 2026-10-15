@@ -1,7 +1,8 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/main.ts'],
+  // main: servidor · cli: tareas de base de datos (node dist/cli.js migrar | sembrar)
+  entry: { main: 'src/main.ts', cli: 'src/database/cli.ts' },
   format: ['esm'],
   target: 'node22',
   platform: 'node',

@@ -11,10 +11,3 @@ export async function migrar(url: string, carpeta = process.env.MIGRACIONES_DIR 
     await conexion.onApplicationShutdown();
   }
 }
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error('Defina DATABASE_URL');
-  await migrar(url);
-  console.log('Migraciones aplicadas');
-}

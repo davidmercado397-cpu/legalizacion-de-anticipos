@@ -66,11 +66,3 @@ export async function sembrar(url: string): Promise<void> {
     await conexion.onApplicationShutdown();
   }
 }
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error('Defina DATABASE_URL');
-  await sembrar(url);
-  console.log(`Datos de desarrollo cargados. Usuarios: ${USUARIOS_DESARROLLO.map((u) => u.email).join(', ')}`);
-  console.log(`Contraseña: ${CONTRASENA_DESARROLLO}`);
-}

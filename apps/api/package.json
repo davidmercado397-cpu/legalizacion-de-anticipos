@@ -11,8 +11,8 @@
     "test:integracion": "vitest run --config vitest.integracion.config.ts",
     "typecheck": "tsc -p tsconfig.json",
     "db:generar": "drizzle-kit generate",
-    "db:migrar": "tsx --env-file-if-exists=../../.env src/database/migrar.ts",
-    "db:sembrar": "tsx --env-file-if-exists=../../.env src/database/sembrar.ts",
+    "db:migrar": "tsx --env-file-if-exists=../../.env src/database/cli.ts migrar",
+    "db:sembrar": "tsx --env-file-if-exists=../../.env src/database/cli.ts sembrar",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

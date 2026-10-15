@@ -5,41 +5,54 @@ Proyección de viajes con presupuesto por cargo × país × concepto, aprobacion
 - Plan y alcance: [docs/plan.md](docs/plan.md)
 - Decisiones de arquitectura: [docs/adr](docs/adr)
 
-## Requisitos
+## Inicio rápido (Docker)
 
-- Node.js ≥ 22.12
-- pnpm 10 (`corepack enable`)
+```bash
+git clone https://github.com/davidmercado397-cpu/legalizacion-de-anticipos.git
+cd legalizacion-de-anticipos
+cp .env.example .env
+docker compose up --build --watch
+```
 
-## Comandos
+Abra **http://localhost:5173** e ingrese con `ana@empresa.co` y la contraseña `Viaticos2026*`. Guía completa (Windows incluido), usuarios de prueba y solución de problemas: **[docs/desarrollo-local.md](docs/desarrollo-local.md)**.
+
+## Comandos (con Node 22 + pnpm en su equipo)
 
 ```bash
 pnpm install
-pnpm test          # pruebas de todos los paquetes
-pnpm typecheck     # TypeScript estricto en todo el monorepo
-pnpm dev:api       # API en http://localhost:3000/api/v1 (modo de autenticación de desarrollo)
-pnpm build         # bundle de producción de la API (apps/api/dist)
+pnpm test               # unitarias + e2e en memoria
+pnpm test:integracion   # contra PostgreSQL (docker compose up -d db)
+pnpm typecheck          # TypeScript estricto en todo el monorepo
+pnpm build              # bundles de producción (API y web)
+pnpm db:generar         # nueva migración a partir de los *.schema.ts
 ```
 
 ## Estructura
 
 ```
-apps/api/                     NestJS (monolito modular, arquitectura limpia)
+apps/api/            NestJS · monolito modular con arquitectura limpia
   src/modules/<contexto>/{domain,application,infrastructure,presentation}
-  test/arquitectura.spec.ts   falla si se rompe la regla de dependencia
-packages/shared-kernel/       Money (decimal exacto), monedas, fechas, tasas de cambio, errores de dominio
-packages/contracts/           Esquemas Zod compartidos por la API y los formularios
+  drizzle/           migraciones SQL versionadas
+  test/              e2e, prueba de arquitectura e integración (PostgreSQL)
+apps/web/            React 19 · TanStack Router/Query · RHF + Zod · Tailwind (PWA responsive)
+packages/
+  shared-kernel/     Money (decimal exacto), monedas, fechas, tasas, errores de dominio
+  contracts/         esquemas Zod compartidos por API, web y (futuro) móvil
+  client-api/        cliente axios: token, renovación, errores RFC 7807
+  client-app/        sesión (Zustand) y hooks de TanStack Query (reutilizable en React Native)
+docker/              imagen de desarrollo, nginx, init de PostgreSQL
 ```
 
-## Probar la API en desarrollo
+## API
 
-En modo `AUTH_MODE=dev` el usuario se indica con la cabecera `x-usuario-id`. Este modo está prohibido en producción: la app no arranca. Usuarios de prueba:
+Autenticación: `POST /auth/login` devuelve el access token (Bearer). La web recibe el refresh token en una cookie httpOnly; la app móvil, en el cuerpo (`x-cliente: movil`). Para pruebas rápidas con curl existe el modo `AUTH_MODE=dev` el usuario se indica con la cabecera `x-usuario-id`. Este modo está prohibido en producción: la app no arranca. Usuarios de prueba:
 
 | Usuario | Rol |
 |---------|-----|
-| `u-viajero` | Analista; jefe inmediato `u-jefe`, jefe directivo `u-directivo` |
-| `u-jefe` | Coordinador / aprobador |
-| `u-directivo` | Director / aprobador |
-| `u-contabilidad` | Contabilidad |
+| `u-viajero` (ana@empresa.co) | Analista; jefe inmediato `u-jefe`, jefe directivo `u-directivo` |
+| `u-jefe` (carlos@empresa.co) | Coordinador / aprobador |
+| `u-directivo` (diana@empresa.co) | Director / aprobador |
+| `u-contabilidad` (laura@empresa.co) | Contabilidad |
 
 ```bash
 # Estimado: hotel a 50 USD/noche en Brasil (tarifa 30) → escala a jefe directivo
@@ -52,6 +65,9 @@ curl -s -X POST localhost:3000/api/v1/solicitudes/estimar \
 
 | Método | Ruta | Descripción |
 |--------|------|-------------|
+| POST | `/auth/login` · `/auth/refresh` · `/auth/logout` | Sesión |
+| GET | `/auth/me` | Perfil del usuario autenticado |
+| GET | `/solicitudes/destinos-disponibles` | Países con tarifa para el cargo del usuario |
 | POST | `/solicitudes/estimar` | Proyecta el viaje (no persiste) |
 | POST | `/solicitudes` | Crea y envía a aprobación |
 | GET | `/solicitudes` | Mis solicitudes |

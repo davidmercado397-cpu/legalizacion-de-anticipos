@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  calidad:
+    name: Typecheck, pruebas y build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: viaticos
+          POSTGRES_PASSWORD: viaticos_ci
+          POSTGRES_DB: viaticos_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U viaticos -d viaticos_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - name: Pruebas de integración (PostgreSQL)
+        run: pnpm test:integracion
+        env:
+          TEST_DATABASE_URL: postgres://viaticos:viaticos_ci@localhost:5432/viaticos_test
+      - run: pnpm build
+
+  docker:
+    name: Imágenes Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Imagen de desarrollo
+        run: docker build -f docker/dev.Dockerfile -t viaticos-dev .
+      - name: Imagen de producción de la API
+        run: docker build -f apps/api/Dockerfile -t viaticos-api .
+      - name: Imagen de producción de la web
+        run: docker build -f apps/web/Dockerfile -t viaticos-web .
