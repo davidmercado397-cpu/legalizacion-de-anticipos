@@ -37,8 +37,9 @@ Contraseña de todos: **`Viaticos2026*`**
 | `carlos@empresa.co` | Jefe inmediato de Ana | Primera aprobación |
 | `diana@empresa.co` | Jefa directiva | Aprobación cuando se supera la tarifa |
 | `tomas@empresa.co` | Tesorería | Registrar el desembolso del anticipo |
-| `laura@empresa.co` | Contabilidad | Revisar y aprobar legalizaciones; configurar NIT, topes y exclusiones |
+| `laura@empresa.co` | Contabilidad | Revisar y aprobar legalizaciones. En *Contabilidad → Configuración*: reglas de aprobación, conceptos y tarifas, empresas (NIT), topes y exclusiones |
 | `gabriela@empresa.co` | Gerencia | Aprobar los viajes de directivos (por ejemplo, los de Diana) |
+| `andres@empresa.co` | Administrador | Crear usuarios, asignarles empresa, cargo, jefes, roles y contraseña |
 
 **Conciliación bancaria:** en una legalización con facturas pagadas con tarjeta, use *Cargar extracto* y suba un CSV o Excel del banco. El sistema propone las columnas, cruza los cargos con las facturas y contabilidad revisa el resultado en *Contabilidad → Conciliaciones bancarias*.
 

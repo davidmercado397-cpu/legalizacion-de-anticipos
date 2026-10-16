@@ -7,3 +7,4 @@ export * from './anticipos';
 export * from './legalizaciones';
 export * from './tasas';
 export * from './conciliacion';
+export * from './administracion';

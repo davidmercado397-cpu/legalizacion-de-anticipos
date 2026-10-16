@@ -21,6 +21,7 @@ export const configuracionEscalamiento = pgTable('configuracion_escalamiento', {
   tipo: text('tipo').primaryKey(),
   activa: boolean('activa').notNull(),
   parametros: jsonb('parametros').notNull(),
+  actualizadoPor: text('actualizado_por'),
   actualizadoEn: timestamp('actualizado_en', { withTimezone: true }).notNull().defaultNow(),
 });
 

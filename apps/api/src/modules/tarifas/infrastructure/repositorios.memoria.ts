@@ -4,22 +4,48 @@ import type { ConceptoViaticoRepository, TarifaRepository } from '../domain/repo
 import { Tarifa } from '../domain/tarifa';
 
 export class TarifaRepositoryEnMemoria implements TarifaRepository {
-  constructor(private readonly tarifas: readonly Tarifa[] = []) {}
+  private readonly tarifas: Map<string, Tarifa>;
+
+  constructor(iniciales: readonly Tarifa[] = []) {
+    this.tarifas = new Map(iniciales.map((t) => [t.id, t]));
+  }
 
   async buscarPorCargoYPais(cargoId: string, paisCodigo: string): Promise<Tarifa[]> {
-    return this.tarifas.filter((t) => t.cargoId === cargoId && t.paisCodigo === paisCodigo);
+    return this.listar({ cargoId, paisCodigo });
+  }
+
+  async listar(filtro: { cargoId?: string | undefined; paisCodigo?: string | undefined }): Promise<Tarifa[]> {
+    return [...this.tarifas.values()].filter(
+      (t) => (!filtro.cargoId || t.cargoId === filtro.cargoId) && (!filtro.paisCodigo || t.paisCodigo === filtro.paisCodigo),
+    );
+  }
+
+  async obtenerPorId(id: string): Promise<Tarifa | null> {
+    return this.tarifas.get(id) ?? null;
+  }
+
+  async guardar(tarifas: readonly Tarifa[]): Promise<void> {
+    tarifas.forEach((t) => this.tarifas.set(t.id, t));
   }
 
   async listarPaisesDeCargo(cargoId: string): Promise<string[]> {
-    return [...new Set(this.tarifas.filter((t) => t.cargoId === cargoId).map((t) => t.paisCodigo))].sort();
+    return [...new Set([...this.tarifas.values()].filter((t) => t.cargoId === cargoId).map((t) => t.paisCodigo))].sort();
   }
 }
 
 export class ConceptoViaticoRepositoryEnMemoria implements ConceptoViaticoRepository {
-  constructor(private readonly conceptos: readonly ConceptoViatico[] = []) {}
+  private readonly conceptos: Map<string, ConceptoViatico>;
+
+  constructor(iniciales: readonly ConceptoViatico[] = []) {
+    this.conceptos = new Map(iniciales.map((c) => [c.codigo, c]));
+  }
 
   async listar(): Promise<ConceptoViatico[]> {
-    return [...this.conceptos];
+    return [...this.conceptos.values()];
+  }
+
+  async guardar(concepto: ConceptoViatico): Promise<void> {
+    this.conceptos.set(concepto.codigo, concepto);
   }
 }
 

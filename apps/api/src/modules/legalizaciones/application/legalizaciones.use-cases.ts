@@ -6,7 +6,7 @@ import { ReglaExclusion, type ConfiguracionExclusion } from '../domain/reglas-ex
 import type { LegalizacionRepository } from '../domain/repositorios';
 import type { CategoriaGasto, EntradaSoporte, MedioPago, TipoClaveFiscal } from '../domain/tipos';
 import { inspeccionarArchivo } from './archivos';
-import type { AlmacenArchivos, ColaTrabajos, ControlDuplicadosPort, ExtractorComprobantes } from './puertos';
+import type { DirectorioEmpresas, AlmacenArchivos, ColaTrabajos, ControlDuplicadosPort, ExtractorComprobantes } from './puertos';
 
 export interface DatosConfirmacion {
   emisorNombre: string;
@@ -66,6 +66,7 @@ export class GestionLegalizaciones {
     private readonly reloj: Reloj,
     private readonly eventos: PublicadorEventos,
     private readonly bitacora: Bitacora,
+    private readonly empresas: DirectorioEmpresas,
   ) {}
 
   /** Reacción a AnticipoDesembolsado. Idempotente: una legalización por anticipo. */
@@ -198,8 +199,11 @@ export class GestionLegalizaciones {
       total: total.toDto(),
     });
 
-    const politica = await this.politica.obtener();
-    const contexto = { nitEmpresa: politica.nitEmpresa, reglas: politica.exclusiones.map((c) => new ReglaExclusion(c)), duplicidad };
+    const [politica, empresa] = await Promise.all([this.politica.obtener(), this.empresas.empresaDe(legalizacion.viajeroId)]);
+    if (!empresa) {
+      throw new DomainError('EMPRESA_NO_CONFIGURADA', 'REGLA_NEGOCIO', 'El viajero no tiene empresa asignada; pídale al administrador que la configure');
+    }
+    const contexto = { nitEmpresa: empresa.nit, reglas: politica.exclusiones.map((c) => new ReglaExclusion(c)), duplicidad };
     return this.modificar(datos.legalizacionId, datos.usuarioId, (l) =>
       l.confirmarSoporte(datos.soporteId, datosSoporte, contexto, this.reloj.ahora()),
     );
@@ -325,7 +329,6 @@ export class GestionLegalizaciones {
 
   async actualizarPolitica(datos: {
     contadorId: string;
-    nitEmpresa: string;
     topesReciboCaja: MoneyDto[];
     exclusiones: ConfiguracionExclusion[];
   }): Promise<PoliticaLegalizacion> {
@@ -334,7 +337,6 @@ export class GestionLegalizaciones {
       throw new DomainError('TOPE_DUPLICADO', 'VALIDACION', 'Configure un solo tope por moneda');
     }
     const politica: PoliticaLegalizacion = {
-      nitEmpresa: datos.nitEmpresa.trim(),
       topesReciboCaja: datos.topesReciboCaja.map(Money.fromDto),
       exclusiones: datos.exclusiones.map((e) => ({
         ...e,

@@ -19,7 +19,7 @@ import { GestionLegalizaciones } from './application/legalizaciones.use-cases';
 import type { AlmacenArchivos, ColaTrabajos, ExtractorComprobantes } from './application/puertos';
 import type { PoliticaLegalizacionRepository } from './domain/politica';
 import type { LegalizacionRepository } from './domain/repositorios';
-import { ControlDuplicadosAdapter, suscribirAperturaDeLegalizaciones } from './infrastructure/adaptadores-modulos';
+import { ControlDuplicadosAdapter, DirectorioEmpresasAdapter, suscribirAperturaDeLegalizaciones } from './infrastructure/adaptadores-modulos';
 import { AlmacenLocal } from './infrastructure/almacen-local';
 import { ExtractorClaude } from './infrastructure/extractor-claude';
 import { ExtractorManual } from './infrastructure/extractor-manual';
@@ -69,6 +69,7 @@ import { LegalizacionesController } from './presentation/legalizaciones.controll
         ids: GeneradorIds,
         reloj: Reloj,
         bus: BusEventos,
+        usuarios: ConsultarUsuarioUseCase,
       ) =>
         new GestionLegalizaciones(
           repo,
@@ -82,6 +83,7 @@ import { LegalizacionesController } from './presentation/legalizaciones.controll
           reloj,
           bus,
           new BitacoraNest('Legalizaciones'),
+          new DirectorioEmpresasAdapter(usuarios),
         ),
       inject: [
         LEGALIZACION_REPOSITORY,
@@ -94,13 +96,17 @@ import { LegalizacionesController } from './presentation/legalizaciones.controll
         GENERADOR_IDS,
         RELOJ,
         BUS_EVENTOS,
+        ConsultarUsuarioUseCase,
       ],
     },
     {
       provide: PresentadorLegalizaciones,
       useFactory: (consultar: ConsultarUsuarioUseCase, reloj: Reloj) =>
         new PresentadorLegalizaciones(
-          { nombres: async (ids) => new Map((await consultar.varios(ids)).map((u) => [u.id, u.nombre])) },
+          {
+            nombres: async (ids) => new Map((await consultar.varios(ids)).map((u) => [u.id, u.nombre])),
+            empresaDe: (viajeroId) => new DirectorioEmpresasAdapter(consultar).empresaDe(viajeroId),
+          },
           () => reloj.hoy(),
         ),
       inject: [ConsultarUsuarioUseCase, RELOJ],

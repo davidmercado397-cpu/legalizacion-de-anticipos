@@ -111,9 +111,13 @@ export class EstablecerContrasenaUseCase {
   constructor(
     private readonly credenciales: CredencialRepository,
     private readonly hasher: HasherContrasenas,
+    private readonly directorio?: DirectorioUsuarios,
   ) {}
 
   async ejecutar(usuarioId: string, contrasena: string): Promise<void> {
+    if (this.directorio && !(await this.directorio.porId(usuarioId))) {
+      throw new DomainError('USUARIO_NO_ENCONTRADO', 'NO_ENCONTRADO', 'El usuario no existe o está inactivo');
+    }
     if (contrasena.length < 10 || !/\d/.test(contrasena) || !/[A-Za-z]/.test(contrasena)) {
       throw new DomainError(
         'CONTRASENA_DEBIL',

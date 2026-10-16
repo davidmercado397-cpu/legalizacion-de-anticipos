@@ -40,6 +40,26 @@ export class Tarifa {
   get valorUnitario(): Money {
     return this.props.valorUnitario;
   }
+  get vigenteDesde(): FechaCalendario {
+    return this.props.vigenteDesde;
+  }
+  get vigenteHasta(): FechaCalendario | null {
+    return this.props.vigenteHasta;
+  }
+
+  /** Misma combinación cargo × país × concepto con vigencias que se cruzan. */
+  seSolapaCon(otra: Tarifa): boolean {
+    if (otra.id === this.id || otra.cargoId !== this.cargoId || otra.paisCodigo !== this.paisCodigo || otra.conceptoCodigo !== this.conceptoCodigo) {
+      return false;
+    }
+    const terminaAntes = (a: Tarifa, b: Tarifa) => a.vigenteHasta !== null && a.vigenteHasta.esAnteriorA(b.vigenteDesde);
+    return !terminaAntes(this, otra) && !terminaAntes(otra, this);
+  }
+
+  /** La misma tarifa con vigencia hasta `hasta` (para reemplazarla por una nueva desde el día siguiente). */
+  cerrarEn(hasta: FechaCalendario): Tarifa {
+    return Tarifa.crear({ ...this.props, vigenteHasta: hasta });
+  }
 
   estaVigenteEn(fecha: FechaCalendario): boolean {
     const { vigenteDesde, vigenteHasta } = this.props;

@@ -91,6 +91,7 @@ describe('GestionLegalizaciones', () => {
       reloj,
       { publicar: async () => undefined },
       { advertencia: () => undefined },
+      { empresaDe: async () => ({ nombre: 'Empresa Colombia S.A.S.', nit: '900123456' }) },
     );
     const l = await gestion.abrirParaAnticipo({
       anticipoId: '10000000-0000-4000-8000-000000000001',
@@ -203,14 +204,12 @@ describe('GestionLegalizaciones', () => {
     await expect(
       gestion.actualizarPolitica({
         contadorId: 'laura',
-        nitEmpresa: '900123456',
         topesReciboCaja: [{ monto: '10', moneda: 'USD' }, { monto: '20', moneda: 'USD' }],
         exclusiones: [],
       }),
     ).rejects.toMatchObject({ codigo: 'TOPE_DUPLICADO' });
     const p = await gestion.actualizarPolitica({
       contadorId: 'laura',
-      nitEmpresa: '900123456',
       topesReciboCaja: [{ monto: '80', moneda: 'USD' }],
       exclusiones: [{ codigo: 'LICOR', nombre: 'Licor', palabras: [' vino ', 'vino', ''] }],
     });

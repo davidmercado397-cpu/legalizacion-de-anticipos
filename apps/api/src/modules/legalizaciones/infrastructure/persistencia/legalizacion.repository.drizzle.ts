@@ -152,7 +152,6 @@ export class PoliticaLegalizacionDrizzle implements PoliticaLegalizacionReposito
     const [fila] = await this.db.select().from(politicaLegalizacion).where(eq(politicaLegalizacion.id, 1)).limit(1);
     if (!fila) return politicaPorDefecto();
     return {
-      nitEmpresa: fila.nitEmpresa,
       topesReciboCaja: fila.topesReciboCaja.map(Money.fromDto),
       exclusiones: fila.exclusiones,
       actualizadaPor: fila.actualizadaPor,
@@ -162,7 +161,6 @@ export class PoliticaLegalizacionDrizzle implements PoliticaLegalizacionReposito
 
   async guardar(p: PoliticaLegalizacion): Promise<void> {
     const fila = {
-      nitEmpresa: p.nitEmpresa,
       topesReciboCaja: p.topesReciboCaja.map((t) => t.toDto()),
       exclusiones: p.exclusiones,
       actualizadaPor: p.actualizadaPor,

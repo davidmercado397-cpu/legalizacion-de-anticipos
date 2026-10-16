@@ -11,4 +11,7 @@ export interface SolicitudRepository {
 
 export interface ConfiguracionEscalamientoRepository {
   obtener(): Promise<ConfiguracionReglaEscalamiento[]>;
+  /** Quién y cuándo la cambió por última vez (null: valores iniciales del sistema). */
+  auditoria(): Promise<{ actualizadoPor: string | null; actualizadoEn: Date | null }>;
+  guardar(configuracion: readonly ConfiguracionReglaEscalamiento[], usuarioId: string, ahora: Date): Promise<void>;
 }

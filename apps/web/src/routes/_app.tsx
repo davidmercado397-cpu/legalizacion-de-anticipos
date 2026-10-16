@@ -59,6 +59,11 @@ function Layout() {
                 Tesorería
               </Link>
             )}
+            {tiene('ADMIN') && (
+              <Link to="/administracion" className={ENLACE} activeProps={ACTIVO}>
+                Administración
+              </Link>
+            )}
           </nav>
           <span className="hidden text-sm text-slate-600 md:inline">{usuario?.nombre}</span>
           <Boton variante="fantasma" cargando={cerrar.isPending} onClick={() => cerrar.mutate()}>

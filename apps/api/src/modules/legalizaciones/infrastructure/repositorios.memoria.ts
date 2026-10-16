@@ -51,8 +51,7 @@ export class LegalizacionRepositoryEnMemoria implements LegalizacionRepository {
 }
 
 /** Valores iniciales; contabilidad los cambia desde la aplicación. */
-export const politicaPorDefecto = (nitEmpresa = '900123456'): PoliticaLegalizacion => ({
-  nitEmpresa,
+export const politicaPorDefecto = (): PoliticaLegalizacion => ({
   topesReciboCaja: [Money.of(50, 'USD'), Money.of(200_000, 'COP')],
   exclusiones: EXCLUSIONES_POR_DEFECTO,
   actualizadaPor: null,

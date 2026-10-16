@@ -7,6 +7,8 @@ import { datosAJson } from '../infrastructure/persistencia/serializacion';
 
 export interface DirectorioNombres {
   nombres(ids: readonly string[]): Promise<Map<string, string>>;
+  /** Empresa del viajero: las facturas deben venir a su NIT. */
+  empresaDe?(viajeroId: string): Promise<{ nombre: string; nit: string } | null>;
 }
 
 export class PresentadorLegalizaciones {
@@ -27,6 +29,8 @@ export class PresentadorLegalizaciones {
     ]);
     const nombres = await this.directorio.nombres(ids);
     const nombre = (id: string) => nombres.get(id) ?? id;
+    const viajeros = [...new Set(lista.map((l) => l.viajeroId))];
+    const empresas = new Map(await Promise.all(viajeros.map(async (v) => [v, (await this.directorio.empresaDe?.(v)) ?? null] as const)));
 
     return lista.map((l) => {
       const resumen = l.resumen();
@@ -39,6 +43,7 @@ export class PresentadorLegalizaciones {
         editable: l.estado === 'ABIERTA' || l.estado === 'DEVUELTA',
         montoAnticipo: l.montoAnticipo.toDto(),
         viaje: { inicio: l.viaje.inicio.toString(), fin: l.viaje.fin.toString() },
+        empresa: empresas.get(l.viajeroId) ?? null,
         plazo: { fechaLimite: l.fechaLimite().toString(), vencida: l.estaVencida(this.hoy()) },
         resumen: {
           totalAceptado: resumen.totalAceptado.toDto(),
@@ -92,7 +97,6 @@ function presentarSoporte(s: Soporte, monedaAnticipo: string, nombre: (id: strin
 }
 
 export const presentarPolitica = (p: PoliticaLegalizacion): PoliticaLegalizacionResponse => ({
-  nitEmpresa: p.nitEmpresa,
   topesReciboCaja: p.topesReciboCaja.map((t) => t.toDto()),
   exclusiones: p.exclusiones.map((e) => ({ ...e, palabrasAmbiguas: e.palabrasAmbiguas ?? [] })),
   actualizadaPor: p.actualizadaPor,

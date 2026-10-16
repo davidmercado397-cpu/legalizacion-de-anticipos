@@ -1,3 +1,5 @@
+import { ConfigurarEscalamientoUseCase } from './application/configurar-escalamiento.use-case';
+import { ConfiguracionEscalamientoController } from './presentation/configuracion-escalamiento.controller';
 import { Module } from '@nestjs/common';
 import type { GeneradorIds, ProveedorTasaCambio, PublicadorEventos, Reloj } from '../../shared/application/puertos';
 import { segunPersistencia } from '../../shared/infrastructure/base-datos/segun-persistencia';
@@ -45,7 +47,7 @@ const cambioEstado = <T>(Clase: new (r: SolicitudRepository, c: Reloj, e: Public
 
 @Module({
   imports: [TarifasModule, OrganizacionModule],
-  controllers: [SolicitudesController, AprobacionesController],
+  controllers: [SolicitudesController, AprobacionesController, ConfiguracionEscalamientoController],
   providers: [
     // Infraestructura
     segunPersistencia<SolicitudRepository>(SOLICITUD_REPOSITORY, {
@@ -78,6 +80,11 @@ const cambioEstado = <T>(Clase: new (r: SolicitudRepository, c: Reloj, e: Public
         reloj: Reloj,
       ) => new CotizadorViaje(directorio, tarifas, tasas, config, reloj),
       inject: [DIRECTORIO_ORGANIZACIONAL, CONSULTA_TARIFAS, PROVEEDOR_TASA_CAMBIO, CONFIGURACION_ESCALAMIENTO_REPOSITORY, RELOJ],
+    },
+    {
+      provide: ConfigurarEscalamientoUseCase,
+      useFactory: (repo: ConfiguracionEscalamientoRepository, reloj: Reloj) => new ConfigurarEscalamientoUseCase(repo, reloj),
+      inject: [CONFIGURACION_ESCALAMIENTO_REPOSITORY, RELOJ],
     },
     {
       provide: EstimarViajeUseCase,

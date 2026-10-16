@@ -25,8 +25,8 @@ function BandejaContabilidad() {
           <Link to="/contabilidad/conciliaciones" className="text-sm font-semibold text-marca-700 hover:underline">
             Conciliaciones bancarias →
           </Link>
-          <Link to="/contabilidad/politica" className="text-sm font-semibold text-marca-700 hover:underline">
-            Configuración (NIT, topes, exclusiones) →
+          <Link to="/contabilidad/configuracion" className="text-sm font-semibold text-marca-700 hover:underline">
+            Configuración →
           </Link>
         </div>
       </div>

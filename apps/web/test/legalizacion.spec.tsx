@@ -12,6 +12,7 @@ const legalizacion = (saldo: string): LegalizacionResponse => ({
   editable: true,
   montoAnticipo: { monto: '395.00', moneda: 'USD' },
   viaje: { inicio: '2026-10-05', fin: '2026-10-09' },
+  empresa: { nombre: 'Empresa Colombia S.A.S.', nit: '900123456' },
   plazo: { fechaLimite: '2026-11-09', vencida: false },
   resumen: {
     totalAceptado: { monto: '70.00', moneda: 'USD' },

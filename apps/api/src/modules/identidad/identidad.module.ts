@@ -1,3 +1,4 @@
+import { CredencialesController } from './presentation/credenciales.controller';
 import { randomBytes } from 'node:crypto';
 import { Module } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
@@ -28,7 +29,7 @@ import { AutenticacionGuard } from './presentation/autenticacion.guard';
 
 @Module({
   imports: [OrganizacionModule],
-  controllers: [AuthController],
+  controllers: [AuthController, CredencialesController],
   providers: [
     segunPersistencia<SesionRepository>(SESION_REPOSITORY, {
       memoria: () => new SesionRepositoryEnMemoria(),
@@ -82,9 +83,9 @@ import { AutenticacionGuard } from './presentation/autenticacion.guard';
     },
     {
       provide: EstablecerContrasenaUseCase,
-      useFactory: (credenciales: CredencialRepository, hasher: HasherContrasenas) =>
-        new EstablecerContrasenaUseCase(credenciales, hasher),
-      inject: [CREDENCIAL_REPOSITORY, HASHER_CONTRASENAS],
+      useFactory: (credenciales: CredencialRepository, hasher: HasherContrasenas, consultar: ConsultarUsuarioUseCase) =>
+        new EstablecerContrasenaUseCase(credenciales, hasher, new DirectorioUsuariosAdapter(consultar)),
+      inject: [CREDENCIAL_REPOSITORY, HASHER_CONTRASENAS, ConsultarUsuarioUseCase],
     },
     {
       provide: APP_GUARD,

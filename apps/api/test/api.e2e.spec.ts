@@ -25,6 +25,7 @@ describe('API HTTP (e2e)', () => {
   const como = (usuario: string) => ({
     post: (url: string) => request(app.getHttpServer()).post(`/api/v1${url}`).set('x-usuario-id', usuario),
     get: (url: string) => request(app.getHttpServer()).get(`/api/v1${url}`).set('x-usuario-id', usuario),
+    put: (url: string) => request(app.getHttpServer()).put(`/api/v1${url}`).set('x-usuario-id', usuario),
   });
 
   const viaje = (valorHotel?: string) => ({
@@ -66,6 +67,22 @@ describe('API HTTP (e2e)', () => {
     const r = await como('u-viajero').post('/solicitudes/estimar').send(viaje('50')).expect(200);
     expect(r.body.presupuesto.totalAnticipo).toEqual({ monto: '475.00', moneda: 'USD' }); // 4×50 + 5×35 + 5×20
     expect(r.body.escalamiento.requiereJefeDirectivo).toBe(true);
+  });
+
+  it('contabilidad configura cuándo se escala al directivo (tolerancia de 10 % por defecto)', async () => {
+    const actual = await como('u-viajero').get('/configuracion-escalamiento').expect(200);
+    expect(actual.body.excedeTarifa).toEqual({ activa: true, toleranciaPorcentaje: 10 });
+    // Hotel a 33 USD con tarifa de 30: dentro del 10 %, no escala
+    expect((await como('u-viajero').post('/solicitudes/estimar').send(viaje('33')).expect(200)).body.escalamiento.requiereJefeDirectivo).toBe(false);
+
+    const nueva = { ...actual.body, excedeTarifa: { activa: true, toleranciaPorcentaje: 0 } };
+    await como('u-viajero').put('/configuracion-escalamiento').send(nueva).expect(403);
+    const guardada = await como('u-contabilidad').put('/configuracion-escalamiento').send(nueva).expect(200);
+    expect(guardada.body).toMatchObject({ excedeTarifa: { toleranciaPorcentaje: 0 }, actualizadoPorNombre: 'Laura Contable' });
+    expect((await como('u-viajero').post('/solicitudes/estimar').send(viaje('33')).expect(200)).body.escalamiento.requiereJefeDirectivo).toBe(true);
+
+    await como('u-contabilidad').put('/configuracion-escalamiento').send({ ...nueva, excedeTarifa: { activa: true, toleranciaPorcentaje: 150 } }).expect(400);
+    await como('u-contabilidad').put('/configuracion-escalamiento').send(actual.body).expect(200);
   });
 
   it('errores de dominio → 422 con código estable', async () => {

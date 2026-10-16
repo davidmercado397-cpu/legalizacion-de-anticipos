@@ -14,12 +14,17 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAprobacionesRouteImport } from './routes/_app/aprobaciones'
 import { Route as AppTesoreriaRouteImport } from './routes/_app/tesoreria'
+import { Route as AppAdministracionIndexRouteImport } from './routes/_app/administracion/index'
 import { Route as AppAnticiposIndexRouteImport } from './routes/_app/anticipos/index'
 import { Route as AppAnticiposAnticipoIdRouteImport } from './routes/_app/anticipos/$anticipoId'
 import { Route as AppConciliacionExtractoIdRouteImport } from './routes/_app/conciliacion/$extractoId'
 import { Route as AppContabilidadIndexRouteImport } from './routes/_app/contabilidad/index'
 import { Route as AppContabilidadConciliacionesRouteImport } from './routes/_app/contabilidad/conciliaciones'
+import { Route as AppContabilidadConfiguracionRouteImport } from './routes/_app/contabilidad/configuracion'
+import { Route as AppContabilidadEmpresasRouteImport } from './routes/_app/contabilidad/empresas'
+import { Route as AppContabilidadEscalamientoRouteImport } from './routes/_app/contabilidad/escalamiento'
 import { Route as AppContabilidadPoliticaRouteImport } from './routes/_app/contabilidad/politica'
+import { Route as AppContabilidadTarifasRouteImport } from './routes/_app/contabilidad/tarifas'
 import { Route as AppLegalizacionesLegalizacionIdRouteImport } from './routes/_app/legalizaciones/$legalizacionId'
 import { Route as AppSolicitudesIndexRouteImport } from './routes/_app/solicitudes/index'
 import { Route as AppSolicitudesSolicitudIdRouteImport } from './routes/_app/solicitudes/$solicitudId'
@@ -51,6 +56,11 @@ const AppTesoreriaRoute = AppTesoreriaRouteImport.update({
   path: '/tesoreria',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdministracionIndexRoute = AppAdministracionIndexRouteImport.update({
+  id: '/administracion/',
+  path: '/administracion/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAnticiposIndexRoute = AppAnticiposIndexRouteImport.update({
   id: '/anticipos/',
   path: '/anticipos/',
@@ -78,9 +88,31 @@ const AppContabilidadConciliacionesRoute =
     path: '/contabilidad/conciliaciones',
     getParentRoute: () => AppRoute,
   } as any)
+const AppContabilidadConfiguracionRoute =
+  AppContabilidadConfiguracionRouteImport.update({
+    id: '/contabilidad/configuracion',
+    path: '/contabilidad/configuracion',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppContabilidadEmpresasRoute = AppContabilidadEmpresasRouteImport.update({
+  id: '/contabilidad/empresas',
+  path: '/contabilidad/empresas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppContabilidadEscalamientoRoute =
+  AppContabilidadEscalamientoRouteImport.update({
+    id: '/contabilidad/escalamiento',
+    path: '/contabilidad/escalamiento',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppContabilidadPoliticaRoute = AppContabilidadPoliticaRouteImport.update({
   id: '/contabilidad/politica',
   path: '/contabilidad/politica',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppContabilidadTarifasRoute = AppContabilidadTarifasRouteImport.update({
+  id: '/contabilidad/tarifas',
+  path: '/contabilidad/tarifas',
   getParentRoute: () => AppRoute,
 } as any)
 const AppLegalizacionesLegalizacionIdRoute =
@@ -126,10 +158,15 @@ export interface FileRoutesByFullPath {
   '/anticipos/$anticipoId': typeof AppAnticiposAnticipoIdRoute
   '/conciliacion/$extractoId': typeof AppConciliacionExtractoIdRoute
   '/contabilidad/conciliaciones': typeof AppContabilidadConciliacionesRoute
+  '/contabilidad/configuracion': typeof AppContabilidadConfiguracionRoute
+  '/contabilidad/empresas': typeof AppContabilidadEmpresasRoute
+  '/contabilidad/escalamiento': typeof AppContabilidadEscalamientoRoute
   '/contabilidad/politica': typeof AppContabilidadPoliticaRoute
+  '/contabilidad/tarifas': typeof AppContabilidadTarifasRoute
   '/legalizaciones/$legalizacionId': typeof AppLegalizacionesLegalizacionIdRoute
   '/solicitudes/$solicitudId': typeof AppSolicitudesSolicitudIdRoute
   '/solicitudes/nueva': typeof AppSolicitudesNuevaRoute
+  '/administracion/': typeof AppAdministracionIndexRoute
   '/anticipos/': typeof AppAnticiposIndexRoute
   '/contabilidad/': typeof AppContabilidadIndexRoute
   '/solicitudes/': typeof AppSolicitudesIndexRoute
@@ -144,10 +181,15 @@ export interface FileRoutesByTo {
   '/anticipos/$anticipoId': typeof AppAnticiposAnticipoIdRoute
   '/conciliacion/$extractoId': typeof AppConciliacionExtractoIdRoute
   '/contabilidad/conciliaciones': typeof AppContabilidadConciliacionesRoute
+  '/contabilidad/configuracion': typeof AppContabilidadConfiguracionRoute
+  '/contabilidad/empresas': typeof AppContabilidadEmpresasRoute
+  '/contabilidad/escalamiento': typeof AppContabilidadEscalamientoRoute
   '/contabilidad/politica': typeof AppContabilidadPoliticaRoute
+  '/contabilidad/tarifas': typeof AppContabilidadTarifasRoute
   '/legalizaciones/$legalizacionId': typeof AppLegalizacionesLegalizacionIdRoute
   '/solicitudes/$solicitudId': typeof AppSolicitudesSolicitudIdRoute
   '/solicitudes/nueva': typeof AppSolicitudesNuevaRoute
+  '/administracion': typeof AppAdministracionIndexRoute
   '/anticipos': typeof AppAnticiposIndexRoute
   '/contabilidad': typeof AppContabilidadIndexRoute
   '/solicitudes': typeof AppSolicitudesIndexRoute
@@ -164,10 +206,15 @@ export interface FileRoutesById {
   '/_app/anticipos/$anticipoId': typeof AppAnticiposAnticipoIdRoute
   '/_app/conciliacion/$extractoId': typeof AppConciliacionExtractoIdRoute
   '/_app/contabilidad/conciliaciones': typeof AppContabilidadConciliacionesRoute
+  '/_app/contabilidad/configuracion': typeof AppContabilidadConfiguracionRoute
+  '/_app/contabilidad/empresas': typeof AppContabilidadEmpresasRoute
+  '/_app/contabilidad/escalamiento': typeof AppContabilidadEscalamientoRoute
   '/_app/contabilidad/politica': typeof AppContabilidadPoliticaRoute
+  '/_app/contabilidad/tarifas': typeof AppContabilidadTarifasRoute
   '/_app/legalizaciones/$legalizacionId': typeof AppLegalizacionesLegalizacionIdRoute
   '/_app/solicitudes/$solicitudId': typeof AppSolicitudesSolicitudIdRoute
   '/_app/solicitudes/nueva': typeof AppSolicitudesNuevaRoute
+  '/_app/administracion/': typeof AppAdministracionIndexRoute
   '/_app/anticipos/': typeof AppAnticiposIndexRoute
   '/_app/contabilidad/': typeof AppContabilidadIndexRoute
   '/_app/solicitudes/': typeof AppSolicitudesIndexRoute
@@ -184,10 +231,15 @@ export interface FileRouteTypes {
     | '/anticipos/$anticipoId'
     | '/conciliacion/$extractoId'
     | '/contabilidad/conciliaciones'
+    | '/contabilidad/configuracion'
+    | '/contabilidad/empresas'
+    | '/contabilidad/escalamiento'
     | '/contabilidad/politica'
+    | '/contabilidad/tarifas'
     | '/legalizaciones/$legalizacionId'
     | '/solicitudes/$solicitudId'
     | '/solicitudes/nueva'
+    | '/administracion/'
     | '/anticipos/'
     | '/contabilidad/'
     | '/solicitudes/'
@@ -202,10 +254,15 @@ export interface FileRouteTypes {
     | '/anticipos/$anticipoId'
     | '/conciliacion/$extractoId'
     | '/contabilidad/conciliaciones'
+    | '/contabilidad/configuracion'
+    | '/contabilidad/empresas'
+    | '/contabilidad/escalamiento'
     | '/contabilidad/politica'
+    | '/contabilidad/tarifas'
     | '/legalizaciones/$legalizacionId'
     | '/solicitudes/$solicitudId'
     | '/solicitudes/nueva'
+    | '/administracion'
     | '/anticipos'
     | '/contabilidad'
     | '/solicitudes'
@@ -221,10 +278,15 @@ export interface FileRouteTypes {
     | '/_app/anticipos/$anticipoId'
     | '/_app/conciliacion/$extractoId'
     | '/_app/contabilidad/conciliaciones'
+    | '/_app/contabilidad/configuracion'
+    | '/_app/contabilidad/empresas'
+    | '/_app/contabilidad/escalamiento'
     | '/_app/contabilidad/politica'
+    | '/_app/contabilidad/tarifas'
     | '/_app/legalizaciones/$legalizacionId'
     | '/_app/solicitudes/$solicitudId'
     | '/_app/solicitudes/nueva'
+    | '/_app/administracion/'
     | '/_app/anticipos/'
     | '/_app/contabilidad/'
     | '/_app/solicitudes/'
@@ -274,6 +336,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTesoreriaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/administracion/': {
+      id: '/_app/administracion/'
+      path: '/administracion'
+      fullPath: '/administracion/'
+      preLoaderRoute: typeof AppAdministracionIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/anticipos/': {
       id: '/_app/anticipos/'
       path: '/anticipos'
@@ -309,11 +378,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppContabilidadConciliacionesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/contabilidad/configuracion': {
+      id: '/_app/contabilidad/configuracion'
+      path: '/contabilidad/configuracion'
+      fullPath: '/contabilidad/configuracion'
+      preLoaderRoute: typeof AppContabilidadConfiguracionRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/contabilidad/empresas': {
+      id: '/_app/contabilidad/empresas'
+      path: '/contabilidad/empresas'
+      fullPath: '/contabilidad/empresas'
+      preLoaderRoute: typeof AppContabilidadEmpresasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/contabilidad/escalamiento': {
+      id: '/_app/contabilidad/escalamiento'
+      path: '/contabilidad/escalamiento'
+      fullPath: '/contabilidad/escalamiento'
+      preLoaderRoute: typeof AppContabilidadEscalamientoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/contabilidad/politica': {
       id: '/_app/contabilidad/politica'
       path: '/contabilidad/politica'
       fullPath: '/contabilidad/politica'
       preLoaderRoute: typeof AppContabilidadPoliticaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/contabilidad/tarifas': {
+      id: '/_app/contabilidad/tarifas'
+      path: '/contabilidad/tarifas'
+      fullPath: '/contabilidad/tarifas'
+      preLoaderRoute: typeof AppContabilidadTarifasRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/legalizaciones/$legalizacionId': {
@@ -368,10 +465,15 @@ interface AppRouteChildren {
   AppAnticiposAnticipoIdRoute: typeof AppAnticiposAnticipoIdRoute
   AppConciliacionExtractoIdRoute: typeof AppConciliacionExtractoIdRoute
   AppContabilidadConciliacionesRoute: typeof AppContabilidadConciliacionesRoute
+  AppContabilidadConfiguracionRoute: typeof AppContabilidadConfiguracionRoute
+  AppContabilidadEmpresasRoute: typeof AppContabilidadEmpresasRoute
+  AppContabilidadEscalamientoRoute: typeof AppContabilidadEscalamientoRoute
   AppContabilidadPoliticaRoute: typeof AppContabilidadPoliticaRoute
+  AppContabilidadTarifasRoute: typeof AppContabilidadTarifasRoute
   AppLegalizacionesLegalizacionIdRoute: typeof AppLegalizacionesLegalizacionIdRoute
   AppSolicitudesSolicitudIdRoute: typeof AppSolicitudesSolicitudIdRoute
   AppSolicitudesNuevaRoute: typeof AppSolicitudesNuevaRoute
+  AppAdministracionIndexRoute: typeof AppAdministracionIndexRoute
   AppAnticiposIndexRoute: typeof AppAnticiposIndexRoute
   AppContabilidadIndexRoute: typeof AppContabilidadIndexRoute
   AppSolicitudesIndexRoute: typeof AppSolicitudesIndexRoute
@@ -386,10 +488,15 @@ const AppRouteChildren: AppRouteChildren = {
   AppAnticiposAnticipoIdRoute: AppAnticiposAnticipoIdRoute,
   AppConciliacionExtractoIdRoute: AppConciliacionExtractoIdRoute,
   AppContabilidadConciliacionesRoute: AppContabilidadConciliacionesRoute,
+  AppContabilidadConfiguracionRoute: AppContabilidadConfiguracionRoute,
+  AppContabilidadEmpresasRoute: AppContabilidadEmpresasRoute,
+  AppContabilidadEscalamientoRoute: AppContabilidadEscalamientoRoute,
   AppContabilidadPoliticaRoute: AppContabilidadPoliticaRoute,
+  AppContabilidadTarifasRoute: AppContabilidadTarifasRoute,
   AppLegalizacionesLegalizacionIdRoute: AppLegalizacionesLegalizacionIdRoute,
   AppSolicitudesSolicitudIdRoute: AppSolicitudesSolicitudIdRoute,
   AppSolicitudesNuevaRoute: AppSolicitudesNuevaRoute,
+  AppAdministracionIndexRoute: AppAdministracionIndexRoute,
   AppAnticiposIndexRoute: AppAnticiposIndexRoute,
   AppContabilidadIndexRoute: AppContabilidadIndexRoute,
   AppSolicitudesIndexRoute: AppSolicitudesIndexRoute,

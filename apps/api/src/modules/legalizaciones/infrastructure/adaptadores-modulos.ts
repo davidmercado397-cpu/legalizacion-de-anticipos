@@ -1,8 +1,9 @@
 import type { BusEventos } from '../../../shared/application/puertos';
 import type { AnticipoDesembolsado } from '../../anticipos/application/eventos-publicos';
 import type { ControlDuplicados } from '../../comprobantes/application/control-duplicados';
+import type { ConsultarUsuarioUseCase } from '../../organizacion/application/consultar-usuario.use-case';
 import type { GestionLegalizaciones } from '../application/legalizaciones.use-cases';
-import type { ControlDuplicadosPort, HuellaSoporte } from '../application/puertos';
+import type { ControlDuplicadosPort, DirectorioEmpresas, HuellaSoporte } from '../application/puertos';
 
 /** Al desembolsar el anticipo se abre su legalización. */
 export function suscribirAperturaDeLegalizaciones(bus: BusEventos, legalizaciones: GestionLegalizaciones): void {
@@ -35,5 +36,15 @@ export class ControlDuplicadosAdapter implements ControlDuplicadosPort {
 
   anular(soporteId: string): Promise<void> {
     return this.control.anular(soporteId);
+  }
+}
+
+/** Capa anticorrupción hacia organización: empresa (y NIT) del viajero. */
+export class DirectorioEmpresasAdapter implements DirectorioEmpresas {
+  constructor(private readonly usuarios: ConsultarUsuarioUseCase) {}
+
+  async empresaDe(viajeroId: string) {
+    const empresa = await this.usuarios.empresaDe(viajeroId);
+    return empresa && { nombre: empresa.nombre, nit: empresa.nit };
   }
 }

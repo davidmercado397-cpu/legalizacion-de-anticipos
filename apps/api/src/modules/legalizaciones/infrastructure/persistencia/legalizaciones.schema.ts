@@ -55,7 +55,6 @@ export const soportes = pgTable(
 /** Una sola fila (id = 1): la política vigente que administra contabilidad. */
 export const politicaLegalizacion = pgTable('politica_legalizacion', {
   id: integer('id').primaryKey(),
-  nitEmpresa: text('nit_empresa').notNull(),
   topesReciboCaja: jsonb('topes_recibo_caja').$type<Array<{ monto: string; moneda: string }>>().notNull(),
   exclusiones: jsonb('exclusiones').$type<ConfiguracionExclusion[]>().notNull(),
   actualizadaPor: text('actualizada_por'),

@@ -17,6 +17,11 @@ export interface ExtractorComprobantes {
   }): Promise<DatosExtraidos | null>;
 }
 
+/** Empresa del holding del viajero: sus facturas deben venir a ese NIT (módulo de organización). */
+export interface DirectorioEmpresas {
+  empresaDe(viajeroId: string): Promise<{ nombre: string; nit: string } | null>;
+}
+
 /** Cola de trabajos en segundo plano (en proceso hoy; pg-boss después, ADR-0004). */
 export interface ColaTrabajos {
   encolar(nombre: string, trabajo: () => Promise<void>): void;

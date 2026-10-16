@@ -130,3 +130,26 @@ export const solicitudResponseSchema = z.object({
   actualizadaEn: z.string(),
 });
 export type SolicitudResponse = z.infer<typeof solicitudResponseSchema>;
+
+// ---------- Configuración de escalamiento (contabilidad) ----------
+
+/** Cuándo una solicitud necesita también la aprobación del jefe directivo. */
+export const configuracionEscalamientoSchema = z.object({
+  excedeTarifa: z.object({
+    activa: z.boolean(),
+    /** Porcentaje sobre la tarifa que se tolera sin escalar (10 = hasta 33 USD con tarifa de 30). */
+    toleranciaPorcentaje: z.coerce.number({ error: 'validation.decimal' }).min(0, { error: 'validation.porcentaje' }).max(100, { error: 'validation.porcentaje' }),
+  }),
+  montoTotal: z.object({
+    activa: z.boolean(),
+    umbralUsd: decimalSchema,
+    umbralCop: decimalSchema,
+  }),
+});
+export type ConfiguracionEscalamientoRequest = z.input<typeof configuracionEscalamientoSchema>;
+
+export const configuracionEscalamientoResponseSchema = configuracionEscalamientoSchema.extend({
+  actualizadoPorNombre: z.string().nullable(),
+  actualizadoEn: z.string().nullable(),
+});
+export type ConfiguracionEscalamientoResponse = z.infer<typeof configuracionEscalamientoResponseSchema>;

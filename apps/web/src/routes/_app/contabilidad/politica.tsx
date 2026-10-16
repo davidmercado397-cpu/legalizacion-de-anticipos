@@ -51,20 +51,21 @@ function Politica() {
 
   return (
     <form noValidate onSubmit={enviar} className="space-y-5">
-      <Link to="/contabilidad" className="text-sm text-marca-700 hover:underline">
-        ← Legalizaciones por revisar
+      <Link to="/contabilidad/configuracion" className="text-sm text-marca-700 hover:underline">
+        ← Configuración
       </Link>
       <div>
         <h1 className="text-2xl font-bold">Configuración de la legalización</h1>
         {data.actualizadaEn && <p className="text-sm text-slate-600">Última actualización: {formatoMomento(data.actualizadaEn)}</p>}
       </div>
 
-      <Tarjeta className="space-y-3">
-        <h2 className="text-lg font-semibold">Empresa</h2>
-        <Campo etiqueta="NIT de la empresa (las facturas deben venir a este NIT)" error={e.nitEmpresa?.message}>
-          {(a11y) => <Entrada {...a11y} className="max-w-xs" {...register('nitEmpresa')} error={e.nitEmpresa?.message} />}
-        </Campo>
-      </Tarjeta>
+      <Alerta tono="info">
+        El NIT al que deben venir las facturas se configura por empresa en{' '}
+        <Link to="/contabilidad/empresas" className="font-semibold underline">
+          Empresas del holding
+        </Link>
+        .
+      </Alerta>
 
       <Tarjeta className="space-y-3">
         <h2 className="text-lg font-semibold">Tope de recibos de caja (proveedor 222)</h2>

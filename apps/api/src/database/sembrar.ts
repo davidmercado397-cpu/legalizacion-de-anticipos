@@ -2,8 +2,8 @@ import { hash } from '@node-rs/argon2';
 import { isNull, sql } from 'drizzle-orm';
 import { ConexionBaseDatos } from '../shared/infrastructure/base-datos/conexion';
 import { credenciales } from '../modules/identidad/infrastructure/persistencia/identidad.schema';
-import { usuarios } from '../modules/organizacion/infrastructure/persistencia/organizacion.schema';
-import { USUARIOS_DESARROLLO } from '../modules/organizacion/infrastructure/usuario.repository.memoria';
+import { cargos, empresas, usuarios } from '../modules/organizacion/infrastructure/persistencia/organizacion.schema';
+import { CARGOS_DESARROLLO, EMPRESAS_DESARROLLO, USUARIOS_DESARROLLO } from '../modules/organizacion/infrastructure/usuario.repository.memoria';
 import { configuracionEscalamiento } from '../modules/solicitudes/infrastructure/persistencia/solicitudes.schema';
 import { CONFIGURACION_ESCALAMIENTO_DESARROLLO } from '../modules/solicitudes/infrastructure/configuracion-escalamiento.repository.memoria';
 import { politicaLegalizacion } from '../modules/legalizaciones/infrastructure/persistencia/legalizaciones.schema';
@@ -24,12 +24,18 @@ export async function sembrar(url: string): Promise<void> {
   const db = conexion.db;
   try {
     await db.transaction(async (tx) => {
-      // Usuarios sin jefes primero, luego se enlaza la jerarquía (las FK lo exigen).
-      await tx
+      await tx.insert(empresas).values([...EMPRESAS_DESARROLLO]).onConflictDoNothing();
+      await tx.insert(cargos).values([...CARGOS_DESARROLLO]).onConflictDoNothing();
+
+      // Usuarios sin jefes primero, luego se enlaza la jerarquía (las FK lo exigen). Solo los recién
+      // creados: lo que el administrador haya cambiado no se pisa en cada arranque.
+      const nuevos = await tx
         .insert(usuarios)
         .values(USUARIOS_DESARROLLO.map((u) => ({ ...u, roles: [...u.roles], jefeInmediatoId: null, jefeDirectivoId: null })))
-        .onConflictDoNothing();
-      for (const u of USUARIOS_DESARROLLO) {
+        .onConflictDoNothing()
+        .returning({ id: usuarios.id });
+      const idsNuevos = new Set(nuevos.map((n) => n.id));
+      for (const u of USUARIOS_DESARROLLO.filter((x) => idsNuevos.has(x.id))) {
         await tx
           .update(usuarios)
           .set({ jefeInmediatoId: u.jefeInmediatoId, jefeDirectivoId: u.jefeDirectivoId })
@@ -62,14 +68,18 @@ export async function sembrar(url: string): Promise<void> {
       await tx
         .insert(configuracionEscalamiento)
         .values(CONFIGURACION_ESCALAMIENTO_DESARROLLO)
-        .onConflictDoNothing();
+        // Mientras contabilidad no la haya cambiado, toma los valores vigentes del sistema (tolerancia 10 %).
+        .onConflictDoUpdate({
+          target: configuracionEscalamiento.tipo,
+          set: { activa: sql`excluded.activa`, parametros: sql`excluded.parametros` },
+          setWhere: isNull(configuracionEscalamiento.actualizadoPor),
+        });
 
       const politica = politicaPorDefecto();
       await tx
         .insert(politicaLegalizacion)
         .values({
           id: 1,
-          nitEmpresa: politica.nitEmpresa,
           topesReciboCaja: politica.topesReciboCaja.map((t) => t.toDto()),
           exclusiones: politica.exclusiones,
         })

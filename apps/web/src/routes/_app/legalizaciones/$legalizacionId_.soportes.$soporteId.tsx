@@ -1,6 +1,6 @@
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
-import { legalizacionOptions, politicaLegalizacionOptions, useApi } from '@viaticos/client-app';
+import { legalizacionOptions, useApi } from '@viaticos/client-app';
 import { VistaArchivo } from '../../../features/legalizaciones/componentes';
 import { FormularioConfirmacion } from '../../../features/legalizaciones/formulario-confirmacion';
 import { Cargando, EstadoVacio } from '../../../ui/superficies';
@@ -16,7 +16,6 @@ function ConfirmarSoporte() {
   const navigate = Route.useNavigate();
   const { legalizacionId, soporteId } = Route.useParams();
   const { data: legalizacion } = useSuspenseQuery(legalizacionOptions(api, legalizacionId));
-  const politica = useQuery(politicaLegalizacionOptions(api));
   const soporte = legalizacion.soportes.find((s) => s.id === soporteId);
   const volver = () => navigate({ to: '/legalizaciones/$legalizacionId', params: { legalizacionId } });
 
@@ -34,7 +33,7 @@ function ConfirmarSoporte() {
         <div className="lg:sticky lg:top-20 lg:self-start">
           <VistaArchivo legalizacionId={legalizacionId} soporte={soporte} grande />
         </div>
-        <FormularioConfirmacion legalizacion={legalizacion} soporte={soporte} nitEmpresa={politica.data?.nitEmpresa} alConfirmar={() => void volver()} />
+        <FormularioConfirmacion legalizacion={legalizacion} soporte={soporte} nitEmpresa={legalizacion.empresa?.nit} alConfirmar={() => void volver()} />
       </div>
     </div>
   );

@@ -81,7 +81,6 @@ export const devolverLegalizacionRequestSchema = z.object({
 });
 
 export const politicaLegalizacionSchema = z.object({
-  nitEmpresa: z.string().trim().min(5, { error: 'validation.required' }).max(20),
   topesReciboCaja: z.array(z.object({ monto: decimalSchema, moneda: monedaSchema })).min(1).max(10),
   exclusiones: z
     .array(
@@ -191,6 +190,8 @@ export const legalizacionResponseSchema = z.object({
   editable: z.boolean(),
   montoAnticipo: moneySchema,
   viaje: z.object({ inicio: z.string(), fin: z.string() }),
+  /** Empresa del viajero: las facturas deben venir a su NIT. */
+  empresa: z.object({ nombre: z.string(), nit: z.string() }).nullable(),
   /** Plazo para enviar la legalización (1 mes después del regreso). */
   plazo: z.object({ fechaLimite: z.string(), vencida: z.boolean() }),
   resumen: z.object({ totalAceptado: moneySchema, totalExcluido: moneySchema, saldo: moneySchema }),

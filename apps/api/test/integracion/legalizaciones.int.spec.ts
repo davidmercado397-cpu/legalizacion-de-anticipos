@@ -115,7 +115,9 @@ describe.runIf(URL_PRUEBAS)('Legalizaciones en PostgreSQL (integración)', () =>
     const repo = new PoliticaLegalizacionDrizzle(conexion.db);
     const inicial = await repo.obtener();
     expect(inicial.topesReciboCaja.map((t) => t.toString())).toEqual(['50.00 USD', '200000.00 COP']);
-    await repo.guardar({ ...inicial, nitEmpresa: '901999888', actualizadaPor: 'u-contabilidad', actualizadaEn: ahora });
-    expect(await repo.obtener()).toMatchObject({ nitEmpresa: '901999888', actualizadaPor: 'u-contabilidad' });
+    await repo.guardar({ ...inicial, topesReciboCaja: inicial.topesReciboCaja.slice(0, 1), actualizadaPor: 'u-contabilidad', actualizadaEn: ahora });
+    const leida = await repo.obtener();
+    expect(leida.topesReciboCaja.map((t) => t.toString())).toEqual(['50.00 USD']);
+    expect(leida.actualizadaPor).toBe('u-contabilidad');
   });
 });
