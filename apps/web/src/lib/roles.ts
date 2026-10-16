@@ -14,6 +14,7 @@ const CAPACIDADES: Record<Rol, readonly Capacidad[]> = {
   approver: ['solicitar', 'aprobar'],
   accountant: ['solicitar', 'aprobar', 'contabilidad'],
   treasury: ['solicitar', 'tesoreria'],
+  management: ['solicitar', 'aprobar'],
   admin: ['solicitar', 'aprobar', 'contabilidad', 'tesoreria', 'administrar'],
   superadmin: [],
 };

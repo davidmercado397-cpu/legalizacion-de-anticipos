@@ -6,6 +6,7 @@ import { mensajeDeError } from '../../lib/errores';
 import { Boton } from '../../ui/boton';
 import { Campo, Entrada } from '../../ui/campos';
 import { Alerta } from '../../ui/superficies';
+import { sinRechazo } from '../../lib/sin-rechazo';
 
 const esquema = z
   .object({
@@ -23,10 +24,10 @@ export function FormularioClave({ alTerminar }: { alTerminar: () => void }) {
     <form
       noValidate
       className="space-y-4"
-      onSubmit={handleSubmit(async ({ actual, nueva }) => {
+      onSubmit={handleSubmit(sinRechazo(async ({ actual, nueva }) => {
         await cambiar.mutateAsync({ actual, nueva });
         alTerminar();
-      })}
+      }))}
     >
       <Campo etiqueta="Contraseña actual (o la temporal que le dieron)" error={formState.errors.actual?.message}>
         {(p) => <Entrada {...p} {...register('actual')} type="password" autoComplete="current-password" />}

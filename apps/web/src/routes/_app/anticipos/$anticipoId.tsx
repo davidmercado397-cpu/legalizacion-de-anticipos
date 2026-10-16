@@ -3,6 +3,7 @@ import { useAnticipo, useDescargarExcel, useSesion } from '@viaticos/client-app'
 import { InsigniaAnticipo, ResumenSaldo } from '../../../features/anticipos/componentes';
 import { LineaDeTiempo } from '../../../features/anticipos/linea-tiempo';
 import { PanelAcciones } from '../../../features/anticipos/panel-acciones';
+import { RutaAprobacion } from '../../../features/anticipos/ruta-aprobacion';
 import { ListaGastos } from '../../../features/gastos/componentes';
 import { SubirFactura } from '../../../features/gastos/subir-factura';
 import { etiqueta } from '../../../i18n';
@@ -11,6 +12,7 @@ import { formatoDinero, formatoMomento, rangoFechas } from '../../../lib/formato
 import { puede } from '../../../lib/roles';
 import { Boton } from '../../../ui/boton';
 import { Alerta, Cargando, Tarjeta } from '../../../ui/superficies';
+import { sinRechazo } from '../../../lib/sin-rechazo';
 
 export const Route = createFileRoute('/_app/anticipos/$anticipoId')({ component: DetalleAnticipo });
 
@@ -50,7 +52,8 @@ function DetalleAnticipo() {
       <Tarjeta className="space-y-4">
         <p className="text-sm text-slate-700">{anticipo.purpose}</p>
         <ResumenSaldo saldo={anticipo.balance} />
-        {anticipo.budget_amount && anticipo.budget_amount !== anticipo.amount && (
+        <RutaAprobacion anticipo={anticipo} />
+        {anticipo.budget_amount && anticipo.budget_amount !== anticipo.amount && anticipo.escalation_reasons.length === 0 && (
           <Alerta tono="aviso" titulo={`Pidió un valor distinto al sugerido (${formatoDinero(anticipo.budget_amount, anticipo.currency)})`}>
             {anticipo.budget_justification}
           </Alerta>
@@ -80,7 +83,7 @@ function DetalleAnticipo() {
             <h2 className="font-semibold text-slate-700">Facturas</h2>
             <div className="flex gap-2">
               {puede(usuario, 'contabilidad') && (
-                <Boton variante="secundario" cargando={excel.isPending} onClick={() => void descargar()}>
+                <Boton variante="secundario" cargando={excel.isPending} onClick={() => void sinRechazo(descargar)()}>
                   Excel de la legalización
                 </Boton>
               )}

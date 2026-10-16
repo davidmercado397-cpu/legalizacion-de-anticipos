@@ -10,13 +10,14 @@ import { useValorDiferido } from '../../lib/use-valor-diferido';
 import { Boton } from '../../ui/boton';
 import { Campo, Entrada, Seleccion } from '../../ui/campos';
 import { Alerta, Cargando, Insignia, Tarjeta } from '../../ui/superficies';
+import { sinRechazo } from '../../lib/sin-rechazo';
 
-const ROLES: Rol[] = ['employee', 'approver', 'accountant', 'treasury', 'admin'];
+const ROLES: Rol[] = ['employee', 'approver', 'accountant', 'treasury', 'management', 'admin'];
 
 const esquema = z.object({
   full_name: z.string().trim().min(2, 'validation.minLength'),
   email: z.string().trim().email('validation.email'),
-  role: z.enum(['employee', 'approver', 'accountant', 'treasury', 'admin']),
+  role: z.enum(['employee', 'approver', 'accountant', 'treasury', 'management', 'admin']),
   company_id: z.string().min(1, 'validation.required'),
   approver_id: z.string(),
   phone: z.string().trim(),
@@ -129,7 +130,7 @@ function FormularioEmpleado({
       <form
         noValidate
         className="grid gap-4 sm:grid-cols-2"
-        onSubmit={handleSubmit(async (d) => {
+        onSubmit={handleSubmit(sinRechazo(async (d) => {
           const datos = {
             full_name: d.full_name,
             email: d.email,
@@ -140,7 +141,7 @@ function FormularioEmpleado({
           };
           const { claveTemporal } = await guardar.mutateAsync(empleado ? { id: empleado.id, datos } : { datos });
           alTerminar(claveTemporal, d.email);
-        })}
+        }))}
       >
         <h2 className="font-semibold sm:col-span-2">{empleado ? `Editar a ${empleado.full_name}` : 'Nuevo usuario'}</h2>
         <Campo etiqueta="Nombre completo" error={e.full_name?.message}>

@@ -6,6 +6,7 @@ import { mensajeDeError } from '../../lib/errores';
 import { Boton } from '../../ui/boton';
 import { Campo, Entrada } from '../../ui/campos';
 import { Alerta, Tarjeta } from '../../ui/superficies';
+import { sinRechazo } from '../../lib/sin-rechazo';
 
 const esquemaLogin = z.object({
   email: z.string().trim().min(1, 'validation.required').email('validation.email'),
@@ -28,7 +29,7 @@ export function FormularioLogin() {
       <form
         noValidate
         className="space-y-4"
-        onSubmit={handleSubmit((datos) => iniciar.mutateAsync(datos))}
+        onSubmit={handleSubmit(sinRechazo((datos) => iniciar.mutateAsync(datos)))}
       >
         <Campo etiqueta="Correo" error={formState.errors.email?.message}>
           {(p) => <Entrada {...p} {...register('email')} type="email" autoComplete="username" autoFocus />}
@@ -52,7 +53,7 @@ function FormularioMfa() {
   const { register, handleSubmit, formState } = useForm({ resolver: zodResolver(esquemaMfa) });
   return (
     <Tarjeta>
-      <form noValidate className="space-y-4" onSubmit={handleSubmit(async ({ codigo }) => verificar.mutateAsync(codigo))}>
+      <form noValidate className="space-y-4" onSubmit={handleSubmit(sinRechazo(async ({ codigo }) => verificar.mutateAsync(codigo)))}>
         <div>
           <h2 className="font-semibold text-slate-900">Verificación en dos pasos</h2>
           <p className="text-sm text-slate-600">Escriba el código de su aplicación autenticadora, o uno de sus códigos de recuperación.</p>

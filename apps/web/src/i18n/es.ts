@@ -13,6 +13,15 @@ export const es: Record<string, string> = {
   'rol.approver': 'Aprobador',
   'rol.accountant': 'Contabilidad',
   'rol.treasury': 'Tesorería',
+  'rol.management': 'Gerencia',
+
+  'nivel.boss': 'Jefe inmediato',
+  'nivel.director': 'Jefe directivo',
+  'nivel.management': 'Gerencia',
+  'paso.pending': 'Pendiente',
+  'paso.approved': 'Aprobó',
+  'paso.rejected': 'Rechazó',
+  'paso.skipped': 'No hizo falta',
   'rol.admin': 'Administrador',
   'rol.superadmin': 'Operador de la plataforma',
 

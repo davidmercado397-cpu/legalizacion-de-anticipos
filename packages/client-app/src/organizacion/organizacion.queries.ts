@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FiltrosEmpleados } from '@viaticos/client-api';
-import type { CompaniaCambios, CompaniaNueva, EmpleadoCambios, EmpleadoNuevo, ReglaPoliticaNueva } from '@viaticos/contracts';
+import type {
+  CompaniaCambios,
+  CompaniaNueva,
+  EmpleadoCambios,
+  EmpleadoNuevo,
+  ReglaPoliticaNueva,
+  ReglasAprobacionNuevas,
+} from '@viaticos/contracts';
 import { useApi } from '../contexto';
 
 export const clavesOrganizacion = {
@@ -8,6 +15,7 @@ export const clavesOrganizacion = {
   companias: () => [...clavesOrganizacion.todos, 'companias'] as const,
   categorias: (id: string) => [...clavesOrganizacion.todos, 'categorias', id] as const,
   reglas: (id: string) => [...clavesOrganizacion.todos, 'reglas', id] as const,
+  aprobacion: (id: string) => [...clavesOrganizacion.todos, 'aprobacion', id] as const,
   conceptos: (id: string) => [...clavesOrganizacion.todos, 'conceptos', id] as const,
   empleados: (filtros: FiltrosEmpleados) => [...clavesOrganizacion.todos, 'empleados', filtros] as const,
 };
@@ -52,6 +60,24 @@ export function useConfigurarReglas(companiaId: string) {
   return useMutation({
     mutationFn: (reglas: ReglaPoliticaNueva[]) => api.organizacion.configurarReglas(companiaId, reglas),
     onSuccess: (reglas) => queryClient.setQueryData(clavesOrganizacion.reglas(companiaId), reglas),
+  });
+}
+
+export function useReglasAprobacion(companiaId: string | undefined) {
+  const api = useApi();
+  return useQuery({
+    queryKey: clavesOrganizacion.aprobacion(companiaId ?? ''),
+    queryFn: () => api.organizacion.reglasAprobacion(companiaId!),
+    enabled: !!companiaId,
+  });
+}
+
+export function useConfigurarReglasAprobacion(companiaId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (reglas: ReglasAprobacionNuevas) => api.organizacion.configurarReglasAprobacion(companiaId, reglas),
+    onSuccess: (reglas) => queryClient.setQueryData(clavesOrganizacion.aprobacion(companiaId), reglas),
   });
 }
 

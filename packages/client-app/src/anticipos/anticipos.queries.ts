@@ -21,6 +21,11 @@ export function useAnticipos(filtros: FiltrosAnticipos = {}) {
   return useQuery({ queryKey: clavesAnticipos.lista(filtros), queryFn: () => api.anticipos.listar(filtros) });
 }
 
+export function usePendientesDeAprobar() {
+  const api = useApi();
+  return useQuery({ queryKey: [...clavesAnticipos.todos, 'por-aprobar'], queryFn: () => api.anticipos.pendientesDeAprobar() });
+}
+
 /** Detalle con los gastos. Mientras alguno se esté leyendo con IA, se vuelve a consultar cada pocos segundos. */
 export function useAnticipo(id: string) {
   const api = useApi();

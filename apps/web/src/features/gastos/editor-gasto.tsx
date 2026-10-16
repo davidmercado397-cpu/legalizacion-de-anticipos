@@ -21,6 +21,7 @@ import { Boton } from '../../ui/boton';
 import { AreaTexto, Campo, Entrada, Seleccion } from '../../ui/campos';
 import { Alerta, Insignia, Tarjeta } from '../../ui/superficies';
 import { InsigniaGasto, hallazgos } from './componentes';
+import { sinRechazo } from '../../lib/sin-rechazo';
 
 const decimal = z
   .string()
@@ -165,7 +166,7 @@ function Formulario({ anticipo, gasto }: { anticipo: AnticipoDetalle; gasto: Gas
   const pideConvertido = otraMoneda && !gasto.exchange_rate;
   const error = corregir.error ?? confirmar.error ?? descartar.error;
 
-  const guardar = handleSubmit(async (datos) => {
+  const guardar = handleSubmit(sinRechazo(async (datos) => {
     const diferencias = cambios(datos, original);
     if (Object.keys(diferencias).length > 0) await corregir.mutateAsync({ id: gasto.id, cambios: diferencias });
     await confirmar.mutateAsync({
@@ -177,7 +178,7 @@ function Formulario({ anticipo, gasto }: { anticipo: AnticipoDetalle; gasto: Gas
       },
     });
     reset(datos);
-  });
+  }));
 
   const e = formState.errors;
   return (

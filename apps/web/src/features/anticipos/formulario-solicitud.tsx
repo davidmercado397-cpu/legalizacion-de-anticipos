@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ApiError } from '@viaticos/client-api';
 import { useCompanias, usePresupuesto, useSesion, useSolicitarAnticipo } from '@viaticos/client-app';
 import type { Anticipo, Presupuesto } from '@viaticos/contracts';
 import { useEffect } from 'react';
@@ -10,6 +11,7 @@ import { formatoDinero } from '../../lib/formato';
 import { Boton } from '../../ui/boton';
 import { AreaTexto, Campo, Entrada, Seleccion } from '../../ui/campos';
 import { Alerta, Tarjeta } from '../../ui/superficies';
+import { sinRechazo } from '../../lib/sin-rechazo';
 
 const decimal = /^\d+([.,]\d{1,2})?$/;
 
@@ -54,12 +56,14 @@ export function FormularioSolicitud({ alCrear }: { alCrear: (anticipo: Anticipo)
 
   const calculado: Presupuesto | undefined = presupuesto.data;
   const distinto = !!calculado && valor !== '' && Number(valor.replace(',', '.')) !== Number(calculado.total);
+  // Si escala al jefe directivo (decisión 4.3) la API pide justificación aunque el valor sea el sugerido.
+  const escala = solicitar.error instanceof ApiError && solicitar.error.codigo === 'escalation_justification_required';
 
   return (
     <form
       noValidate
       className="space-y-6"
-      onSubmit={handleSubmit(async (d) => {
+      onSubmit={handleSubmit(sinRechazo(async (d) => {
         const anticipo = await solicitar.mutateAsync({
           company_id: d.company_id,
           kind: d.kind,
@@ -72,7 +76,7 @@ export function FormularioSolicitud({ alCrear }: { alCrear: (anticipo: Anticipo)
           justification: d.justification || null,
         });
         alCrear(anticipo);
-      })}
+      }))}
     >
       <Tarjeta className="grid gap-4 sm:grid-cols-2">
         {propias.length > 1 && (
@@ -157,8 +161,11 @@ export function FormularioSolicitud({ alCrear }: { alCrear: (anticipo: Anticipo)
         >
           {(p) => <Entrada {...p} {...register('amount')} inputMode="decimal" />}
         </Campo>
-        {distinto && (
-          <Campo etiqueta="¿Por qué necesita un valor distinto al sugerido?" error={formState.errors.justification?.message}>
+        {(distinto || escala) && (
+          <Campo
+            etiqueta={escala ? '¿Por qué necesita este valor? (también lo aprobará el jefe directivo)' : '¿Por qué necesita un valor distinto al sugerido?'}
+            error={formState.errors.justification?.message}
+          >
             {(p) => <AreaTexto {...p} {...register('justification')} />}
           </Campo>
         )}

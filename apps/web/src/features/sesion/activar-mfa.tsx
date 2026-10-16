@@ -8,6 +8,7 @@ import { mensajeDeError } from '../../lib/errores';
 import { Boton } from '../../ui/boton';
 import { Campo, Entrada } from '../../ui/campos';
 import { Alerta, Cargando } from '../../ui/superficies';
+import { sinRechazo } from '../../lib/sin-rechazo';
 
 const esquema = z.object({ codigo: z.string().trim().regex(/^\d{6}$/, 'validation.codigoMfa') });
 
@@ -57,7 +58,7 @@ export function ActivarMfa({ alTerminar }: { alTerminar: () => void }) {
   if (!configuracion) return <Cargando />;
 
   return (
-    <form noValidate className="space-y-4" onSubmit={handleSubmit(({ codigo }) => activar.mutateAsync(codigo))}>
+    <form noValidate className="space-y-4" onSubmit={handleSubmit(sinRechazo(({ codigo }) => activar.mutateAsync(codigo)))}>
       <ol className="list-decimal space-y-1 pl-5 text-sm text-slate-700">
         <li>Instale una aplicación autenticadora (Google Authenticator, Microsoft Authenticator…).</li>
         <li>Escanee el código QR o escriba la clave a mano.</li>

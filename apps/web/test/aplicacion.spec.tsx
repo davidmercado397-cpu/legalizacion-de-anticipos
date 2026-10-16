@@ -24,6 +24,8 @@ const anticipo = (cambios: Partial<AnticipoDetalle> = {}): AnticipoDetalle =>
     settlement_status: null,
     balance: { currency: 'COP', amount: '600000.00', applied: '0', pending: '600000.00', disbursed: '0', expenses_count: 0 },
     expenses: [],
+    approval_steps: [],
+    escalation_reasons: [],
     ...cambios,
   }) as AnticipoDetalle;
 
@@ -78,6 +80,30 @@ describe('PanelAcciones', () => {
     unmount();
     montar(<PanelAcciones anticipo={enRevision} />, perfil({ id: 'u-conta', role: 'accountant' }));
     expect(screen.getByRole('button', { name: 'Aprobar legalización' })).toBeInTheDocument();
+  });
+});
+
+const paso = (level: 'boss' | 'director' | 'management', approver_id: string | null, status = 'pending') =>
+  ({ level, approver_id, approver_name: approver_id, status, decided_by: null, decided_at: null, note: null }) as AnticipoDetalle['approval_steps'][number];
+
+describe('ruta de aprobación', () => {
+  const escalada = (estadoJefe = 'pending') =>
+    anticipo({ approval_steps: [paso('boss', 'u-jefe', estadoJefe), paso('director', 'u-directivo')] });
+
+  it('el jefe directivo puede aprobar sin esperar al jefe inmediato', () => {
+    montar(<PanelAcciones anticipo={escalada()} />, perfil({ id: 'u-directivo' }));
+    expect(screen.getByRole('button', { name: 'Aprobar' })).toBeInTheDocument();
+  });
+
+  it('el jefe que ya aprobó su paso no vuelve a ver el botón', () => {
+    montar(<PanelAcciones anticipo={escalada('approved')} />, perfil({ id: 'u-jefe' }));
+    expect(screen.queryByRole('button', { name: 'Aprobar' })).not.toBeInTheDocument();
+  });
+
+  it('el paso de gerencia lo decide cualquier usuario de gerencia', () => {
+    const directivo = anticipo({ approval_steps: [paso('management', null)] });
+    montar(<PanelAcciones anticipo={directivo} />, perfil({ id: 'u-gerente', role: 'management' }));
+    expect(screen.getByRole('button', { name: 'Aprobar' })).toBeInTheDocument();
   });
 });
 

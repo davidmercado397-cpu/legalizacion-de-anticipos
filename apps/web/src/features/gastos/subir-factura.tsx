@@ -4,6 +4,7 @@ import { mensajeDeError } from '../../lib/errores';
 import { Boton } from '../../ui/boton';
 import { Alerta } from '../../ui/superficies';
 import { prepararArchivo } from './preparar-imagen';
+import { sinRechazo } from '../../lib/sin-rechazo';
 
 /** Una foto o PDF por factura; se puede elegir varias. La lectura con IA sigue en segundo plano. */
 export function SubirFactura({ anticipoId }: { anticipoId: string }) {
@@ -27,7 +28,7 @@ export function SubirFactura({ anticipoId }: { anticipoId: string }) {
         multiple
         className="sr-only"
         aria-label="Fotos o PDF de las facturas"
-        onChange={(e) => void alElegir(e.target.files)}
+        onChange={(e) => void sinRechazo(alElegir)(e.target.files)}
       />
       <Boton cargando={subir.isPending} onClick={() => entrada.current?.click()}>
         Agregar facturas

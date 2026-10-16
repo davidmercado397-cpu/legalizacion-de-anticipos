@@ -13,6 +13,8 @@ import type {
   Pagina,
   ReglaPolitica,
   ReglaPoliticaNueva,
+  ReglasAprobacion,
+  ReglasAprobacionNuevas,
   Rol,
 } from '@viaticos/contracts';
 
@@ -33,6 +35,8 @@ export interface OrganizacionApi {
   reglas(companiaId: string): Promise<ReglaPolitica[]>;
   configurarReglas(companiaId: string, reglas: ReglaPoliticaNueva[]): Promise<ReglaPolitica[]>;
   conceptosBloqueados(companiaId: string): Promise<ConceptoBloqueado[]>;
+  reglasAprobacion(companiaId: string): Promise<ReglasAprobacion>;
+  configurarReglasAprobacion(companiaId: string, reglas: ReglasAprobacionNuevas): Promise<ReglasAprobacion>;
   empleados(filtros?: FiltrosEmpleados): Promise<Pagina<Empleado>>;
   empleado(id: string): Promise<Empleado>;
   crearEmpleado(datos: EmpleadoNuevo): Promise<EmpleadoCreado>;
@@ -54,6 +58,9 @@ export const crearOrganizacionApi = (http: AxiosInstance): OrganizacionApi => ({
     (await http.put<Lista<ReglaPolitica>>(`/companies/${companiaId}/policy-rules`, reglas)).data.data,
   conceptosBloqueados: async (companiaId) =>
     (await http.get<Lista<ConceptoBloqueado>>(`/companies/${companiaId}/blocked-concepts`)).data.data,
+  reglasAprobacion: async (companiaId) => (await http.get<ReglasAprobacion>(`/companies/${companiaId}/approval-rules`)).data,
+  configurarReglasAprobacion: async (companiaId, reglas) =>
+    (await http.put<ReglasAprobacion>(`/companies/${companiaId}/approval-rules`, reglas)).data,
   empleados: async (filtros = {}) => (await http.get<Pagina<Empleado>>('/employees', { params: filtros })).data,
   empleado: async (id) => (await http.get<Empleado>(`/employees/${id}`)).data,
   crearEmpleado: async (datos) => (await http.post<EmpleadoCreado>('/employees', datos)).data,

@@ -30,6 +30,11 @@ export type SolicitudAnticipo = S['AdvanceIn'];
 export type EstadoAnticipo = S['AdvanceStatus'];
 export type TipoAnticipo = S['AdvanceKind'];
 export type Saldo = S['BalanceOut'];
+export type PasoAprobacion = S['ApprovalStepOut'];
+export type MotivoEscalamiento = S['EscalationReasonOut'];
+/** Cuándo escala al jefe directivo: tolerancia sobre el presupuesto y monto total por moneda. */
+export type ReglasAprobacion = S['ApprovalRulesIO-Output'];
+export type ReglasAprobacionNuevas = S['ApprovalRulesIO-Input'];
 export type SaldoAbierto = S['OpenBalanceOut'];
 export type Viaje = S['TripIn'];
 export type Presupuesto = S['BudgetOut'];

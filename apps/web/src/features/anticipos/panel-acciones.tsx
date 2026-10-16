@@ -7,6 +7,7 @@ import { puede } from '../../lib/roles';
 import { Boton } from '../../ui/boton';
 import { AreaTexto, Campo, Entrada, Seleccion } from '../../ui/campos';
 import { Alerta, Tarjeta } from '../../ui/superficies';
+import { puedeDecidir } from './ruta-aprobacion';
 
 type Formulario = 'rechazar' | 'devolver' | 'anular' | 'reabrir' | 'desembolsar' | 'liquidar' | null;
 
@@ -19,7 +20,7 @@ export function PanelAcciones({ anticipo }: { anticipo: AnticipoDetalle }) {
   const accion = useAccionAnticipo(anticipo.id);
   const [abierto, setAbierto] = useState<Formulario>(null);
   const propio = usuario?.id === anticipo.employee_id;
-  const aprueba = !propio && puede(usuario, 'aprobar');
+  const aprueba = puedeDecidir(anticipo, usuario);
   const contable = puede(usuario, 'contabilidad');
   const revisa = !propio && contable;
   const tesoreria = puede(usuario, 'tesoreria');

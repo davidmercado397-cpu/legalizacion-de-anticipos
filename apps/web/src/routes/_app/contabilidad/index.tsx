@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useAnticipos, useCompanias } from '@viaticos/client-app';
 import { useState } from 'react';
 import { ListaAnticipos } from '../../../features/anticipos/componentes';
+import { ReglasAprobacion } from '../../../features/administracion/reglas-aprobacion';
 import { ReglasPolitica } from '../../../features/administracion/reglas-politica';
 import { mensajeDeError } from '../../../lib/errores';
 import { exigir } from '../../../lib/roles';
@@ -51,6 +52,10 @@ function Contabilidad() {
           )}
         </div>
         {elegida && <ReglasPolitica companiaId={elegida} />}
+      </section>
+      <section className="space-y-3">
+        <h2 className="font-semibold text-slate-700">Escalamiento al jefe directivo</h2>
+        {elegida && <ReglasAprobacion companiaId={elegida} />}
       </section>
     </div>
   );

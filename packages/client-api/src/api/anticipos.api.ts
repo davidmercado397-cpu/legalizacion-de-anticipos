@@ -29,6 +29,8 @@ export interface FiltrosAnticipos {
 export interface AnticiposApi {
   saldosAbiertos(): Promise<SaldoAbierto[]>;
   listar(filtros?: FiltrosAnticipos): Promise<Pagina<AnticipoResumen>>;
+  /** Las solicitudes en las que le toca decidir ahora (su paso de la ruta o el nivel superior). */
+  pendientesDeAprobar(): Promise<AnticipoResumen[]>;
   obtener(id: string): Promise<AnticipoDetalle>;
   lineaDeTiempo(id: string): Promise<EventoLinea[]>;
   presupuesto(viaje: Viaje): Promise<Presupuesto>;
@@ -55,6 +57,7 @@ export const crearAnticiposApi = (http: AxiosInstance): AnticiposApi => {
   return {
     saldosAbiertos: async () => (await http.get<Lista<SaldoAbierto>>('/me/balances')).data.data,
     listar: async (filtros = {}) => (await http.get<Pagina<AnticipoResumen>>('/advances', { params: filtros })).data,
+    pendientesDeAprobar: async () => (await http.get<Lista<AnticipoResumen>>('/advances/pending-approval')).data.data,
     obtener: async (id) => (await http.get<AnticipoDetalle>(`/advances/${id}`)).data,
     lineaDeTiempo: async (id) => (await http.get<Lista<EventoLinea>>(`/advances/${id}/timeline`)).data.data,
     presupuesto: async (viaje) => (await http.post<Presupuesto>('/advances/budget-preview', viaje)).data,
