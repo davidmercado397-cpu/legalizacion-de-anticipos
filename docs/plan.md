@@ -26,6 +26,7 @@ Aplicación responsive (PWA, luego React Native) para:
 | 7 | Volumen | Máx. **1.500 facturas/mes** (~50/día). | Monolito modular; cola de trabajos sobre PostgreSQL (pg-boss), sin broker adicional. |
 | 8 | Identidad | Usuarios locales; posibilidad futura de Microsoft 365. | Puerto de autenticación con adaptador local (JWT + argon2) y adaptador OIDC (Entra ID) posterior. |
 | 9 | Lenguaje | **TypeScript** en todo el stack. | Monorepo pnpm; Zod compartido entre backend y frontend. |
+| 10 | Tasa de cambio | La TRM se toma **del día** y se ajusta sola todos los días. | Módulo `tasas`: TRM oficial del día, consulta horaria, caché por fecha (ADR-0008). |
 
 ## 3. Stack
 
@@ -79,6 +80,7 @@ Los casos de uso son clases TypeScript puras, sin decoradores. NestJS solo las e
 | `identidad` | Login local, sesiones, (futuro) Microsoft 365 | ✅ |
 | `anticipos` | Anticipo, creación en el ERP, desembolso | ✅ (adaptador de Siesa pendiente de su documentación) |
 | `legalizaciones` | Soportes, OCR, exclusiones, alertas, recibo 222, saldo, revisión contable | ✅ |
+| `tasas` | TRM del día (datos.gov.co) y BCE para otras monedas, caché y actualización horaria | ✅ |
 | `conciliacion` | Perfiles de extracto, importación y cruce | Iteración 4 |
 | `integracion-erp` | Capa anticorrupción para Siesa Enterprise | Iteraciones 2–3 |
 | `whatsapp` | Webhook y flujo conversacional | Iteración 5 |
@@ -141,7 +143,7 @@ Ver [ADR-0007](adr/0007-deteccion-de-duplicados.md). Se aplica en varias capas y
 | **1 ✅** | Monorepo, shared-kernel, contratos, tarifas, estimado, solicitud con ruta de aprobación y escalamiento, motor de duplicados (dominio), API HTTP con repositorios en memoria, pruebas |
 | **2 ✅** (parcial) | PostgreSQL + Drizzle, autenticación local (JWT + refresh rotativo), frontend web (estimado en vivo, solicitud, bandeja y detalle de aprobación), Docker local y CI. **Pendiente:** anticipos + adaptador Siesa y outbox (a la espera de la documentación de la API de Siesa) |
 | **3 ✅** | Anticipos (creación al aprobar, ERP simulado, desembolso de tesorería), legalización completa: carga de fotos/PDF, OCR con Claude (o digitación manual), clasificación, exclusiones por línea, alertas, recibo 222 con tope, conversión de monedas, revisión contable y configuración de la política |
-| 4 | Conciliación con extractos (perfiles de mapeo), TRM automática |
+| 4 | **TRM del día automática ✅**, conciliación con extractos (perfiles de mapeo) |
 | 5 | WhatsApp Business (radicación y notificaciones) |
 | 6 | Microsoft 365 (OIDC), tableros, app móvil |
 

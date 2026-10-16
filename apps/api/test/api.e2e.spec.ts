@@ -44,6 +44,12 @@ describe('API HTTP (e2e)', () => {
     await request(app.getHttpServer()).get('/api/v1/salud').expect(200, { estado: 'ok' });
   });
 
+  it('muestra las tasas del día con su fuente', async () => {
+    const r = await como('u-viajero').get('/tasas').expect(200);
+    expect(r.body.cotizaciones).toContainEqual({ moneda: 'COP', porDolar: '4000', fuente: 'TASA_DESARROLLO' });
+    await como('u-viajero').get('/tasas?fecha=ayer').expect(400);
+  });
+
   it('sin autenticación responde 401 en formato problem+json', async () => {
     const r = await request(app.getHttpServer()).post('/api/v1/solicitudes/estimar').send(viaje());
     expect(r.status).toBe(401);

@@ -3,7 +3,6 @@ import { APP_FILTER } from '@nestjs/core';
 import type { Configuracion } from './configuracion';
 import { ColaTrabajosEnProceso } from './infrastructure/cola-trabajos-en-proceso';
 import { GeneradorIdsUuid } from './infrastructure/generador-ids-uuid';
-import { ProveedorTasaCambioFija } from './infrastructure/proveedor-tasa-cambio-fija';
 import { PublicadorEventosEnProceso } from './infrastructure/publicador-eventos-en-proceso';
 import { RelojSistema } from './infrastructure/reloj-sistema';
 import { ProblemDetailsFilter } from './presentation/problem-details.filter';
@@ -13,7 +12,6 @@ import {
   CONEXION_BASE_DATOS,
   CONFIGURACION,
   GENERADOR_IDS,
-  PROVEEDOR_TASA_CAMBIO,
   PUBLICADOR_EVENTOS,
   RELOJ,
 } from './tokens';
@@ -35,14 +33,9 @@ export class SharedModule {
         { provide: COLA_TRABAJOS, useFactory: () => new ColaTrabajosEnProceso() },
         { provide: GENERADOR_IDS, useFactory: () => new GeneradorIdsUuid() },
         { provide: PUBLICADOR_EVENTOS, useFactory: () => new PublicadorEventosEnProceso() },
-        {
-          provide: PROVEEDOR_TASA_CAMBIO,
-          useFactory: () =>
-            new ProveedorTasaCambioFija(`COP=${configuracion.TRM_DESARROLLO},${configuracion.TASAS_DESARROLLO}`),
-        },
         { provide: APP_FILTER, useFactory: () => new ProblemDetailsFilter() },
       ],
-      exports: [COLA_TRABAJOS, CONFIGURACION, CONEXION_BASE_DATOS, RELOJ, GENERADOR_IDS, PUBLICADOR_EVENTOS, PROVEEDOR_TASA_CAMBIO],
+      exports: [COLA_TRABAJOS, CONFIGURACION, CONEXION_BASE_DATOS, RELOJ, GENERADOR_IDS, PUBLICADOR_EVENTOS],
     };
   }
 }

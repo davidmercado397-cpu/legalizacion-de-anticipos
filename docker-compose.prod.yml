@@ -36,6 +36,7 @@ services:
       AUTH_MODE: jwt
       JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET en .env}
       CORS_ORIGINS: http://localhost:8080
+      TASAS_PROVEEDOR: oficial
       OCR_PROVEEDOR: ${OCR_PROVEEDOR:-manual}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     volumes:

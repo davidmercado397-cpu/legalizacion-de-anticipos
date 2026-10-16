@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { ApiError } from '@viaticos/client-api';
-import { destinosOptions, useApi, useCrearSolicitud, useEstimado } from '@viaticos/client-app';
+import { destinosOptions, tasasDelDiaOptions, useApi, useCrearSolicitud, useEstimado } from '@viaticos/client-app';
 import { crearSolicitudRequestSchema, estimarViajeRequestSchema, type EstimarViajeRequest } from '@viaticos/contracts';
 import { useMemo } from 'react';
 import { useFieldArray, useForm, useWatch, type Path } from 'react-hook-form';
@@ -13,7 +13,7 @@ import { useValorDiferido } from '../../lib/use-valor-diferido';
 import { Boton } from '../../ui/boton';
 import { AreaTexto, Campo, Entrada, Seleccion } from '../../ui/campos';
 import { Alerta, Tarjeta } from '../../ui/superficies';
-import { AvisoEscalamiento, TablaPresupuesto } from './componentes';
+import { AvisoEscalamiento, TablaPresupuesto, TasasDelDia } from './componentes';
 
 type Entrada = z.input<typeof crearSolicitudRequestSchema>;
 type Salida = z.output<typeof crearSolicitudRequestSchema>;
@@ -30,6 +30,7 @@ export function FormularioSolicitud() {
   const api = useApi();
   const navigate = useNavigate();
   const paises = useQuery(destinosOptions(api));
+  const tasas = useQuery(tasasDelDiaOptions(api));
   const crear = useCrearSolicitud();
 
   const form = useForm<Entrada, unknown, Salida>({
@@ -91,6 +92,7 @@ export function FormularioSolicitud() {
             )}
           </Campo>
         </div>
+        <TasasDelDia tasas={tasas.data} />
 
         {fields.map((campo, i) => {
           const e = errores.destinos?.[i];

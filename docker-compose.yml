@@ -17,6 +17,7 @@ x-app: &app
     DATABASE_URL: postgres://${POSTGRES_USER:-viaticos}:${POSTGRES_PASSWORD:-viaticos_local}@db:5432/${POSTGRES_DB:-viaticos}
     AUTH_MODE: ${AUTH_MODE:-jwt}
     JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET en .env (copie .env.example)}
+    TASAS_PROVEEDOR: ${TASAS_PROVEEDOR:-oficial}
     TRM_DESARROLLO: ${TRM_DESARROLLO:-4000}
     CORS_ORIGINS: http://localhost:${WEB_PORT:-5173}
     OCR_PROVEEDOR: ${OCR_PROVEEDOR:-manual}

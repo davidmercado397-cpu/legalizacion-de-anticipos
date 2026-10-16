@@ -7,8 +7,9 @@ export interface Reloj {
   hoy(): FechaCalendario;
 }
 
-/** Registro de eventos operativos (advertencias que no interrumpen el caso de uso). */
+/** Registro de eventos operativos (no interrumpen el caso de uso). */
 export interface Bitacora {
+  informacion?(mensaje: string): void;
   advertencia(mensaje: string): void;
 }
 

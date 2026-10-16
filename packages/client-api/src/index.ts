@@ -3,6 +3,7 @@ import { crearAnticiposApi, type AnticiposApi } from './api/anticipos.api';
 import { crearAuthApi, type AuthApi } from './api/auth.api';
 import { crearLegalizacionesApi, type LegalizacionesApi } from './api/legalizaciones.api';
 import { crearSolicitudesApi, type SolicitudesApi } from './api/solicitudes.api';
+import { crearTasasApi, type TasasApi } from './api/tasas.api';
 import { crearClienteHttp, type OpcionesClienteHttp } from './http';
 
 export { ApiError } from './errores';
@@ -11,15 +12,17 @@ export type { AnticiposApi } from './api/anticipos.api';
 export type { AuthApi } from './api/auth.api';
 export type { ArchivoParaSubir, LegalizacionesApi } from './api/legalizaciones.api';
 export type { SolicitudesApi } from './api/solicitudes.api';
+export type { TasasApi } from './api/tasas.api';
 
 export interface Api {
   auth: AuthApi;
   solicitudes: SolicitudesApi;
   anticipos: AnticiposApi;
   legalizaciones: LegalizacionesApi;
+  tasas: TasasApi;
 }
 
 export function crearApi(opciones: OpcionesClienteHttp): Api {
   const http: AxiosInstance = crearClienteHttp(opciones);
-  return { auth: crearAuthApi(http), solicitudes: crearSolicitudesApi(http), anticipos: crearAnticiposApi(http), legalizaciones: crearLegalizacionesApi(http) };
+  return { auth: crearAuthApi(http), solicitudes: crearSolicitudesApi(http), anticipos: crearAnticiposApi(http), legalizaciones: crearLegalizacionesApi(http), tasas: crearTasasApi(http) };
 }

@@ -5,3 +5,4 @@ export * from './identidad';
 export * from './tarifas';
 export * from './anticipos';
 export * from './legalizaciones';
+export * from './tasas';

@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import type { EstimadoResponse, SolicitudResponse } from '@viaticos/contracts';
+import type { EstimadoResponse, SolicitudResponse, TasasDelDiaResponse } from '@viaticos/contracts';
 import { useState } from 'react';
 import { t } from '../../i18n';
 import { cx } from '../../lib/cx';
@@ -130,7 +130,7 @@ export function TablaPresupuesto({
           Total del anticipo
           {presupuesto.tasasAplicadas.map((tasa) => (
             <span key={tasa.origen} className="ml-2 text-xs text-slate-500">
-              (TRM {tasa.origen}→{tasa.destino}: {Number(tasa.valor).toLocaleString('es-CO')})
+              ({tasa.origen}→{tasa.destino}: {Number(tasa.valor).toLocaleString('es-CO', { maximumFractionDigits: 6 })} · {tasa.fuente})
             </span>
           ))}
         </span>
@@ -207,5 +207,26 @@ export function TarjetaSolicitud({ solicitud, mostrarViajero = false }: { solici
         </div>
       </div>
     </Link>
+  );
+}
+
+/** TRM y demás tasas por dólar vigentes hoy, con su fuente oficial. */
+export function TasasDelDia({ tasas }: { tasas: TasasDelDiaResponse | undefined }) {
+  if (!tasas) return null;
+  const disponibles = tasas.cotizaciones.filter((c) => c.porDolar !== null);
+  if (disponibles.length === 0) {
+    return <p className="text-xs text-amber-800">Las tasas oficiales de hoy no están disponibles; se intentará de nuevo.</p>;
+  }
+  return (
+    <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600" aria-label="Tasas de cambio de hoy">
+      {disponibles.map((c) => (
+        <span key={c.moneda}>
+          <span className="font-semibold text-slate-800">
+            1 USD = {Number(c.porDolar).toLocaleString('es-CO', { maximumFractionDigits: 4 })} {c.moneda}
+          </span>{' '}
+          ({c.fuente})
+        </span>
+      ))}
+    </p>
   );
 }

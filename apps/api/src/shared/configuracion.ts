@@ -11,6 +11,12 @@ const esquema = z
     /** Vida del access token (segundos) y del refresh token (días). */
     JWT_ACCESS_TTL_SEGUNDOS: z.coerce.number().int().positive().default(900),
     REFRESH_TTL_DIAS: z.coerce.number().int().positive().default(7),
+    /** oficial: TRM del día y BCE, actualizadas cada hora · fija: TRM_DESARROLLO/TASAS_DESARROLLO (sin internet, pruebas). */
+    TASAS_PROVEEDOR: z.enum(['oficial', 'fija']).default('fija'),
+    /** Tasas por dólar para monedas sin fuente oficial automática (con TASAS_PROVEEDOR=oficial). */
+    TASAS_RESPALDO: z.string().default('PEN=3.75,CLP=950,ARS=1000,UYU=40'),
+    /** Monedas que se muestran en "Tasas del día". */
+    TASAS_MONEDAS_VISIBLES: z.string().default('COP,BRL,EUR'),
     TRM_DESARROLLO: z.string().regex(/^\d+(\.\d+)?$/).default('4000'),
     /** Tasas de desarrollo por dólar, además de la TRM (COP). */
     TASAS_DESARROLLO: z.string().default('BRL=5.40,EUR=0.92,MXN=18.50,PEN=3.75,CLP=950'),
@@ -29,6 +35,10 @@ const esquema = z
   .refine((c) => !(c.NODE_ENV === 'production' && c.PERSISTENCIA === 'memoria'), {
     error: 'PERSISTENCIA=memoria está prohibido con NODE_ENV=production (se perderían los datos)',
     path: ['PERSISTENCIA'],
+  })
+  .refine((c) => !(c.NODE_ENV === 'production' && c.TASAS_PROVEEDOR === 'fija'), {
+    error: 'TASAS_PROVEEDOR=fija está prohibido con NODE_ENV=production (se usaría una TRM inventada)',
+    path: ['TASAS_PROVEEDOR'],
   })
   .refine((c) => c.PERSISTENCIA !== 'postgres' || !!c.DATABASE_URL, {
     error: 'DATABASE_URL es obligatorio con PERSISTENCIA=postgres',

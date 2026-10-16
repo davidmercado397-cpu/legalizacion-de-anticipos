@@ -51,6 +51,12 @@ Por defecto el viajero digita los datos de cada factura. Para que se lean solas 
 
 El costo estimado es de unos USD 0,04–0,06 por factura. `OCR_ESFUERZO=low` lo reduce, con algo menos de precisión.
 
+### Tasas de cambio (TRM del día)
+
+Por defecto (`TASAS_PROVEEDOR=oficial`) la API toma la **TRM del día** de datos.gov.co y las demás monedas del Banco Central Europeo. Las consulta al arrancar y luego cada hora, y las muestra en *Nueva solicitud*. Necesita internet.
+
+Sin internet, ponga `TASAS_PROVEEDOR=fija` en `.env`: se usará `TRM_DESARROLLO`.
+
 ## 3. Qué se levanta
 
 | Servicio | URL / puerto | Qué hace |
@@ -128,6 +134,7 @@ Usa las mismas imágenes que se desplegarán:
 |---------|----------|
 | `port is already allocated` | Otro programa usa el puerto: cambie `WEB_PORT` o `DB_PORT` en `.env` |
 | `http proxy error … getaddrinfo ENOTFOUND api` | La web no encuentra la API en la red de Docker. Ejecute `docker compose down` y `docker compose up --build --watch`; si persiste, `docker compose up --force-recreate --no-deps api` muestra el error de Docker |
+| `TASA_NO_DISPONIBLE` al estimar un viaje | La API no pudo consultar la TRM. Revise la conexión a internet o use `TASAS_PROVEEDOR=fija` en `.env` |
 | `Defina JWT_SECRET en .env` | No copió `.env.example` a `.env` |
 | `unknown flag: --watch` | Actualice Docker Desktop (se necesita Compose ≥ 2.22) |
 | Los cambios no se reflejan | Asegúrese de haber arrancado con `--watch` |

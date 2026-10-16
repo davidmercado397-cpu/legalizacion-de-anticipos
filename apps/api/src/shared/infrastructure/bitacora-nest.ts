@@ -8,6 +8,10 @@ export class BitacoraNest implements Bitacora {
     this.logger = new Logger(contexto);
   }
 
+  informacion(mensaje: string): void {
+    this.logger.log(mensaje);
+  }
+
   advertencia(mensaje: string): void {
     this.logger.warn(mensaje);
   }

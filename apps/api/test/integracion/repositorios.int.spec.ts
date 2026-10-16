@@ -13,6 +13,7 @@ import { estimarPresupuesto } from '../../src/modules/solicitudes/domain/presupu
 import { SolicitudViaje } from '../../src/modules/solicitudes/domain/solicitud-viaje';
 import { ConfiguracionEscalamientoDrizzle } from '../../src/modules/solicitudes/infrastructure/persistencia/configuracion-escalamiento.repository.drizzle';
 import { SolicitudRepositoryDrizzle } from '../../src/modules/solicitudes/infrastructure/persistencia/solicitud.repository.drizzle';
+import { CacheTasasDrizzle } from '../../src/modules/tasas/infrastructure/cache-tasas';
 import { TarifaRepositoryDrizzle } from '../../src/modules/tarifas/infrastructure/persistencia/tarifas.repository.drizzle';
 import type { ConexionBaseDatos } from '../../src/shared/infrastructure/base-datos/conexion';
 import { URL_PRUEBAS, prepararBaseDePruebas } from './base-de-pruebas';
@@ -181,5 +182,28 @@ describe.runIf(URL_PRUEBAS)('Repositorios PostgreSQL (integración)', () => {
       await repo.guardar(nuevo('10000000-0000-4000-8000-000000000002', solicitud));
       await expect(repo.guardar(nuevo('10000000-0000-4000-8000-000000000003', solicitud))).rejects.toThrow();
     });
+  });
+});
+
+describe.runIf(URL_PRUEBAS)('Caché de tasas en PostgreSQL (integración)', () => {
+  let conexion: ConexionBaseDatos;
+  beforeAll(async () => {
+    conexion = await prepararBaseDePruebas();
+  });
+  afterAll(async () => {
+    await conexion?.onApplicationShutdown();
+  });
+
+  it('guarda una cotización por moneda y fecha, y no la sobrescribe', async () => {
+    const cache = new CacheTasasDrizzle(conexion.db);
+    const cotizacion = { moneda: 'COP', fecha: '2026-10-11', porDolar: '4123.45', fechaPublicada: '2026-10-10', fuente: 'TRM' };
+    await cache.guardar(cotizacion);
+    await cache.guardar({ ...cotizacion, porDolar: '9999' });
+    const leida = await cache.obtener('COP', '2026-10-11');
+    expect(leida).toMatchObject({ moneda: 'COP', fechaPublicada: '2026-10-10', fuente: 'TRM' });
+    expect(Number(leida!.porDolar)).toBe(4123.45);
+    expect(await cache.obtener('COP', '2026-10-12')).toBeNull();
+    expect((await cache.ultimaHasta('COP', '2026-10-13', '2026-10-08'))?.fecha).toBe('2026-10-11');
+    expect(await cache.ultimaHasta('COP', '2026-10-10', '2026-10-05')).toBeNull();
   });
 });
