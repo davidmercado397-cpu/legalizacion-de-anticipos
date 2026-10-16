@@ -11,6 +11,7 @@ from app.adapters.inbound.http.deps import ContainerDep, CurrentEmployee, PageDe
 from app.adapters.inbound.http.schemas import (
     AdvanceDetailOut,
     AdvanceIn,
+    AdvanceListItemOut,
     AdvanceOut,
     BalanceOut,
     DisburseIn,
@@ -52,7 +53,7 @@ async def request_advance(body: AdvanceIn, actor: CurrentEmployee, container: Co
     return await _out(container, await container.advances.request(actor, AdvanceRequest(**body.model_dump())))
 
 
-@router.get("", response_model=PageOut[AdvanceOut], summary="Advances visible to the user")
+@router.get("", response_model=PageOut[AdvanceListItemOut], summary="Advances visible to the user")
 async def list_advances(
     actor: CurrentEmployee,
     container: ContainerDep,
@@ -60,9 +61,12 @@ async def list_advances(
     status: AdvanceStatus | None = None,
     disbursed: bool | None = None,
     settlement: Literal["pending"] | None = None,
-) -> PageOut[AdvanceOut]:
+) -> PageOut[AdvanceListItemOut]:
     advances = await container.advances.search(actor, status, page, disbursed, settlement == "pending" or None)
-    result = page_out(advances, page, advance_out)
+    names = await container.advances.owner_names(advances.items)
+    result = page_out(
+        advances, page, lambda a: AdvanceListItemOut(**advance_out(a).model_dump(), employee_name=names[a.employee_id])
+    )
     zones = {a.id: await _zone(container, a.company_id) for a in advances.items}
     result.data = [localize(item, zones[item.id]) for item in result.data]
     return result

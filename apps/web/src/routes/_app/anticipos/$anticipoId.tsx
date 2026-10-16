@@ -1,85 +1,100 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { Link, createFileRoute } from '@tanstack/react-router';
-import { ApiError } from '@viaticos/client-api';
-import { useQuery } from '@tanstack/react-query';
-import { anticipoOptions, legalizacionPorAnticipoOptions, useApi } from '@viaticos/client-app';
-import { EnlaceLegalizacion, InsigniaEstadoLegalizacion } from '../../../features/legalizaciones/componentes';
-import { InsigniaEstadoAnticipo, resumenViaje } from '../../../features/anticipos/componentes';
-import { t } from '../../../i18n';
+import { createFileRoute } from '@tanstack/react-router';
+import { useAnticipo, useDescargarExcel, useSesion } from '@viaticos/client-app';
+import { InsigniaAnticipo, ResumenSaldo } from '../../../features/anticipos/componentes';
+import { LineaDeTiempo } from '../../../features/anticipos/linea-tiempo';
+import { PanelAcciones } from '../../../features/anticipos/panel-acciones';
+import { ListaGastos } from '../../../features/gastos/componentes';
+import { SubirFactura } from '../../../features/gastos/subir-factura';
+import { etiqueta } from '../../../i18n';
 import { mensajeDeError } from '../../../lib/errores';
-import { formatoDinero, formatoFechaCalendario } from '../../../lib/formato';
-import { Alerta, Cargando, EstadoVacio, Tarjeta } from '../../../ui/superficies';
+import { formatoDinero, formatoMomento, rangoFechas } from '../../../lib/formato';
+import { puede } from '../../../lib/roles';
+import { Boton } from '../../../ui/boton';
+import { Alerta, Cargando, Tarjeta } from '../../../ui/superficies';
 
-export const Route = createFileRoute('/_app/anticipos/$anticipoId')({
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(anticipoOptions(context.api, params.anticipoId)),
-  pendingComponent: () => <Cargando />,
-  errorComponent: ({ error }) =>
-    error instanceof ApiError && error.status === 404 ? (
-      <EstadoVacio titulo="Anticipo no encontrado" />
-    ) : (
-      <Alerta tono="peligro">{mensajeDeError(error)}</Alerta>
-    ),
-  component: DetalleAnticipo,
-});
+export const Route = createFileRoute('/_app/anticipos/$anticipoId')({ component: DetalleAnticipo });
 
 function DetalleAnticipo() {
-  const api = useApi();
   const { anticipoId } = Route.useParams();
-  const { data: a } = useSuspenseQuery(anticipoOptions(api, anticipoId));
-  const legalizacion = useQuery({ ...legalizacionPorAnticipoOptions(api, anticipoId), enabled: a.estado === 'DESEMBOLSADO' || a.estado === 'LEGALIZADO' });
+  const usuario = useSesion((s) => s.usuario);
+  const { data: anticipo, isPending, error } = useAnticipo(anticipoId);
+  const excel = useDescargarExcel();
+
+  if (isPending) return <Cargando />;
+  if (error) return <Alerta tono="peligro">{mensajeDeError(error)}</Alerta>;
+
+  const propio = usuario?.id === anticipo.employee_id;
+  const sinConfirmar = anticipo.expenses.filter((g) => ['received', 'processing', 'extracted', 'failed'].includes(g.status)).length;
+
+  async function descargar() {
+    const { archivo, nombre } = await excel.mutateAsync(anticipo!.id);
+    const url = URL.createObjectURL(archivo);
+    const enlace = Object.assign(document.createElement('a'), { href: url, download: nombre });
+    enlace.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link to="/anticipos" className="text-sm text-marca-700 hover:underline">
-            ← Mis anticipos
-          </Link>
-          <h1 className="mt-1 text-2xl font-bold">{a.viaje.motivo}</h1>
+          <h1 className="text-xl font-bold">{anticipo.destination ?? anticipo.purpose}</h1>
           <p className="text-sm text-slate-600">
-            {a.viajeroNombre} · {resumenViaje(a)}
+            {!propio && `${anticipo.employee.full_name} · `}
+            {rangoFechas(anticipo.start_date, anticipo.end_date)} · {etiqueta('tipo', anticipo.kind)}
           </p>
         </div>
-        <InsigniaEstadoAnticipo estado={a.estado} />
+        <InsigniaAnticipo estado={anticipo.status} />
       </div>
 
-      <Tarjeta className="grid gap-4 sm:grid-cols-3">
-        <div>
-          <p className="text-sm text-slate-500">Monto del anticipo</p>
-          <p className="text-2xl font-bold">{formatoDinero(a.monto)}</p>
-        </div>
-        <div>
-          <p className="text-sm text-slate-500">Registro en ERP</p>
-          <p className="font-medium">{a.erp.referencia ?? 'Pendiente'}</p>
-        </div>
-        <div>
-          <p className="text-sm text-slate-500">Desembolso</p>
-          {a.desembolso ? (
-            <p className="font-medium">
-              {formatoFechaCalendario(a.desembolso.fecha)} · {t(`medio.${a.desembolso.medio}`)}
-              {a.desembolso.referencia && <span className="block text-sm text-slate-500">Ref. {a.desembolso.referencia}</span>}
-            </p>
-          ) : (
-            <p className="font-medium">Pendiente de tesorería</p>
-          )}
-        </div>
+      <Tarjeta className="space-y-4">
+        <p className="text-sm text-slate-700">{anticipo.purpose}</p>
+        <ResumenSaldo saldo={anticipo.balance} />
+        {anticipo.budget_amount && anticipo.budget_amount !== anticipo.amount && (
+          <Alerta tono="aviso" titulo={`Pidió un valor distinto al sugerido (${formatoDinero(anticipo.budget_amount, anticipo.currency)})`}>
+            {anticipo.budget_justification}
+          </Alerta>
+        )}
+        {anticipo.decision_note && anticipo.status !== 'closed' && <Alerta tono="info">“{anticipo.decision_note}”</Alerta>}
+        {anticipo.disbursed_at && (
+          <p className="text-sm text-slate-600">
+            Desembolsado el {formatoMomento(anticipo.disbursed_at)} por {etiqueta('desembolso', anticipo.disbursement_method)}
+            {anticipo.disbursement_ref && ` (${anticipo.disbursement_ref})`}.
+          </p>
+        )}
+        {anticipo.settlement_status && (
+          <p className="text-sm font-medium text-slate-700">{etiqueta('liquidacion', anticipo.settlement_status)}</p>
+        )}
       </Tarjeta>
 
-      {legalizacion.data && (
-        <Tarjeta className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="font-semibold">Legalización</p>
-            <p className="text-sm text-slate-600">
-              {legalizacion.data.soportes.length} soporte(s) · <InsigniaEstadoLegalizacion estado={legalizacion.data.estado} />
-            </p>
+      {propio && anticipo.status === 'approved' && sinConfirmar > 0 && (
+        <Alerta tono="aviso">
+          {sinConfirmar === 1 ? 'Hay 1 factura' : `Hay ${sinConfirmar} facturas`} sin confirmar. Revíselas antes de enviar la legalización.
+        </Alerta>
+      )}
+      <PanelAcciones anticipo={anticipo} />
+
+      {anticipo.status !== 'requested' && anticipo.status !== 'rejected' && anticipo.status !== 'cancelled' && (
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-semibold text-slate-700">Facturas</h2>
+            <div className="flex gap-2">
+              {puede(usuario, 'contabilidad') && (
+                <Boton variante="secundario" cargando={excel.isPending} onClick={() => void descargar()}>
+                  Excel de la legalización
+                </Boton>
+              )}
+              {propio && anticipo.status === 'approved' && <SubirFactura anticipoId={anticipo.id} />}
+            </div>
           </div>
-          <EnlaceLegalizacion id={legalizacion.data.id}>{legalizacion.data.editable ? 'Legalizar gastos' : 'Ver legalización'}</EnlaceLegalizacion>
-        </Tarjeta>
+          <ListaGastos anticipoId={anticipo.id} gastos={anticipo.expenses} />
+        </section>
       )}
 
-      <Link to="/solicitudes/$solicitudId" params={{ solicitudId: a.solicitudId }} className="inline-block text-sm text-marca-700 hover:underline">
-        Ver la solicitud de viaje →
-      </Link>
+      <section className="space-y-3">
+        <h2 className="font-semibold text-slate-700">Historial</h2>
+        <LineaDeTiempo anticipoId={anticipo.id} />
+      </section>
     </div>
   );
 }

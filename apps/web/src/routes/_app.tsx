@@ -1,14 +1,19 @@
 import { Link, Outlet, createFileRoute, redirect, useNavigate, useRouter } from '@tanstack/react-router';
-import { useCerrarSesion, useSesion } from '@viaticos/client-app';
+import { pendienteDe, useCerrarSesion, useSesion } from '@viaticos/client-app';
 import { useEffect } from 'react';
+import { etiqueta } from '../i18n';
+import { puede } from '../lib/roles';
 import { Boton } from '../ui/boton';
 
-/** Rutas privadas: exige sesión y comparte el layout. */
+const RUTA_PENDIENTE = { cambiar_clave: '/cuenta/clave', activar_mfa: '/cuenta/mfa' } as const;
+
+/** Rutas privadas: exige sesión; si falta cambiar la clave o activar el MFA, solo deja hacer eso. */
 export const Route = createFileRoute('/_app')({
   beforeLoad: ({ context, location }) => {
-    if (context.sesion.getState().estado !== 'autenticada') {
-      throw redirect({ to: '/login', search: { redirect: location.href } });
-    }
+    const { estado, usuario } = context.sesion.getState();
+    if (estado !== 'autenticada') throw redirect({ to: '/login', search: { redirect: location.href } });
+    const pendiente = pendienteDe(usuario);
+    if (pendiente && location.pathname !== RUTA_PENDIENTE[pendiente]) throw redirect({ to: RUTA_PENDIENTE[pendiente] });
   },
   component: Layout,
 });
@@ -22,50 +27,54 @@ function Layout() {
   const cerrar = useCerrarSesion();
   const navigate = useNavigate();
   const router = useRouter();
-  const tiene = (rol: string) => usuario?.roles.includes(rol as never) ?? false;
+  const pendiente = pendienteDe(usuario);
 
-  // Si la sesión expira mientras se usa la app, se vuelve al login conservando la ruta actual.
+  // Si la sesión se cierra o expira mientras se usa la app, se vuelve al login conservando la ruta.
   useEffect(() => {
-    if (estado === 'anonima') void navigate({ to: '/login', search: { redirect: router.state.location.href } });
+    if (estado !== 'autenticada') void navigate({ to: '/login', search: { redirect: router.state.location.href } });
   }, [estado, navigate, router]);
 
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2">
-          <Link to="/solicitudes" className="flex items-center gap-2 font-bold text-marca-800">
+          <Link to="/" className="flex items-center gap-2 font-bold text-marca-800">
             <img src="/favicon.svg" alt="" className="size-7" />
             <span className="hidden sm:inline">Viáticos</span>
           </Link>
           <nav aria-label="Principal" className="flex flex-1 gap-1 overflow-x-auto">
-            <Link to="/solicitudes" className={ENLACE} activeProps={ACTIVO}>
-              Mis solicitudes
-            </Link>
-            <Link to="/anticipos" className={ENLACE} activeProps={ACTIVO}>
-              Mis anticipos
-            </Link>
-            {tiene('APROBADOR') && (
-              <Link to="/aprobaciones" className={ENLACE} activeProps={ACTIVO}>
-                Aprobaciones
-              </Link>
-            )}
-            {tiene('CONTABILIDAD') && (
-              <Link to="/contabilidad" className={ENLACE} activeProps={ACTIVO}>
-                Contabilidad
-              </Link>
-            )}
-            {tiene('TESORERIA') && (
-              <Link to="/tesoreria" className={ENLACE} activeProps={ACTIVO}>
-                Tesorería
-              </Link>
-            )}
-            {tiene('ADMIN') && (
-              <Link to="/administracion" className={ENLACE} activeProps={ACTIVO}>
-                Administración
-              </Link>
+            {!pendiente && usuario?.role !== 'superadmin' && (
+              <>
+                <Link to="/anticipos" className={ENLACE} activeProps={ACTIVO} activeOptions={{ exact: true }}>
+                  Mis anticipos
+                </Link>
+                {puede(usuario, 'aprobar') && (
+                  <Link to="/aprobaciones" className={ENLACE} activeProps={ACTIVO}>
+                    Aprobaciones
+                  </Link>
+                )}
+                {puede(usuario, 'contabilidad') && (
+                  <>
+                    <Link to="/contabilidad" className={ENLACE} activeProps={ACTIVO}>
+                      Contabilidad
+                    </Link>
+                    <Link to="/tesoreria" className={ENLACE} activeProps={ACTIVO}>
+                      Tesorería
+                    </Link>
+                  </>
+                )}
+                {puede(usuario, 'administrar') && (
+                  <Link to="/administracion" className={ENLACE} activeProps={ACTIVO}>
+                    Administración
+                  </Link>
+                )}
+              </>
             )}
           </nav>
-          <span className="hidden text-sm text-slate-600 md:inline">{usuario?.nombre}</span>
+          <Link to="/cuenta/clave" className="hidden text-right text-sm leading-tight text-slate-600 hover:text-slate-900 md:block">
+            {usuario?.full_name}
+            <span className="block text-xs text-slate-400">{etiqueta('rol', usuario?.role)}</span>
+          </Link>
           <Boton variante="fantasma" cargando={cerrar.isPending} onClick={() => cerrar.mutate()}>
             Salir
           </Boton>

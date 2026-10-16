@@ -161,6 +161,7 @@ async def test_treasury_disburses_and_settles_the_difference(harness: Harness) -
     _, _, _, emp_h, appr_h, acc_h, advance_id = await _approved(harness)
     pending = await harness.client.get("/api/v1/advances", headers=acc_h, params={"status": "approved", "disbursed": "false"})
     assert [a["id"] for a in pending.json()["data"]] == [advance_id]
+    assert pending.json()["data"][0]["employee_name"]  # los listados dicen de quién es cada anticipo
     assert (
         await harness.client.post(f"/api/v1/advances/{advance_id}/disburse", headers=appr_h, json={"method": "cash"})
     ).status_code == 403

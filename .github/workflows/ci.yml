@@ -51,6 +51,8 @@ jobs:
         run: vulture && deptry .
       - name: Tests with coverage (minimum 85%)
         run: python -m pytest -q --cov --cov-report=term --cov-report=xml
+      - name: The OpenAPI contract used by the web is up to date
+        run: python -m scripts.export_openapi && git diff --exit-code ../../packages/contracts/openapi.json
       - name: Migrations apply cleanly on an empty database and match the models
         env:
           PGPASSWORD: gastos
@@ -112,6 +114,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Los tipos del contrato están generados desde el OpenAPI versionado
+        run: pnpm --filter @viaticos/contracts generar && git diff --exit-code packages/contracts/src/openapi.d.ts
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build

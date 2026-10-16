@@ -1,12 +1,9 @@
 import { ApiError } from '@viaticos/client-api';
-import { t } from '../i18n';
 
-/** Mensaje para el usuario: traducción del código estable de la API, o el título que envió el servidor. */
+/** La API ya responde en español y listo para mostrar; ante un error interno se agrega su referencia. */
 export function mensajeDeError(error: unknown): string {
   if (error instanceof ApiError) {
-    const clave = `error.${error.codigo}`;
-    const traducido = t(clave);
-    return traducido !== clave ? traducido : error.message;
+    return error.status >= 500 && error.requestId ? `${error.message} (referencia ${error.requestId.slice(0, 8)})` : error.message;
   }
   return 'Ocurrió un error inesperado.';
 }

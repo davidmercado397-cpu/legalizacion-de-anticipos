@@ -1,16 +1,24 @@
 import { isAxiosError } from 'axios';
-import { problemDetailsSchema } from '@viaticos/contracts';
+import type { CuerpoError } from '@viaticos/contracts';
 
-/** Error de la API normalizado desde application/problem+json (RFC 7807). */
+function esCuerpoError(valor: unknown): valor is CuerpoError {
+  const error = (valor as CuerpoError | null)?.error;
+  return typeof error?.code === 'string' && typeof error.message === 'string';
+}
+
+/** Error de la API normalizado desde {"error": {code, message, details, request_id}}. */
 export class ApiError extends Error {
   constructor(
     readonly status: number,
-    /** Código estable para i18n y lógica del cliente (ej. JUSTIFICACION_REQUERIDA). */
+    /** Código estable (ej. `pending_expenses`); la lógica del cliente decide con él, nunca con el mensaje. */
     readonly codigo: string,
+    /** Texto en español, listo para mostrar. */
     mensaje: string,
-    /** Errores por campo (ruta "destinos.0.fechaFin" → claves i18n). */
+    /** Errores 422 por campo: `{ email: ["Este campo es obligatorio."] }`. */
     readonly erroresCampo: Record<string, string[]> = {},
-    readonly meta: Record<string, unknown> = {},
+    readonly requestId: string | null = null,
+    /** Segundos de espera en 423 y 429. */
+    readonly reintentarEn: number | null = null,
   ) {
     super(mensaje);
     this.name = 'ApiError';
@@ -19,18 +27,22 @@ export class ApiError extends Error {
   static desde(error: unknown): ApiError {
     if (error instanceof ApiError) return error;
     if (isAxiosError(error)) {
-      if (!error.response) return new ApiError(0, 'SIN_CONEXION', 'No hay conexión con el servidor');
-      const problema = problemDetailsSchema.safeParse(error.response.data);
-      if (problema.success) {
-        const p = problema.data;
-        return new ApiError(p.status, p.code, p.title, p.errors ?? {}, p.meta ?? {});
+      if (!error.response) return new ApiError(0, 'sin_conexion', 'No hay conexión con el servidor.');
+      const { status, data, headers } = error.response;
+      const espera = Number((headers as Record<string, unknown>)['retry-after']);
+      if (esCuerpoError(data)) {
+        const campos: Record<string, string[]> = {};
+        for (const detalle of data.error.details) {
+          if (typeof detalle.field === 'string' && typeof detalle.issue === 'string') {
+            (campos[detalle.field] ??= []).push(detalle.issue);
+          }
+        }
+        return new ApiError(status, data.error.code, data.error.message, campos, data.error.request_id, Number.isFinite(espera) ? espera : null);
       }
-      // 502/503/504 sin problem+json: lo responde un proxy (Vite, nginx) porque la API no está disponible.
-      if ([502, 503, 504].includes(error.response.status)) {
-        return new ApiError(error.response.status, 'SERVIDOR_NO_DISPONIBLE', 'El servidor no está disponible');
-      }
-      return new ApiError(error.response.status, `HTTP_${error.response.status}`, error.message);
+      // 502/503/504 sin el cuerpo de la API: lo responde un proxy (Vite, nginx) porque la API no está arriba.
+      if ([502, 503, 504].includes(status)) return new ApiError(status, 'servidor_no_disponible', 'El servidor no está disponible.');
+      return new ApiError(status, `http_${status}`, error.message);
     }
-    return new ApiError(0, 'ERROR_DESCONOCIDO', error instanceof Error ? error.message : String(error));
+    return new ApiError(0, 'error_desconocido', error instanceof Error ? error.message : String(error));
   }
 }

@@ -11,6 +11,8 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from app.application.messages import COLOMBIAN
+from app.application.whatsapp_presenter import finding_text
 from app.domain.entities import Advance, AdvanceBalance, ApproverDelegation, Company, Employee, Expense
 from app.domain.enums import (
     AdvanceKind,
@@ -194,11 +196,16 @@ class EmployeeOut(Model):
     staff_type: StaffType | None
     active: bool
     must_change_password: bool
+    mfa_enabled: bool
     wa_link_status: WhatsAppLinkStatus
     wa_username: str | None
     wa_profile_name: str | None
     privacy_accepted_at: datetime | None
     created_at: datetime
+
+
+class MeOut(EmployeeOut):
+    mfa_setup_required: bool = Field(description="Su rol exige verificación en dos pasos y todavía no la activa")
 
 
 class EmployeeCreatedOut(EmployeeOut):
@@ -377,6 +384,10 @@ class AdvanceOut(Model):
     created_at: datetime
 
 
+class AdvanceListItemOut(AdvanceOut):
+    employee_name: str
+
+
 class FileOut(BaseModel):
     url: str
     mime_type: str | None
@@ -420,7 +431,9 @@ class ExpenseOut(Model):
     exchange_rate_source: ExchangeRateSource | None
     exchange_rate_date: date | None
     warnings: list[str]
-    policy_findings: list[dict[str, Any]]
+    policy_findings: list[dict[str, Any]] = Field(
+        description="Hallazgos de política: rule, action (warn | require_justification | block), code, detail y message"
+    )
     justification: str | None
     deductibility: Deductibility | None
     suggested_non_reimbursable: Decimal | None
@@ -685,7 +698,10 @@ def advance_out(a: Advance) -> AdvanceOut:
 
 
 def expense_out(e: Expense) -> ExpenseOut:
-    return ExpenseOut.model_validate(e)
+    out = ExpenseOut.model_validate(e)
+    # Cada hallazgo trae el mismo texto que ve el empleado en WhatsApp (una sola fuente de los mensajes).
+    findings = [{**f, "message": finding_text(f, COLOMBIAN)} for f in out.policy_findings]
+    return out.model_copy(update={"policy_findings": findings})
 
 
 class PaginationOut(BaseModel):

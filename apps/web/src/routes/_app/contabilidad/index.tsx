@@ -1,71 +1,57 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { Link, createFileRoute, redirect } from '@tanstack/react-router';
-import { bandejaContabilidadOptions, useApi } from '@viaticos/client-app';
-import { InsigniaEstadoLegalizacion } from '../../../features/legalizaciones/componentes';
-import { formatoDinero, formatoFechaCalendario } from '../../../lib/formato';
-import { Cargando, EstadoVacio, Insignia } from '../../../ui/superficies';
+import { createFileRoute } from '@tanstack/react-router';
+import { useAnticipos, useCompanias } from '@viaticos/client-app';
+import { useState } from 'react';
+import { ListaAnticipos } from '../../../features/anticipos/componentes';
+import { ReglasPolitica } from '../../../features/administracion/reglas-politica';
+import { mensajeDeError } from '../../../lib/errores';
+import { exigir } from '../../../lib/roles';
+import { Seleccion } from '../../../ui/campos';
+import { Alerta, Cargando } from '../../../ui/superficies';
 
 export const Route = createFileRoute('/_app/contabilidad/')({
-  beforeLoad: ({ context }) => {
-    if (!context.sesion.getState().usuario?.roles.includes('CONTABILIDAD')) throw redirect({ to: '/solicitudes' });
-  },
-  loader: ({ context }) => context.queryClient.ensureQueryData(bandejaContabilidadOptions(context.api)),
-  pendingComponent: () => <Cargando />,
-  component: BandejaContabilidad,
+  beforeLoad: ({ context }) => exigir(context.sesion, 'contabilidad'),
+  component: Contabilidad,
 });
 
-function BandejaContabilidad() {
-  const api = useApi();
-  const { data } = useSuspenseQuery(bandejaContabilidadOptions(api));
+function Contabilidad() {
+  const enRevision = useAnticipos({ status: 'in_review', limit: 100 });
+  const cerradas = useAnticipos({ status: 'closed', limit: 20 });
+  const companias = useCompanias();
+  const [compania, setCompania] = useState<string>('');
+  const elegida = compania || companias.data?.[0]?.id;
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Legalizaciones por revisar</h1>
-        <div className="flex flex-wrap gap-4">
-          <Link to="/contabilidad/conciliaciones" className="text-sm font-semibold text-marca-700 hover:underline">
-            Conciliaciones bancarias →
-          </Link>
-          <Link to="/contabilidad/configuracion" className="text-sm font-semibold text-marca-700 hover:underline">
-            Configuración →
-          </Link>
+    <div className="space-y-8">
+      <h1 className="text-xl font-bold">Contabilidad</h1>
+      <section className="space-y-3">
+        <h2 className="font-semibold text-slate-700">Legalizaciones en revisión</h2>
+        {enRevision.isPending ? (
+          <Cargando />
+        ) : enRevision.isError ? (
+          <Alerta tono="peligro">{mensajeDeError(enRevision.error)}</Alerta>
+        ) : (
+          <ListaAnticipos anticipos={enRevision.data.data} mostrarEmpleado vacio="No hay legalizaciones en revisión" />
+        )}
+      </section>
+      <section className="space-y-3">
+        <h2 className="font-semibold text-slate-700">Legalizadas recientemente</h2>
+        {cerradas.data && <ListaAnticipos anticipos={cerradas.data.data} mostrarEmpleado vacio="Todavía no hay legalizaciones cerradas" />}
+      </section>
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-semibold text-slate-700">Política de gastos</h2>
+          {(companias.data?.length ?? 0) > 1 && (
+            <Seleccion aria-label="Compañía" className="w-auto" value={elegida ?? ''} onChange={(e) => setCompania(e.target.value)}>
+              {companias.data!.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Seleccion>
+          )}
         </div>
-      </div>
-      {data.length === 0 ? (
-        <EstadoVacio titulo="No hay legalizaciones pendientes" />
-      ) : (
-        <ul className="space-y-3">
-          {data.map((l) => {
-            const alertas = l.soportes.filter((s) => s.requiereDecision && !s.decision).length;
-            return (
-              <li key={l.id}>
-                <Link
-                  to="/legalizaciones/$legalizacionId"
-                  params={{ legalizacionId: l.id }}
-                  className="block rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 hover:ring-marca-600"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <p className="font-semibold text-marca-800">{l.viajeroNombre}</p>
-                      <p className="text-sm text-slate-600">
-                        {l.soportes.length} soporte(s) · viaje {formatoFechaCalendario(l.viaje.inicio)} – {formatoFechaCalendario(l.viaje.fin)}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="font-semibold">
-                        {formatoDinero(l.resumen.totalAceptado)} de {formatoDinero(l.montoAnticipo)}
-                      </span>
-                      <div className="flex gap-1">
-                        {alertas > 0 && <Insignia tono="aviso">{alertas} por decidir</Insignia>}
-                        <InsigniaEstadoLegalizacion estado={l.estado} />
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+        {elegida && <ReglasPolitica companiaId={elegida} />}
+      </section>
     </div>
   );
 }

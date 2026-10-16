@@ -19,6 +19,7 @@ from app.application.reading import AttemptRecord, DocumentReader, ReadingOutcom
 from app.application.settings import SettingsService
 from app.domain.entities import Expense, ExpenseLine, ExtractionAttempt, advance_for_date
 from app.domain.enums import ExpenseSource, ExpenseStatus, ExpenseWarning, UnreadableReason
+from app.domain.errors import ServiceNotConfiguredError
 from app.domain.policies import effective_rules
 from app.domain.ports import Clock, ExtractionContext, FileStorage, MediaSource, UnitOfWork, UnitOfWorkFactory
 from app.domain.text import normalize_line_text
@@ -79,7 +80,9 @@ class ExpenseProcessor:
                 _, outcome = await asyncio.gather(self._storage.save(key, content, mime), reading)
         except Exception as exc:  # noqa: BLE001 - cualquier falla queda registrada y el sweeper la reintenta
             logger.warning("Expense %s processing failed: %s", expense_id, exc)
-            await self._fail(expense_id, f"{type(exc).__name__}: {exc}")
+            # Sin IA configurada reintentar no sirve: si el archivo ya está guardado, se completa a mano de una vez.
+            final = isinstance(exc, ServiceNotConfiguredError) and expense.file_key is not None
+            await self._fail(expense_id, f"{type(exc).__name__}: {exc}", final)
             return
         finally:
             if slow_task:
@@ -137,12 +140,12 @@ class ExpenseProcessor:
         await asyncio.sleep((await self._settings.current()).whatsapp_slow_notice_seconds)
         await self._notifier.slow_notice(address)
 
-    async def _fail(self, expense_id: uuid.UUID, error: str) -> None:
+    async def _fail(self, expense_id: uuid.UUID, error: str, final: bool = False) -> None:
         async with self._uow() as uow:
             expense = await uow.expenses.get(expense_id)
             if expense is None:
                 return
-            expense.register_failure(error, self._max_attempts, self._clock.now())
+            expense.register_failure(error, 0 if final else self._max_attempts, self._clock.now())
             await uow.commit()
         if expense.status == ExpenseStatus.FAILED:
             await self._notifier.expense_processed(expense_id)

@@ -1,10 +1,10 @@
 import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import { ApiError } from './errores';
 
-/** Lo que el cliente HTTP necesita saber de la sesión; lo implementa cada app (web: Zustand en memoria). */
+/** Lo que el cliente HTTP necesita saber de la sesión; lo implementa cada app (web: Zustand + localStorage). */
 export interface PuertoSesion {
   accessToken(): string | null;
-  /** Renueva el access token (cookie httpOnly en web, almacenamiento seguro en móvil). Devuelve null si no hay sesión. */
+  /** Renueva el access token con el refresh token guardado. Devuelve null si no hay sesión. */
   renovar(): Promise<string | null>;
   /** La sesión no se pudo renovar: la app debe llevar al login. */
   expirada(): void;
@@ -19,8 +19,6 @@ export interface OpcionesClienteHttp {
 
 type ConfigConReintento = InternalAxiosRequestConfig & { _reintentado?: boolean };
 
-const CODIGOS_TOKEN = new Set(['TOKEN_VENCIDO', 'TOKEN_INVALIDO', 'NO_AUTENTICADO']);
-
 /**
  * Instancia axios con:
  * - Authorization: Bearer y Accept-Language en cada petición.
@@ -32,7 +30,6 @@ export function crearClienteHttp(opciones: OpcionesClienteHttp): AxiosInstance {
   const http = axios.create({
     baseURL: opciones.baseURL,
     timeout: opciones.timeoutMs ?? 30_000,
-    withCredentials: true,
   });
 
   let renovacionEnCurso: Promise<string | null> | null = null;
@@ -55,7 +52,7 @@ export function crearClienteHttp(opciones: OpcionesClienteHttp): AxiosInstance {
     const config = (error as { config?: ConfigConReintento }).config;
     const esRutaAuth = config?.url?.includes('/auth/') ?? false;
 
-    if (apiError.status === 401 && CODIGOS_TOKEN.has(apiError.codigo) && config && !config._reintentado && !esRutaAuth) {
+    if (apiError.status === 401 && config && !config._reintentado && !esRutaAuth) {
       config._reintentado = true;
       const nuevoToken = await renovarUnaVez().catch(() => null);
       if (nuevoToken) {

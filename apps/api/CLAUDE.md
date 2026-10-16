@@ -4,13 +4,16 @@ Guía para una IA (o dev) que retoma este repo sin contexto previo. Léela enter
 
 ## Qué es este servicio
 
-API (solo backend; el frontend lo hace otra persona) para **solicitar, aprobar y legalizar anticipos
+API para **solicitar, aprobar y legalizar anticipos
 de gastos de viaje** del grupo Forsa (Colombia, Panamá y México), tipo Rindegastos. Los gastos se
 capturan con una **foto de la factura** por **WhatsApp** (Meta Cloud API, conexión directa) o por la
 app; la imagen se archiva en **Cloudflare R2** y la lee una **IA de visión vía OpenRouter**, con una
 capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificaciones).
 
 - **Un solo cliente (Forsa), no multitenant**, pero **multiempresa** dentro del grupo (`companies`).
+- Vive en `apps/api` del monorepo; la web (React) está en `apps/web` y consume el contrato OpenAPI.
+  Las reglas confirmadas por el negocio (`docs/decisiones-confirmadas.md` en la raíz) mandan sobre
+  cualquier comportamiento anterior de esta API.
 - Base de la propuesta comercial NBT-2026-P4. Lo que está fuera del MVP se lista en "Pendiente".
 
 ## Estado actual
@@ -83,7 +86,16 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
   (Observer mínimo); `StatusNotices` avisa al empleado (aprobado con razón social y NIT, rechazado,
   anulado, entregado, devuelto con marcas, cerrado con el resultado) y al aprobador (enviada o
   reenviada). La métrica `corrected_before_confirm` va en `/ai-accuracy`.
-- **Pendiente:** nada del plan aprobado. Preguntas abiertas a Forsa: el tercero genérico de Panamá
+- Monorepo: el contrato para la web se exporta con `python -m scripts.export_openapi` a
+  `packages/contracts/openapi.json` (el CI exige que esté al día; luego `pnpm --filter
+  @viaticos/contracts generar`). `/me` dice si falta activar el MFA, `GET /advances` trae el nombre
+  de quien pidió cada anticipo y cada hallazgo de política trae su `message` (el mismo texto del bot).
+  Sin IA configurada, la factura subida por la app queda de una vez para completar a mano.
+  `R2_PUBLIC_ENDPOINT_URL` firma las URLs con la dirección del navegador (SeaweedFS en Docker local);
+  datos de desarrollo con `python -m scripts.seed_dev`.
+- **Pendiente:** aplicar `docs/decisiones-confirmadas.md` (conciliación bancaria, contabilidad cierra
+  y rol de tesorería, aprobación por niveles, reglas de propina/CUFE/fechas/plazo/firma, multidestino
+  con tarifas por cargo y país, integración con Siesa). Preguntas abiertas a Forsa: el tercero genérico de Panamá
   (`fiscal.generic_buyer_ids.PA` está vacío) y si los recibos de caja deben traer nombre e
   identificación de quien vende (`required_fields`). Plantillas que Forsa aprueba en Meta:
   bienvenida (`{{1}}` nombre, `{{2}}` asistente), aprobación y aviso.

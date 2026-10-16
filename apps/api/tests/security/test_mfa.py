@@ -38,7 +38,8 @@ async def test_privileged_roles_must_enable_mfa_before_using_the_api(
 
     blocked = await harness.client.get("/api/v1/employees", headers=admin_h)
     assert blocked.status_code == 403 and blocked.json()["error"]["code"] == "mfa_setup_required"
-    assert (await harness.client.get("/api/v1/me", headers=admin_h)).status_code == 200
+    me = await harness.client.get("/api/v1/me", headers=admin_h)
+    assert me.status_code == 200 and me.json()["mfa_setup_required"] is True and me.json()["mfa_enabled"] is False
     # Un empleado normal no está obligado.
     assert (await harness.client.get("/api/v1/advances", headers=await harness.login(employee))).status_code == 200
 

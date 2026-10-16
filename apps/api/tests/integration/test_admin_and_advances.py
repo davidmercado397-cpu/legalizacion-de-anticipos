@@ -174,3 +174,22 @@ async def test_failed_reads_are_retried_by_the_sweeper(harness: Harness) -> None
     await harness.drain()
     second = (await harness.client.get(f"/api/v1/expenses/{expense_id}", headers=headers)).json()
     assert second["status"] == "extracted"
+
+
+async def test_without_ai_configured_an_uploaded_invoice_goes_straight_to_manual_entry(harness: Harness) -> None:
+    from app.domain.errors import ServiceNotConfiguredError
+    from tests.fakes import make_jpeg
+
+    company = await harness.add_company()
+    employee = await harness.add_employee(company, "juan@forsa.com")
+    headers = await harness.login(employee)
+
+    def unconfigured(_request: object, _call: int) -> list[object]:
+        raise ServiceNotConfiguredError("openrouter")
+
+    harness.extractor.respond = unconfigured  # type: ignore[assignment]
+    upload = await harness.client.post("/api/v1/expenses", headers=headers, files={"file": ("f.jpg", make_jpeg(), "image/jpeg")})
+    await harness.drain()
+    expense = (await harness.client.get(f"/api/v1/expenses/{upload.json()['id']}", headers=headers)).json()
+    # Reintentar no sirve: queda para completar a mano, con la foto guardada.
+    assert expense["status"] == "failed" and expense["file"] is not None

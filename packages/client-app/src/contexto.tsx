@@ -23,6 +23,9 @@ function useContexto(): ContextoCliente {
 
 export const useApi = (): Api => useContexto().api;
 
+/** El store completo, para los hooks que necesitan leer y escribir fuera del render. */
+export const useContextoSesion = (): SesionStore => useContexto().sesion;
+
 export function useSesion<T>(selector: (estado: EstadoSesion) => T): T {
   return useStore(useContexto().sesion, selector);
 }

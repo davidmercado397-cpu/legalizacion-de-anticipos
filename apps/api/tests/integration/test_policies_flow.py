@@ -67,6 +67,7 @@ async def test_minibar_needs_justification_then_approver_reviews(harness: Harnes
     harness.extractor.respond = lambda _r, _n: [invoice(**HOTEL)]
     expense = await _upload(harness, emp_h)
     assert {f["code"] for f in expense["policy_findings"]} == {"blocked_concept"}
+    assert "no es reembolsable" in expense["policy_findings"][0]["message"]  # el mismo texto que en WhatsApp
     assert expense["suggested_non_reimbursable"] == "28560.00"
     assert expense["review_status"] == "pending" and expense["deductibility"] == "deductible"
     lines = (await harness.client.get(f"/api/v1/expenses/{expense['id']}/lines", headers=emp_h)).json()["data"]

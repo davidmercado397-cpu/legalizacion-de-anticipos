@@ -227,6 +227,15 @@ class AdvanceService:
             flt = AdvanceFilter(scope=scope, status=status, disbursed=disbursed, settlement_pending=settlement_pending)
             return await uow.advances.find(flt, page)
 
+    async def owner_names(self, advances: list[Advance]) -> dict[uuid.UUID, str]:
+        """Nombre de quien pidió cada anticipo, para los listados (las búsquedas ya filtraron la visibilidad)."""
+        async with self._uow() as uow:
+            names: dict[uuid.UUID, str] = {}
+            for employee_id in dict.fromkeys(a.employee_id for a in advances):
+                employee = await uow.employees.get(employee_id)
+                names[employee_id] = employee.full_name if employee else ""
+        return names
+
     async def decision_queue(self, actor: Employee, limit: int) -> DecisionQueue:
         self._access.require(actor, Permission.ADVANCES_APPROVE)
         async with self._uow() as uow:

@@ -1,72 +1,38 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, redirect } from '@tanstack/react-router';
-import { anticiposPorEstadoOptions, useApi, useReintentarErp } from '@viaticos/client-app';
-import { InsigniaEstadoAnticipo, resumenViaje } from '../../features/anticipos/componentes';
-import { FormularioDesembolso } from '../../features/anticipos/formulario-desembolso';
+import { createFileRoute } from '@tanstack/react-router';
+import { useAnticipos } from '@viaticos/client-app';
+import type { FiltrosAnticipos } from '@viaticos/client-api';
+import { ListaAnticipos } from '../../features/anticipos/componentes';
 import { mensajeDeError } from '../../lib/errores';
-import { formatoDinero } from '../../lib/formato';
-import { Boton } from '../../ui/boton';
-import { Alerta, Cargando, EstadoVacio, Tarjeta } from '../../ui/superficies';
+import { exigir } from '../../lib/roles';
+import { Alerta, Cargando } from '../../ui/superficies';
 
 export const Route = createFileRoute('/_app/tesoreria')({
-  beforeLoad: ({ context }) => {
-    if (!context.sesion.getState().usuario?.roles.includes('TESORERIA')) throw redirect({ to: '/solicitudes' });
-  },
-  loader: ({ context }) => context.queryClient.ensureQueryData(anticiposPorEstadoOptions(context.api)),
-  pendingComponent: () => <Cargando />,
+  beforeLoad: ({ context }) => exigir(context.sesion, 'contabilidad'),
   component: Tesoreria,
 });
 
 function Tesoreria() {
-  const api = useApi();
-  const { data } = useSuspenseQuery(anticiposPorEstadoOptions(api));
-  const reintentar = useReintentarErp();
-
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Anticipos por desembolsar</h1>
-        <p className="text-sm text-slate-600">Solicitudes aprobadas cuyo anticipo ya está registrado en el ERP.</p>
-      </div>
-      {data.length === 0 ? (
-        <EstadoVacio titulo="No hay anticipos pendientes" />
-      ) : (
-        <ul className="space-y-4">
-          {data.map((a) => (
-            <li key={a.id}>
-              <Tarjeta className="space-y-3">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="font-semibold text-marca-800">{a.viajeroNombre}</p>
-                    <p className="text-slate-900">{a.viaje.motivo}</p>
-                    <p className="text-sm text-slate-600">{resumenViaje(a)}</p>
-                    {a.erp.referencia && <p className="text-xs text-slate-500">ERP: {a.erp.referencia}</p>}
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="text-xl font-bold">{formatoDinero(a.monto)}</span>
-                    <InsigniaEstadoAnticipo estado={a.estado} />
-                  </div>
-                </div>
-                {a.estado === 'POR_DESEMBOLSAR' && <FormularioDesembolso anticipoId={a.id} />}
-                {a.estado === 'PENDIENTE_ERP' && (
-                  <Alerta tono="aviso" titulo="No se pudo registrar en el ERP">
-                    <p>{a.erp.ultimoError ?? 'Registro pendiente.'} (intentos: {a.erp.intentos})</p>
-                    <Boton
-                      variante="secundario"
-                      className="mt-2"
-                      cargando={reintentar.isPending && reintentar.variables === a.id}
-                      onClick={() => reintentar.mutate(a.id)}
-                    >
-                      Reintentar registro
-                    </Boton>
-                    {reintentar.isError && reintentar.variables === a.id && <p className="mt-1">{mensajeDeError(reintentar.error)}</p>}
-                  </Alerta>
-                )}
-              </Tarjeta>
-            </li>
-          ))}
-        </ul>
-      )}
+    <div className="space-y-8">
+      <h1 className="text-xl font-bold">Tesorería</h1>
+      <Seccion titulo="Por desembolsar" filtros={{ status: 'approved', disbursed: false }} vacio="No hay anticipos por desembolsar" />
+      <Seccion titulo="Diferencias por liquidar" filtros={{ settlement: 'pending' }} vacio="No hay reintegros ni reembolsos pendientes" />
     </div>
+  );
+}
+
+function Seccion({ titulo, filtros, vacio }: { titulo: string; filtros: FiltrosAnticipos; vacio: string }) {
+  const { data, isPending, error } = useAnticipos({ ...filtros, limit: 100 });
+  return (
+    <section className="space-y-3">
+      <h2 className="font-semibold text-slate-700">{titulo}</h2>
+      {isPending ? (
+        <Cargando />
+      ) : error ? (
+        <Alerta tono="peligro">{mensajeDeError(error)}</Alerta>
+      ) : (
+        <ListaAnticipos anticipos={data.data} mostrarEmpleado vacio={vacio} />
+      )}
+    </section>
   );
 }

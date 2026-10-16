@@ -7,11 +7,11 @@ from fastapi import APIRouter, Request, status
 from app.adapters.inbound.http.deps import ContainerDep, CurrentEmployee, CurrentEmployeeAny, client_ip, enforce_limit
 from app.adapters.inbound.http.schemas import (
     BalanceOut,
-    EmployeeOut,
     LinkCodeOut,
     ListOut,
     LoginIn,
     LoginOut,
+    MeOut,
     MfaCodeIn,
     MfaSetupOut,
     MfaVerifyIn,
@@ -85,10 +85,12 @@ async def logout(body: RefreshIn, container: ContainerDep) -> None:
     await container.auth.logout(body.refresh_token)
 
 
-@router.get("/me", response_model=EmployeeOut, tags=["me"])
-async def me(employee: CurrentEmployeeAny, container: ContainerDep) -> EmployeeOut:
+@router.get("/me", response_model=MeOut, tags=["me"])
+async def me(employee: CurrentEmployeeAny, container: ContainerDep) -> MeOut:
     # Lectura fresca: el actor autenticado se cachea unos segundos y puede venir desactualizado (p. ej. tras vincular WhatsApp).
-    return employee_out(await container.employees.get(employee, employee.id))
+    fresh = await container.employees.get(employee, employee.id)
+    required = fresh.role in container.settings.mfa_required_roles and not fresh.mfa_enabled
+    return MeOut(**employee_out(fresh).model_dump(), mfa_setup_required=required)
 
 
 @router.post("/me/password", status_code=status.HTTP_204_NO_CONTENT, tags=["me"])

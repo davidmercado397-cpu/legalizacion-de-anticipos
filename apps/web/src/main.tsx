@@ -10,7 +10,7 @@ import './styles.css';
 const dependencias = crearDependencias();
 const router = crearRouter(dependencias);
 
-// Si hay cookie de sesión válida, se recupera antes de pintar (evita parpadeo al login).
+// Si hay una sesión guardada y vigente, se recupera antes de pintar (evita parpadeo al login).
 await restaurarSesion(dependencias.api, dependencias.sesion);
 
 createRoot(document.getElementById('root')!).render(

@@ -13,8 +13,7 @@
   },
   "dependencies": {
     "@viaticos/contracts": "workspace:*",
-    "axios": "^1.20.0",
-    "zod": "^4.6.7"
+    "axios": "^1.20.0"
   },
   "devDependencies": {
     "msw": "^2.15.0"

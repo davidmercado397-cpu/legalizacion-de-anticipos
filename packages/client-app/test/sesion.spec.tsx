@@ -1,91 +1,91 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, renderHook, waitFor } from '@testing-library/react';
-import type { Api } from '@viaticos/client-api';
-import type { SesionResponse, SolicitudResponse } from '@viaticos/contracts';
+import { act, renderHook } from '@testing-library/react';
+import type { Api, Perfil } from '@viaticos/client-api';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import {
   ClienteProvider,
-  aprobadorActual,
-  clavesSolicitudes,
+  almacenEnMemoria,
   crearSesionStore,
+  pendienteDe,
   restaurarSesion,
-  useAprobarSolicitud,
+  useCambiarClave,
   useIniciarSesion,
+  useVerificarMfa,
 } from '../src';
 
-const sesion: SesionResponse = {
-  accessToken: 'tok',
-  expiraEn: '2026-10-15T16:00:00Z',
-  usuario: { id: 'u-jefe', nombre: 'Carlos', email: 'c@e.co', roles: ['APROBADOR'] },
-};
+const perfil = (cambios: Partial<Perfil> = {}): Perfil =>
+  ({ id: 'u1', full_name: 'Ana Analista', email: 'ana@empresa.co', role: 'employee', must_change_password: false, mfa_setup_required: false, ...cambios }) as Perfil;
 
-const solicitud = (cambios: Partial<SolicitudResponse> = {}): SolicitudResponse => ({
-  id: 's1',
-  estado: 'EN_APROBACION',
-  viajeroId: 'u-viajero',
-  viajeroNombre: 'Ana',
-  motivo: 'Visita a cliente',
-  justificacion: null,
-  destinos: [],
-  presupuesto: { monedaAnticipo: 'USD', lineas: [], totalAnticipo: { monto: '10.00', moneda: 'USD' }, tasasAplicadas: [] },
-  escalamiento: { requiereJefeDirectivo: false, motivos: [] },
-  ruta: [{ orden: 1, nivel: 'JEFE_INMEDIATO', aprobadorId: 'u-jefe', aprobadorNombre: 'Carlos', estado: 'PENDIENTE', decididoEn: null, comentario: null }],
-  creadaEn: '2026-10-15T15:00:00Z',
-  actualizadaEn: '2026-10-15T15:00:00Z',
-  ...cambios,
-});
+const tokens = { access_token: 'acceso', refresh_token: 'refresco', expires_in: 900, token_type: 'bearer', must_change_password: false };
 
-function montar(api: Partial<Api>) {
-  const store = crearSesionStore();
+function montar(auth: Partial<Api['auth']>) {
+  const almacen = almacenEnMemoria();
+  const store = crearSesionStore(almacen);
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const api = { auth: { perfil: vi.fn(async () => perfil()), ...auth } } as unknown as Api;
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <ClienteProvider api={api as Api} sesion={store}>
+      <ClienteProvider api={api} sesion={store}>
         {children}
       </ClienteProvider>
     </QueryClientProvider>
   );
-  return { store, queryClient, wrapper };
+  return { store, almacen, api, wrapper };
 }
 
 describe('sesión', () => {
-  it('restaurarSesion recupera la sesión o queda anónima', async () => {
-    const store = crearSesionStore();
-    await restaurarSesion({ auth: { renovar: async () => sesion } } as unknown as Api, store);
-    expect(store.getState()).toMatchObject({ estado: 'autenticada', accessToken: 'tok' });
+  it('restaurarSesion recupera la sesión con el refresh token guardado, o queda anónima', async () => {
+    const { store, almacen, api } = montar({ renovar: vi.fn(async () => tokens) });
+    almacen.guardar('guardado');
+    await restaurarSesion(api, store);
+    expect(store.getState()).toMatchObject({ estado: 'autenticada', accessToken: 'acceso' });
+    expect(almacen.leer()).toBe('refresco');
 
-    const otro = crearSesionStore();
-    await restaurarSesion({ auth: { renovar: () => Promise.reject(new Error('401')) } } as unknown as Api, otro);
-    expect(otro.getState()).toMatchObject({ estado: 'anonima', accessToken: null });
+    const otro = montar({ renovar: () => Promise.reject(new Error('401')) });
+    otro.almacen.guardar('vencido');
+    await restaurarSesion(otro.api, otro.store);
+    expect(otro.store.getState()).toMatchObject({ estado: 'anonima', accessToken: null });
+    expect(otro.almacen.leer()).toBeNull();
   });
 
-  it('useIniciarSesion guarda la sesión en el store', async () => {
-    const { store, wrapper } = montar({ auth: { login: vi.fn(async () => sesion) } as unknown as Api['auth'] });
+  it('el login sin MFA guarda los tokens y el perfil', async () => {
+    const { store, almacen, wrapper } = montar({ login: vi.fn(async () => ({ ...tokens, mfa_required: false })) });
     const { result } = renderHook(() => useIniciarSesion(), { wrapper });
-    await act(() => result.current.mutateAsync({ email: 'c@e.co', contrasena: 'x' }));
-    expect(store.getState().usuario?.id).toBe('u-jefe');
+    await act(() => result.current.mutateAsync({ email: 'ana@empresa.co', password: 'x' }));
+    expect(store.getState()).toMatchObject({ estado: 'autenticada', usuario: { id: 'u1' } });
+    expect(almacen.leer()).toBe('refresco');
   });
-});
 
-describe('mutaciones de solicitudes', () => {
-  it('al aprobar actualiza el detalle en caché e invalida los listados', async () => {
-    const aprobada = solicitud({ estado: 'APROBADA' });
-    const { queryClient, wrapper } = montar({
-      solicitudes: { aprobar: vi.fn(async () => aprobada) } as unknown as Api['solicitudes'],
+  it('con MFA el login deja el reto pendiente y el código completa la sesión', async () => {
+    const verificarMfa = vi.fn(async () => ({ ...tokens, mfa_required: false }));
+    const { store, wrapper } = montar({
+      login: vi.fn(async () => ({ mfa_required: true, mfa_token: 'reto-123', expires_in: 300, token_type: 'bearer', must_change_password: false })),
+      verificarMfa,
     });
-    queryClient.setQueryData(clavesSolicitudes.mias(), [solicitud()]);
-    const { result } = renderHook(() => useAprobarSolicitud(), { wrapper });
-    await act(() => result.current.mutateAsync({ id: 's1' }));
+    const login = renderHook(() => useIniciarSesion(), { wrapper });
+    await act(() => login.result.current.mutateAsync({ email: 'laura@empresa.co', password: 'x' }));
+    expect(store.getState()).toMatchObject({ estado: 'mfa', mfaToken: 'reto-123', accessToken: null });
 
-    expect(queryClient.getQueryData(clavesSolicitudes.detalle('s1'))).toEqual(aprobada);
-    await waitFor(() => expect(queryClient.getQueryState(clavesSolicitudes.mias())?.isInvalidated).toBe(true));
+    const mfa = renderHook(() => useVerificarMfa(), { wrapper });
+    await act(() => mfa.result.current.mutateAsync('123456'));
+    expect(verificarMfa).toHaveBeenCalledWith('reto-123', '123456');
+    expect(store.getState()).toMatchObject({ estado: 'autenticada', mfaToken: null });
   });
-});
 
-describe('reglas de UI', () => {
-  it('identifica al aprobador del turno', () => {
-    expect(aprobadorActual(solicitud())).toBe('u-jefe');
-    expect(aprobadorActual(solicitud({ estado: 'APROBADA' }))).toBeNull();
+  it('después de cambiar la clave vuelve a entrar con la nueva', async () => {
+    const login = vi.fn(async () => ({ ...tokens, mfa_required: false }));
+    const { store, wrapper } = montar({ cambiarClave: vi.fn(async () => undefined), login });
+    store.getState().establecerUsuario(perfil({ must_change_password: true }));
+    const { result } = renderHook(() => useCambiarClave(), { wrapper });
+    await act(() => result.current.mutateAsync({ actual: 'Temporal-123', nueva: 'Nueva-Clave-2026' }));
+    expect(login).toHaveBeenCalledWith({ email: 'ana@empresa.co', password: 'Nueva-Clave-2026' });
+    expect(pendienteDe(store.getState().usuario)).toBeNull();
+  });
+
+  it('pendienteDe prioriza el cambio de clave sobre la activación del MFA', () => {
+    expect(pendienteDe(perfil({ must_change_password: true, mfa_setup_required: true }))).toBe('cambiar_clave');
+    expect(pendienteDe(perfil({ mfa_setup_required: true }))).toBe('activar_mfa');
+    expect(pendienteDe(null)).toBeNull();
   });
 });

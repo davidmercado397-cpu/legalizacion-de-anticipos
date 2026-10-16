@@ -1,36 +1,87 @@
 import { Link } from '@tanstack/react-router';
-import type { AnticipoResponse } from '@viaticos/contracts';
-import { t } from '../../i18n';
-import { formatoDinero, formatoFechaCalendario } from '../../lib/formato';
-import { Insignia } from '../../ui/superficies';
+import type { AnticipoResumen, EstadoAnticipo, Saldo } from '@viaticos/contracts';
+import { etiqueta } from '../../i18n';
+import { formatoDinero, rangoFechas } from '../../lib/formato';
+import { EstadoVacio, Insignia } from '../../ui/superficies';
 
-const TONO = { PENDIENTE_ERP: 'aviso', POR_DESEMBOLSAR: 'info', DESEMBOLSADO: 'aviso', LEGALIZADO: 'exito' } as const;
+const TONO: Record<EstadoAnticipo, 'neutro' | 'info' | 'exito' | 'aviso' | 'peligro'> = {
+  requested: 'aviso',
+  approved: 'info',
+  in_review: 'aviso',
+  closed: 'exito',
+  rejected: 'peligro',
+  cancelled: 'neutro',
+  voided: 'neutro',
+};
 
-export function InsigniaEstadoAnticipo({ estado }: { estado: AnticipoResponse['estado'] }) {
-  return <Insignia tono={TONO[estado]}>{t(`estadoAnticipo.${estado}`)}</Insignia>;
+export function InsigniaAnticipo({ estado }: { estado: EstadoAnticipo }) {
+  return <Insignia tono={TONO[estado]}>{etiqueta('anticipo', estado)}</Insignia>;
 }
 
-export const resumenViaje = (a: AnticipoResponse) =>
-  `${a.viaje.destinos.map((d) => d.ciudad).join(' → ')} · ${formatoFechaCalendario(a.viaje.fechaInicio)} – ${formatoFechaCalendario(a.viaje.fechaFin)}`;
-
-export function TarjetaAnticipo({ anticipo, mostrarViajero = false }: { anticipo: AnticipoResponse; mostrarViajero?: boolean }) {
+/** Aprobado, gastado y por legalizar; si el anticipo está en otra moneda, también en la de la compañía. */
+export function ResumenSaldo({ saldo }: { saldo: Saldo }) {
+  const pendiente = Number(saldo.pending);
   return (
-    <Link
-      to="/anticipos/$anticipoId"
-      params={{ anticipoId: anticipo.id }}
-      className="block rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 transition hover:ring-marca-600"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          {mostrarViajero && <p className="text-sm font-semibold text-marca-800">{anticipo.viajeroNombre}</p>}
-          <p className="truncate font-medium text-slate-900">{anticipo.viaje.motivo}</p>
-          <p className="text-sm text-slate-600">{resumenViaje(anticipo)}</p>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <span className="font-semibold">{formatoDinero(anticipo.monto)}</span>
-          <InsigniaEstadoAnticipo estado={anticipo.estado} />
-        </div>
+    <dl className="grid grid-cols-3 gap-3 text-sm">
+      <div>
+        <dt className="text-slate-500">Aprobado</dt>
+        <dd className="font-semibold">{formatoDinero(saldo.amount, saldo.currency)}</dd>
       </div>
-    </Link>
+      <div>
+        <dt className="text-slate-500">Legalizado</dt>
+        <dd className="font-semibold">{formatoDinero(saldo.applied, saldo.currency)}</dd>
+      </div>
+      <div>
+        <dt className="text-slate-500">{pendiente < 0 ? 'Gastó de más' : 'Por legalizar'}</dt>
+        <dd className={pendiente < 0 ? 'font-semibold text-red-700' : 'font-semibold'}>
+          {formatoDinero(Math.abs(pendiente), saldo.currency)}
+        </dd>
+      </div>
+      {saldo.functional && (
+        <p className="col-span-3 text-xs text-slate-500">
+          Por legalizar en {saldo.functional.currency}: {formatoDinero(saldo.functional.pending, saldo.functional.currency)} (tasa{' '}
+          {Number(saldo.functional.rate).toLocaleString('es-CO')} del {saldo.functional.rate_date})
+        </p>
+      )}
+    </dl>
+  );
+}
+
+export function ListaAnticipos({
+  anticipos,
+  mostrarEmpleado = false,
+  vacio,
+}: {
+  anticipos: AnticipoResumen[];
+  mostrarEmpleado?: boolean;
+  vacio: string;
+}) {
+  if (anticipos.length === 0) return <EstadoVacio titulo={vacio} />;
+  return (
+    <ul className="divide-y divide-slate-200 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+      {anticipos.map((a) => (
+        <li key={a.id}>
+          <Link
+            to="/anticipos/$anticipoId"
+            params={{ anticipoId: a.id }}
+            className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-slate-50"
+          >
+            <div className="min-w-0">
+              <p className="truncate font-medium text-slate-900">
+                {mostrarEmpleado && <span className="text-slate-500">{a.employee_name} · </span>}
+                {a.destination ?? a.purpose}
+              </p>
+              <p className="text-sm text-slate-500">
+                {rangoFechas(a.start_date, a.end_date) || a.purpose} · {etiqueta('tipo', a.kind)}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="font-semibold">{formatoDinero(a.amount, a.currency)}</span>
+              <InsigniaAnticipo estado={a.status} />
+            </div>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -9,11 +9,10 @@ beforeAll(() => servidor.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => servidor.resetHandlers());
 afterAll(() => servidor.close());
 
-const problema = (status: number, code: string, extra: Record<string, unknown> = {}) =>
-  HttpResponse.json({ type: `urn:${code}`, title: code, status, code, ...extra }, {
-    status,
-    headers: { 'content-type': 'application/problem+json' },
-  });
+const problema = (status: number, code: string, details: Record<string, unknown>[] = []) =>
+  HttpResponse.json({ error: { code, message: `Mensaje de ${code}`, details, request_id: 'req-1' } }, { status });
+
+const PAGINA_VACIA = { data: [], pagination: { limit: 50, offset: 0, total: 0 } };
 
 function sesionFalsa(tokenInicial: string | null, tokenRenovado: string | null) {
   let token = tokenInicial;
@@ -35,9 +34,9 @@ describe('cliente HTTP', () => {
   it('envía el Bearer token y el idioma', async () => {
     let cabeceras: Headers | undefined;
     servidor.use(
-      rest.get(`${BASE}/auth/me`, ({ request }) => {
+      rest.get(`${BASE}/me`, ({ request }) => {
         cabeceras = request.headers;
-        return HttpResponse.json({ id: 'u', nombre: 'Ana', email: 'a@e.co', roles: ['VIAJERO'] });
+        return HttpResponse.json({ id: 'u', full_name: 'Ana', email: 'a@e.co', role: 'employee' });
       }),
     );
     await crearApi({ baseURL: BASE, sesion: sesionFalsa('t1', null), idioma: () => 'es' }).auth.perfil();
@@ -47,55 +46,63 @@ describe('cliente HTTP', () => {
 
   it('renueva una sola vez aunque fallen varias peticiones a la vez, y las reintenta', async () => {
     servidor.use(
-      rest.get(`${BASE}/solicitudes`, ({ request }) =>
-        request.headers.get('authorization') === 'Bearer nuevo' ? HttpResponse.json([]) : problema(401, 'TOKEN_VENCIDO'),
+      rest.get(`${BASE}/advances`, ({ request }) =>
+        request.headers.get('authorization') === 'Bearer nuevo' ? HttpResponse.json(PAGINA_VACIA) : problema(401, 'session_expired'),
       ),
     );
     const sesion = sesionFalsa('viejo', 'nuevo');
     const api = crearApi({ baseURL: BASE, sesion });
-    const resultados = await Promise.all([api.solicitudes.misSolicitudes(), api.solicitudes.misSolicitudes(), api.solicitudes.misSolicitudes()]);
-    expect(resultados).toEqual([[], [], []]);
+    const resultados = await Promise.all([api.anticipos.listar(), api.anticipos.listar(), api.anticipos.listar()]);
+    expect(resultados).toEqual([PAGINA_VACIA, PAGINA_VACIA, PAGINA_VACIA]);
     expect(sesion.renovaciones).toBe(1);
   });
 
   it('si no puede renovar, avisa que la sesión expiró', async () => {
-    servidor.use(rest.get(`${BASE}/solicitudes`, () => problema(401, 'TOKEN_VENCIDO')));
+    servidor.use(rest.get(`${BASE}/advances`, () => problema(401, 'session_expired')));
     const sesion = sesionFalsa('viejo', null);
-    await expect(crearApi({ baseURL: BASE, sesion }).solicitudes.misSolicitudes()).rejects.toMatchObject({
+    await expect(crearApi({ baseURL: BASE, sesion }).anticipos.listar()).rejects.toMatchObject({
       status: 401,
     });
     expect(sesion.expirada).toHaveBeenCalledOnce();
   });
 
-  it('normaliza problem+json a ApiError con errores por campo', async () => {
+  it('normaliza el error de la API con sus errores por campo', async () => {
     servidor.use(
-      rest.post(`${BASE}/solicitudes/estimar`, () =>
-        problema(400, 'ENTRADA_INVALIDA', { errors: { 'destinos.0.fechaFin': ['validation.endBeforeStart'] } }),
-      ),
+      rest.post(`${BASE}/advances`, () => problema(422, 'validation_error', [{ field: 'end_date', issue: 'Fecha inválida.' }])),
     );
     const error = await crearApi({ baseURL: BASE, sesion: sesionFalsa('t', null) })
-      .solicitudes.estimar({ destinos: [] })
+      .anticipos.solicitar({ company_id: 'c', kind: 'cash', currency: 'COP', purpose: 'Visita' })
       .catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ApiError);
-    expect(error).toMatchObject({ codigo: 'ENTRADA_INVALIDA', erroresCampo: { 'destinos.0.fechaFin': ['validation.endBeforeStart'] } });
+    expect(error).toMatchObject({
+      status: 422,
+      codigo: 'validation_error',
+      message: 'Mensaje de validation_error',
+      requestId: 'req-1',
+      erroresCampo: { end_date: ['Fecha inválida.'] },
+    });
+  });
+
+  it('no intenta renovar cuando falla el propio login', async () => {
+    servidor.use(rest.post(`${BASE}/auth/login`, () => problema(401, 'invalid_credentials')));
+    const sesion = sesionFalsa('t', 'nuevo');
+    await expect(crearApi({ baseURL: BASE, sesion }).auth.login({ email: 'a@e.co', password: 'x' })).rejects.toMatchObject({
+      codigo: 'invalid_credentials',
+    });
+    expect(sesion.renovaciones).toBe(0);
   });
 
   it('distingue la falta de conexión', async () => {
-    servidor.use(rest.get(`${BASE}/solicitudes`, () => HttpResponse.error()));
-    await expect(crearApi({ baseURL: BASE, sesion: sesionFalsa('t', null) }).solicitudes.misSolicitudes()).rejects.toMatchObject({
-      codigo: 'SIN_CONEXION',
+    servidor.use(rest.get(`${BASE}/advances`, () => HttpResponse.error()));
+    await expect(crearApi({ baseURL: BASE, sesion: sesionFalsa('t', null) }).anticipos.listar()).rejects.toMatchObject({
+      codigo: 'sin_conexion',
     });
   });
 
   it('distingue cuando el proxy no alcanza la API (502)', async () => {
-    servidor.use(rest.get(`${BASE}/solicitudes`, () => new HttpResponse('Bad Gateway', { status: 502 })));
-    await expect(crearApi({ baseURL: BASE, sesion: sesionFalsa('t', null) }).solicitudes.misSolicitudes()).rejects.toMatchObject({
-      codigo: 'SERVIDOR_NO_DISPONIBLE',
+    servidor.use(rest.get(`${BASE}/advances`, () => new HttpResponse('Bad Gateway', { status: 502 })));
+    await expect(crearApi({ baseURL: BASE, sesion: sesionFalsa('t', null) }).anticipos.listar()).rejects.toMatchObject({
+      codigo: 'servidor_no_disponible',
     });
-  });
-
-  it('rechaza respuestas que no cumplen el contrato', async () => {
-    servidor.use(rest.get(`${BASE}/solicitudes/destinos-disponibles`, () => HttpResponse.json({ paises: [123] })));
-    await expect(crearApi({ baseURL: BASE, sesion: sesionFalsa('t', null) }).solicitudes.destinosDisponibles()).rejects.toThrow();
   });
 });

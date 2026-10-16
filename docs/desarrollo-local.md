@@ -1,13 +1,13 @@
 # Desarrollo local con Docker
 
-Con un solo comando se levanta todo el sistema: PostgreSQL, Redis, MinIO (reemplaza a Cloudflare R2 en desarrollo), la API Python y la web, con **recarga en caliente**.
+Con un solo comando se levanta todo el sistema: PostgreSQL, Redis, SeaweedFS (almacenamiento compatible con S3 que reemplaza a Cloudflare R2 en desarrollo), la API Python y la web, con **recarga en caliente**.
 
 ## 1. Requisitos
 
 | Herramienta | Versión | Notas |
 |-------------|---------|-------|
 | [Git](https://git-scm.com/downloads) | cualquiera reciente | |
-| [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows / Mac) o Docker Engine (Linux) | Compose **2.22 o superior** | Verifique con `docker compose version` |
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows / Mac) o Docker Engine (Linux) | Compose **2.23.1 o superior** | Verifique con `docker compose version` |
 | Python 3.13 y Node 22 + pnpm *(opcional)* | | Solo para correr pruebas o trabajar sin Docker |
 
 **Windows:** Docker Desktop debe usar el motor **WSL 2** (viene así por defecto).
@@ -47,7 +47,7 @@ Ponga su clave de [OpenRouter](https://openrouter.ai) en `.env` (`OPENROUTER_API
 | `api` | http://localhost:5173/api/v1 (a través de la web) | FastAPI con recarga en caliente |
 | `db` | `localhost:5432` | PostgreSQL 18 (usuario y clave `gastos`) |
 | `redis` | — | Límites de peticiones y caché compartida |
-| `minio` | http://localhost:9000 · consola http://localhost:9001 | Fotos y PDF de las facturas (usuario `viaticos`, clave `viaticos-local`) |
+| `s3` | http://localhost:9000 | SeaweedFS: fotos y PDF de las facturas (llave `viaticos`, secreto `viaticos-local`, bucket `soportes`) |
 | `adminer` *(opcional)* | http://localhost:8080 | Explorador de la base de datos: `docker compose --profile herramientas up -d adminer` |
 
 ## 4. Trabajo diario
@@ -77,7 +77,7 @@ pnpm install && pnpm typecheck && pnpm test
 
 | Síntoma | Solución |
 |---------|----------|
-| `port is already allocated` | Cambie `WEB_PORT`, `DB_PORT` o `MINIO_PORT` en `.env` |
-| Las fotos no cargan en el navegador | Las URLs firmadas apuntan a `localhost:9000`: revise que MinIO esté arriba y que `MINIO_PORT` coincida |
-| `unknown flag: --watch` | Actualice Docker Desktop (Compose ≥ 2.22) |
+| `port is already allocated` | Cambie `WEB_PORT`, `DB_PORT` o `S3_PORT` en `.env` |
+| Las fotos no cargan en el navegador | Las URLs firmadas apuntan a `localhost:9000`: revise que el servicio `s3` esté arriba y que `S3_PORT` coincida |
+| `unknown flag: --watch` o error en `configs` | Actualice Docker Desktop (Compose ≥ 2.23.1) |
 | Quiero datos limpios | `docker compose down -v` |
