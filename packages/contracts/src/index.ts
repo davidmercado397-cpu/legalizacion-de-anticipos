@@ -86,3 +86,11 @@ export interface CuerpoError {
     request_id: string;
   };
 }
+
+/** Conciliación con el extracto de la tarjeta. */
+export type Extracto = S['StatementOut'];
+export type MovimientoExtracto = S['MovementOut'];
+export type VistaPreviaExtracto = S['StatementPreviewOut'];
+export type PerfilExtracto = S['StatementProfileIO'];
+export type DecisionCargo = S['ChargeDecision'];
+export type MedioDePago = S['PaymentMethod'];

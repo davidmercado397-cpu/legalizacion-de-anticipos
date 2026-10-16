@@ -616,6 +616,8 @@ TIMELINE_LABELS = {
     "erp_advance_failed": "Siesa no recibió el anticipo",
     "erp_legalization_created": "Legalización creada en Siesa",
     "erp_legalization_failed": "Siesa no recibió la legalización",
+    "statement_uploaded": "Extracto de la tarjeta cargado",
+    "statement_movement_decided": "Cruce con el extracto revisado",
 }
 
 # Comentario sugerido al devolver una legalización, por hallazgo o advertencia del gasto.

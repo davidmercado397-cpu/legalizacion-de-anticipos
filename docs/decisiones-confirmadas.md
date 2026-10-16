@@ -4,9 +4,8 @@ Respuestas al documento «Decisiones por confirmar» (16 de octubre de 2026). Ca
 
 Este documento manda cuando difiere de lo que hacía el backend base (`apps/api`).
 
-**Estado en la API Python** (actualizado el 16/10): listas las secciones 1 a 6 y 8. De Siesa (8.1 y 8.2)
+**Estado en la API Python** (actualizado el 16/10): todas las secciones están aplicadas. De Siesa (8.1 y 8.2)
 están el flujo, los estados y el botón; falta conectar su API (credenciales y formato del documento).
-Pendiente: la conciliación bancaria (sección 7, en la rama `wip/conciliacion-bancaria`).
 
 ## 1. Tasas de cambio
 
@@ -81,9 +80,9 @@ Pendiente: la conciliación bancaria (sección 7, en la rama `wip/conciliacion-b
 |---|----------|---------------|
 | 7.1 | Tesorería carga el extracto después de la legalización | Rol `treasury` carga, con la legalización enviada |
 | 7.2 | Se acepta lo cobrado por el banco | Ver 7.8 |
-| 7.3 | Mismo día, máximo 1 día de diferencia | Máximo 1 día de diferencia |
+| 7.3 | Mismo día, máximo 1 día de diferencia | Máximo 1 día de diferencia (`reconciliation.match`) |
 | 7.4 | Ponderación propuesta aceptada | Sin cambios |
-| 7.5 | Se acepta la diferencia (p. ej. propina en el datáfono) | Ver 7.8 |
+| 7.5 | Se acepta la diferencia (p. ej. propina en el datáfono) | Ver 7.8. El cruce automático tolera el 1 % (configurable); una diferencia mayor la cruza contabilidad a mano |
 | 7.6 | Cargos sin factura: contabilidad decide si se descuentan | Decisión por cargo; suma al saldo del viajero |
 | 7.7 | Factura con tarjeta sin cargo: alerta a contabilidad | Alerta de revisión en el soporte |
 | 7.8 | Se legaliza el valor cobrado en el extracto | Valor del extracto reemplaza el de la factura |

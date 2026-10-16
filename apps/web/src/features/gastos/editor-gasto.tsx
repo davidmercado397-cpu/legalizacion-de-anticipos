@@ -9,7 +9,7 @@ import {
   useRevisarGasto,
   useSesion,
 } from '@viaticos/client-app';
-import type { AnticipoDetalle, CorreccionGasto, DecisionRevision, GastoDetalle, TipoDocumento } from '@viaticos/contracts';
+import type { AnticipoDetalle, CorreccionGasto, DecisionRevision, GastoDetalle, MedioDePago, TipoDocumento } from '@viaticos/contracts';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -41,6 +41,7 @@ const esquema = z.object({
   total: decimal,
   category: z.string(),
   description: z.string().trim(),
+  payment_method: z.string(),
 });
 type Datos = z.infer<typeof esquema>;
 const CAMPOS = Object.keys(esquema.shape) as (keyof Datos)[];
@@ -136,10 +137,13 @@ function Resumen({ gasto }: { gasto: GastoDetalle }) {
     ['Subtotal', formatoDinero(gasto.subtotal, gasto.currency)],
     ['Impuestos', formatoDinero(gasto.tax_amount, gasto.currency)],
     ['Propina', formatoDinero(gasto.tip_amount, gasto.currency)],
+    ['Medio de pago', etiqueta('medio', gasto.payment_method)],
     ['Total', formatoDinero(gasto.total, gasto.currency)],
     ['Justificación', gasto.justification ?? '—'],
   ];
   if (gasto.document_type === 'cash_receipt') filas.splice(1, 0, ['Firmado por quien vende', gasto.receipt_signed ? 'Sí' : 'No']);
+  if (gasto.bank_status === 'matched' && gasto.bank_amount)
+    filas.push(['Cobrado por el banco', formatoDinero(gasto.bank_amount, gasto.bank_currency)]);
   if (gasto.non_reimbursable_amount) filas.push(['No reembolsable', formatoDinero(gasto.non_reimbursable_amount, null)]);
   return (
     <Tarjeta>
@@ -233,6 +237,18 @@ function Formulario({ anticipo, gasto }: { anticipo: AnticipoDetalle; gasto: Gas
         </Campo>
         <Campo etiqueta="Propina" error={e.tip_amount?.message}>
           {(p) => <Entrada {...p} {...register('tip_amount')} inputMode="decimal" />}
+        </Campo>
+        <Campo etiqueta="Medio de pago" ayuda="Lo pagado con tarjeta se cruza con el extracto del banco">
+          {(p) => (
+            <Seleccion {...p} {...register('payment_method')}>
+              <option value="">Según el anticipo</option>
+              {(['card', 'cash', 'transfer'] satisfies MedioDePago[]).map((m) => (
+                <option key={m} value={m}>
+                  {etiqueta('medio', m)}
+                </option>
+              ))}
+            </Seleccion>
+          )}
         </Campo>
         <Campo etiqueta="Descripción" className="sm:col-span-2">
           {(p) => <AreaTexto {...p} {...register('description')} rows={2} />}

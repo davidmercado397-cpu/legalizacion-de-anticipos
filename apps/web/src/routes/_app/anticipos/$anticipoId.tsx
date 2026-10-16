@@ -4,6 +4,7 @@ import { EstadoSiesa, InsigniaAnticipo, ResumenSaldo } from '../../../features/a
 import { LineaDeTiempo } from '../../../features/anticipos/linea-tiempo';
 import { PanelAcciones } from '../../../features/anticipos/panel-acciones';
 import { RutaAprobacion } from '../../../features/anticipos/ruta-aprobacion';
+import { SeccionConciliacion } from '../../../features/conciliacion/conciliacion';
 import { ListaGastos } from '../../../features/gastos/componentes';
 import { SubirFactura } from '../../../features/gastos/subir-factura';
 import { etiqueta } from '../../../i18n';
@@ -115,6 +116,8 @@ function DetalleAnticipo() {
           <ListaGastos anticipoId={anticipo.id} gastos={anticipo.expenses} />
         </section>
       )}
+
+      <SeccionConciliacion anticipo={anticipo} />
 
       <section className="space-y-3">
         <h2 className="font-semibold text-slate-700">Historial</h2>

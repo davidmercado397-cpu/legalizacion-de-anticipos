@@ -13,3 +13,4 @@ export * from './sesion/sesion.hooks';
 export * from './anticipos/anticipos.queries';
 export * from './gastos/gastos.queries';
 export * from './organizacion/organizacion.queries';
+export * from './anticipos/conciliacion.queries';
