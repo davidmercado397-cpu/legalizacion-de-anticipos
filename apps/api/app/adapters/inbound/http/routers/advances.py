@@ -72,6 +72,20 @@ async def list_advances(
     return result
 
 
+@router.get(
+    "/pending-approval",
+    response_model=ListOut[AdvanceListItemOut],
+    summary="Requests waiting for this user's decision (their step of the route, or the upper level)",
+)
+async def pending_approval(actor: CurrentEmployee, container: ContainerDep) -> ListOut[AdvanceListItemOut]:
+    queue = await container.advances.decision_queue(actor, 200)
+    items = []
+    for advance, owner in queue.requested:
+        item = AdvanceListItemOut(**advance_out(advance).model_dump(), employee_name=owner.full_name)
+        items.append(localize(item, await _zone(container, advance.company_id)))
+    return ListOut[AdvanceListItemOut](data=items)
+
+
 @router.get("/{advance_id}", response_model=AdvanceDetailOut, summary="Legalization detail: photos, data, lines and dates")
 async def get_advance(advance_id: uuid.UUID, actor: CurrentEmployee, container: ContainerDep) -> AdvanceDetailOut:
     view = await container.legalization.detail(actor, advance_id)

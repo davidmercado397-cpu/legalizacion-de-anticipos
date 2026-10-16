@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 
 from fastapi import APIRouter, status
 
 from app.adapters.inbound.http.deps import ContainerDep, CurrentEmployee
 from app.adapters.inbound.http.schemas import (
+    ApprovalRulesIO,
     BlockedConceptIn,
     BlockedConceptOut,
     BlockedConceptPatch,
@@ -18,11 +20,31 @@ from app.adapters.inbound.http.schemas import (
     PolicyRuleIn,
     PolicyRuleOut,
 )
+from app.application.companies import ApprovalRules
 from app.application.messages import RULE_DESCRIPTIONS
 from app.application.policies import CategoryData, ConceptData, RuleUpdate
 from app.domain.policies import EffectiveRule
 
 router = APIRouter(prefix="/companies/{company_id}", tags=["policies"])
+
+
+def _rules_out(rules: ApprovalRules) -> ApprovalRulesIO:
+    return ApprovalRulesIO(tolerance_pct=rules.tolerance_pct, thresholds={k: Decimal(v) for k, v in rules.thresholds.items()})
+
+
+@router.get("/approval-rules", response_model=ApprovalRulesIO, summary="When a request escalates to the director")
+async def approval_rules(company_id: uuid.UUID, actor: CurrentEmployee, container: ContainerDep) -> ApprovalRulesIO:
+    rules = await container.companies.approval_rules(actor, company_id)
+    return _rules_out(rules)
+
+
+@router.put("/approval-rules", response_model=ApprovalRulesIO, summary="Configure the escalation (accounting)")
+async def set_approval_rules(
+    company_id: uuid.UUID, body: ApprovalRulesIO, actor: CurrentEmployee, container: ContainerDep
+) -> ApprovalRulesIO:
+    wanted = ApprovalRules(body.tolerance_pct, {k: str(v) for k, v in body.thresholds.items()})
+    rules = await container.companies.set_approval_rules(actor, company_id, wanted)
+    return _rules_out(rules)
 
 
 @router.get("/policy-rules", response_model=ListOut[PolicyRuleOut], summary="Effective rules (defaults + overrides)")

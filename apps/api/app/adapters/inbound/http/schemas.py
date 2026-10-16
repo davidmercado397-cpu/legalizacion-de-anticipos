@@ -11,12 +11,13 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.application.messages import COLOMBIAN
+from app.application.messages import COLOMBIAN, escalation_text
 from app.application.whatsapp_presenter import finding_text
 from app.domain.entities import Advance, AdvanceBalance, ApproverDelegation, Company, Employee, Expense
 from app.domain.enums import (
     AdvanceKind,
     AdvanceStatus,
+    ApprovalLevel,
     BudgetUnit,
     Deductibility,
     DisbursementMethod,
@@ -36,6 +37,7 @@ from app.domain.enums import (
     SettlementMethod,
     SettlementStatus,
     StaffType,
+    StepStatus,
     TaxType,
     UnreadableReason,
     WhatsAppLinkStatus,
@@ -118,6 +120,8 @@ class CompanyOut(Model):
     timezone: str
     exchange_rate_policy: ExchangeRatePolicy
     cash_international_cap: dict[str, str] | None
+    approval_tolerance_pct: Decimal
+    approval_thresholds: dict[str, str]
     tax_id: str | None
     is_test: bool
     active: bool
@@ -347,6 +351,28 @@ class SyncOut(BaseModel):
     stored: int
 
 
+class ApprovalStepOut(BaseModel):
+    level: ApprovalLevel
+    approver_id: uuid.UUID | None = Field(description="None en gerencia: decide cualquier usuario de gerencia")
+    approver_name: str | None
+    status: StepStatus
+    decided_by: uuid.UUID | None
+    decided_at: datetime | None
+    note: str | None
+
+
+class EscalationReasonOut(BaseModel):
+    code: str
+    message: str
+
+
+class ApprovalRulesIO(BaseModel):
+    tolerance_pct: Decimal = Field(ge=0, le=100, description="Sobre el presupuesto calculado, antes de escalar")
+    thresholds: dict[str, Decimal] = Field(
+        default_factory=dict, description="Moneda -> monto total por encima del cual escala al jefe directivo"
+    )
+
+
 class AdvanceOut(Model):
     id: uuid.UUID
     employee_id: uuid.UUID
@@ -363,6 +389,8 @@ class AdvanceOut(Model):
     budget_amount: Decimal | None
     budget_breakdown: list[dict[str, Any]]
     budget_justification: str | None
+    approval_steps: list[ApprovalStepOut] = Field(description="Ruta de aprobación; vacía en solicitudes anteriores")
+    escalation_reasons: list[EscalationReasonOut] = Field(description="Por qué necesita al jefe directivo")
     decided_by: uuid.UUID | None
     decided_at: datetime | None
     decision_note: str | None
@@ -694,7 +722,9 @@ def company_out(c: Company) -> CompanyOut:
 
 
 def advance_out(a: Advance) -> AdvanceOut:
-    return AdvanceOut.model_validate(a)
+    reasons = [EscalationReasonOut(code=r["code"], message=escalation_text(r, a.currency)) for r in a.escalation_reasons]
+    data = {f: getattr(a, f) for f in AdvanceOut.model_fields if f != "escalation_reasons"}
+    return AdvanceOut.model_validate({**data, "escalation_reasons": reasons})
 
 
 def expense_out(e: Expense) -> ExpenseOut:

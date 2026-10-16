@@ -10,6 +10,7 @@ class Role(StrEnum):
     APPROVER = "approver"  # además aprueba a quienes le reportan
     ACCOUNTANT = "accountant"  # contabilidad: revisa y cierra legalizaciones, políticas, exportes
     TREASURY = "treasury"  # tesorería: desembolsos, extractos bancarios, reintegros y reembolsos
+    MANAGEMENT = "management"  # gerencia: aprueba los viajes de los directivos (quien no tiene jefe)
     ADMIN = "admin"  # usuarios, compañías y configuración de negocio de Forsa
     # Operador de la plataforma (NextByte): parámetros del sistema y métricas de uso. No pertenece a
     # ninguna compañía ni ve gastos, anticipos o datos personales de Forsa (mínimo privilegio).
@@ -184,3 +185,18 @@ class ExampleStatus(StrEnum):
     PENDING = "pending"  # corrección de un empleado: espera que la valide su aprobador
     REJECTED = "rejected"
     INACTIVE = "inactive"
+
+
+class ApprovalLevel(StrEnum):
+    """Niveles de la ruta de aprobación de una solicitud (decisiones 4.1 a 4.5)."""
+
+    BOSS = "boss"  # jefe inmediato
+    DIRECTOR = "director"  # jefe directivo (el jefe del jefe): cuando la solicitud escala
+    MANAGEMENT = "management"  # gerencia: viajes de directivos, o si falta el jefe directivo
+
+
+class StepStatus(StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    SKIPPED = "skipped"  # el nivel superior aprobó antes y este paso ya no hace falta

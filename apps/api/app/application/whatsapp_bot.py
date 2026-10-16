@@ -20,7 +20,7 @@ from app.application.whatsapp_identity import WELCOME_PAYLOAD_PREFIX, WhatsAppId
 from app.application.whatsapp_notifier import WhatsAppSessions
 from app.application.whatsapp_presenter import advance_rows, menu
 from app.domain.entities import Employee
-from app.domain.enums import Channel
+from app.domain.enums import AdvanceStatus, Channel
 from app.domain.errors import DomainError, JustificationRequiredError, PolicyBlockedError
 from app.domain.permissions import Permission, has_permission
 from app.domain.ports import MessageSender, RateLimiter, UnitOfWorkFactory
@@ -141,6 +141,11 @@ class ReplyHandler(Handler):
                 async with self._uow() as uow:
                     owner = await uow.employees.get(decided.employee_id)
                 name = owner.full_name if owner else ""
+                pending = [s for s in decided.approval_steps if s["status"] == "pending"]
+                if action == "adv_approve" and decided.status == AdvanceStatus.REQUESTED and pending:
+                    step = pending[0]
+                    who = step["approver_name"] or msg.APPROVAL_LEVEL_LABELS.get(step["level"], "")
+                    return msg.ADVANCE_STEP_APPROVED_BY_WA.format(name=name, next=who)
                 template = msg.ADVANCE_APPROVED_BY_WA if action == "adv_approve" else msg.ADVANCE_REJECTED_BY_WA
                 return template.format(name=name)
             case "link_confirm":

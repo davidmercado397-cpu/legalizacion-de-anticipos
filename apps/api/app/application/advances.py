@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 from enum import StrEnum
+from typing import Any
 
 from app.application import messages as msg
 from app.application.access import AccessPolicy
@@ -16,11 +17,12 @@ from app.application.budgets import TravelBudgetService, TripQuery
 from app.application.exchange import ExchangeRateService
 from app.application.learning import LearningService
 from app.application.settings import SettingsService, check_currency
+from app.domain.approvals import Approver, build_route, escalation_reasons
 from app.domain.entities import Advance, AdvanceBalance, AuditEntry, Company, Employee, Expense
-from app.domain.enums import AdvanceKind, AdvanceStatus, Channel, ExpenseStatus, ReviewStatus
+from app.domain.enums import AdvanceKind, AdvanceStatus, ApprovalLevel, Channel, ExpenseStatus, ReviewStatus, Role, StepStatus
 from app.domain.errors import InvalidOperationError, NotFoundError, PermissionDeniedError, ValidationError
 from app.domain.permissions import Permission
-from app.domain.ports import AdvanceFilter, Clock, Page, Paged, ScopeFilter, UnitOfWork, UnitOfWorkFactory
+from app.domain.ports import AdvanceFilter, Clock, EmployeeFilter, Page, Paged, ScopeFilter, UnitOfWork, UnitOfWorkFactory
 from app.domain.time import local_date
 
 
@@ -164,6 +166,16 @@ class AdvanceService:
                 raise ValidationError(
                     "Justification required", code="budget_justification_required", budget=msg.money(budget.total, currency)
                 )
+            reasons = escalation_reasons(
+                amount,
+                currency,
+                budget.total if budget else None,
+                company.approval_tolerance_pct,
+                company.approval_thresholds,
+            )
+            if reasons and justification is None:
+                raise ValidationError("Justification required", code="escalation_justification_required")
+            steps = await self._route(uow, actor, company.id, bool(reasons))
             if data.kind == AdvanceKind.CASH and currency != company.currency:
                 await self._check_cash_cap(uow, company, currency, amount)
             advance = Advance(
@@ -179,7 +191,9 @@ class AdvanceService:
                 budget_zone_id=budget.zone_id if budget else None,
                 budget_amount=budget.total if budget else None,
                 budget_breakdown=[line.as_dict() for line in budget.lines] if budget else [],
-                budget_justification=justification if budget else None,
+                budget_justification=justification,
+                approval_steps=steps,
+                escalation_reasons=reasons,
             )
             await uow.advances.add(advance)
             await uow.audit.add(
@@ -194,6 +208,17 @@ class AdvanceService:
             await uow.commit()
         await self._events.emit(AdvanceEventType.REQUESTED, advance.id, actor.id)
         return advance
+
+    async def _route(self, uow: UnitOfWork, requester: Employee, company_id: uuid.UUID, escalated: bool) -> list[dict[str, Any]]:
+        """Jefe inmediato; si escala, también el jefe directivo (el jefe del jefe). Sin jefe, la gerencia."""
+        boss = await uow.employees.get(requester.approver_id) if requester.approver_id else None
+        director = await uow.employees.get(boss.approver_id) if boss and boss.approver_id else None
+        steps = build_route(requester.id, _approver(boss), _approver(director), escalated)
+        if any(s["level"] == ApprovalLevel.MANAGEMENT for s in steps):
+            flt = EmployeeFilter(company_id=company_id, role=Role.MANAGEMENT, active=True)
+            if (await uow.employees.find(flt, Page(1, 0))).total == 0:
+                raise ValidationError("Nobody can approve this trip", code="no_approver_available")
+        return steps
 
     async def _check_cash_cap(self, uow: UnitOfWork, company: Company, currency: str, amount: Decimal) -> None:
         """El efectivo en moneda extranjera tiene un tope por compañía (p. ej. USD 200)."""
@@ -235,19 +260,23 @@ class AdvanceService:
         return names
 
     async def decision_queue(self, actor: Employee, limit: int) -> DecisionQueue:
+        """Las solicitudes en las que le toca decidir ahora: su paso de la ruta (o el de quien suple), o el de
+        nivel superior que puede aprobar sin esperar."""
         self._access.require(actor, Permission.ADVANCES_APPROVE)
         async with self._uow() as uow:
-            team = list(await uow.employees.list_reports_of(actor.id))
-            for approver_id in await self._access.delegated_from(uow, actor):
-                team.extend(await uow.employees.list_reports_of(approver_id))
-            scope = ScopeFilter(employee_ids=list(dict.fromkeys(team)))
-            requested = await uow.advances.find(AdvanceFilter(scope=scope, status=AdvanceStatus.REQUESTED), Page(limit, 0))
+            delegated = await self._access.delegated_from(uow, actor)
+            scope = ScopeFilter(company_ids=list(actor.company_ids))
+            requested = await uow.advances.find(AdvanceFilter(scope=scope, status=AdvanceStatus.REQUESTED), Page(500, 0))
             items = []
             for advance in requested.items:
                 owner = await uow.employees.get(advance.employee_id)
-                if owner is not None:
+                if owner is None or owner.id == actor.id:
+                    continue
+                # Las solicitudes anteriores a la ruta las decide el aprobador del empleado, como antes.
+                mine = advance.can_decide(actor, delegated) if advance.approval_steps else actor.can_approve_for(owner, delegated)
+                if mine:
                     items.append((advance, owner))
-        return DecisionQueue(items, requested.total)
+        return DecisionQueue(items[:limit], len(items))
 
     async def mine(self, actor: Employee, limit: int) -> list[Advance]:
         async with self._uow() as uow:
@@ -375,12 +404,13 @@ class AdvanceService:
         permission = Permission.ADVANCES_APPROVE if action in ("approve", "reject") else Permission.ADVANCES_CLOSE
         self._access.require(actor, permission)
         now = self._clock.now()
+        completed = True
         async with self._uow() as uow:
             advance, owner, delegated = await self._visible(uow, actor, advance_id)
             expenses = await uow.expenses.list_for_advance(advance.id)
             match action:
                 case "approve":
-                    advance.approve(actor, owner, delegated)
+                    completed = advance.approve(actor, owner, delegated)
                 case "reject":
                     advance.reject(actor, owner, note, delegated)
                 case "close":
@@ -404,9 +434,13 @@ class AdvanceService:
                 data["on_behalf_of"] = owner.approver_id  # decidió como suplente
             if marks:
                 data["marked_expenses"] = [str(m.expense_id) for m in marks]
+            if action == "approve" and not completed:
+                data["pending_steps"] = sum(1 for s in advance.approval_steps if s["status"] == StepStatus.PENDING)
             await uow.audit.add(AuditEntry(f"advance_{action}", "advance", str(advance.id), actor.id, channel, data))
             await uow.commit()
-        await self._events.emit(_DECISION_EVENTS[action], advance.id, actor.id)
+        # Aprobar un paso intermedio no es todavía la aprobación de la solicitud.
+        if completed:
+            await self._events.emit(_DECISION_EVENTS[action], advance.id, actor.id)
         return advance
 
     async def _visible(
@@ -417,7 +451,9 @@ class AdvanceService:
         if advance is None or owner is None:
             raise NotFoundError("advance")
         delegated = await self._access.delegated_from(uow, actor)
-        self._access.ensure_view(actor, owner, advance.company_id, "advance", delegated)
+        # Quien está en la ruta de aprobación la ve aunque el empleado no le reporte directo (jefe directivo).
+        if not advance.involves(actor, delegated):
+            self._access.ensure_view(actor, owner, advance.company_id, "advance", delegated)
         return advance, owner, delegated
 
 
@@ -434,3 +470,7 @@ def _required_note(note: str | None) -> str:
     if not cleaned:
         raise ValidationError("A note is required", code="note_required")
     return cleaned[:1000]
+
+
+def _approver(employee: Employee | None) -> Approver | None:
+    return Approver(employee.id, employee.full_name) if employee is not None and employee.active else None

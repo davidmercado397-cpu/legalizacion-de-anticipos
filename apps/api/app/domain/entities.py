@@ -15,6 +15,7 @@ from typing import Any
 from app.domain.enums import (
     AdvanceKind,
     AdvanceStatus,
+    ApprovalLevel,
     BudgetUnit,
     Channel,
     Deductibility,
@@ -35,6 +36,7 @@ from app.domain.enums import (
     SettlementMethod,
     SettlementStatus,
     StaffType,
+    StepStatus,
     UnreadableReason,
     WhatsAppLinkStatus,
 )
@@ -71,6 +73,9 @@ class Company:
     exchange_rate_policy: ExchangeRatePolicy = ExchangeRatePolicy.DAILY
     # Tope del anticipo en efectivo en moneda extranjera, p. ej. {"amount": "200", "currency": "USD"}.
     cash_international_cap: dict[str, str] | None = None
+    # Escalamiento al jefe directivo (decisiones 4.1 y 4.2); lo configura contabilidad.
+    approval_tolerance_pct: Decimal = Decimal(10)  # sobre el presupuesto calculado
+    approval_thresholds: dict[str, str] = field(default_factory=dict)  # moneda -> monto total que escala
     active: bool = True
     id: uuid.UUID = field(default_factory=uuid.uuid4)
     created_at: datetime = field(default_factory=utcnow)
@@ -480,7 +485,11 @@ class Advance:
     budget_zone_id: uuid.UUID | None = None
     budget_amount: Decimal | None = None
     budget_breakdown: list[dict[str, Any]] = field(default_factory=list)
-    budget_justification: str | None = None  # por qué se pidió un valor distinto al calculado
+    budget_justification: str | None = None  # por qué se pidió un valor distinto al calculado (o por qué escala)
+    # Ruta de aprobación (domain/approvals.py): pasos con nivel, aprobador y estado. Vacía en solicitudes
+    # anteriores a la ruta, que conservan la regla de entonces (el aprobador del empleado).
+    approval_steps: list[dict[str, Any]] = field(default_factory=list)
+    escalation_reasons: list[dict[str, Any]] = field(default_factory=list)
     decided_by: uuid.UUID | None = None
     decided_at: datetime | None = None
     decision_note: str | None = None
@@ -528,18 +537,81 @@ class Advance:
         margin = timedelta(days=tolerance_days)
         return self.start_date - margin <= day <= self.end_date + margin
 
-    def approve(self, approver: Employee, requester: Employee, delegated_from: frozenset[uuid.UUID] = frozenset()) -> None:
+    def approve(self, approver: Employee, requester: Employee, delegated_from: frozenset[uuid.UUID] = frozenset()) -> bool:
+        """Aprueba el paso que le toca; devuelve True si con eso la solicitud quedó aprobada. Si aprueba un
+        nivel superior (directivo o gerencia), los pasos anteriores pendientes ya no hacen falta (4.4)."""
         self._require(AdvanceStatus.REQUESTED, "approve")
-        self._check_decider(approver, requester, delegated_from)
-        self._decide(AdvanceStatus.APPROVED, approver.id, None)
-        self.approved_at, self.approved_by = self.decided_at, approver.id
+        if not self.approval_steps:
+            self._check_decider(approver, requester, delegated_from)
+            self._finish_approval(approver.id)
+            return True
+        steps, index = self._my_step(approver, requester, delegated_from)
+        now = utcnow()
+        steps[index].update(status=StepStatus.APPROVED.value, decided_by=str(approver.id), decided_at=now.isoformat())
+        if steps[index]["level"] != ApprovalLevel.BOSS:
+            for earlier in steps[:index]:
+                if earlier["status"] == StepStatus.PENDING:
+                    earlier.update(status=StepStatus.SKIPPED.value, decided_at=now.isoformat())
+        self.approval_steps = steps
+        if all(s["status"] in (StepStatus.APPROVED, StepStatus.SKIPPED) for s in steps):
+            self._finish_approval(approver.id)
+            return True
+        self.decided_by, self.decided_at = approver.id, now
+        return False
 
     def reject(
         self, approver: Employee, requester: Employee, note: str | None, delegated_from: frozenset[uuid.UUID] = frozenset()
     ) -> None:
         self._require(AdvanceStatus.REQUESTED, "reject")
-        self._check_decider(approver, requester, delegated_from)
+        if self.approval_steps:
+            steps, index = self._my_step(approver, requester, delegated_from)
+            steps[index].update(
+                status=StepStatus.REJECTED.value, decided_by=str(approver.id), decided_at=utcnow().isoformat(), note=note
+            )
+            self.approval_steps = steps
+        else:
+            self._check_decider(approver, requester, delegated_from)
         self._decide(AdvanceStatus.REJECTED, approver.id, note)
+
+    def decidable_steps(self) -> list[dict[str, Any]]:
+        """El turno normal y, si hay, el nivel superior pendiente (que puede decidir sin esperar)."""
+        if self.status != AdvanceStatus.REQUESTED:
+            return []
+        pending = [s for s in self.approval_steps if s["status"] == StepStatus.PENDING]
+        if not pending:
+            return []
+        superior = next((s for s in pending if s["level"] != ApprovalLevel.BOSS), None)
+        return [pending[0]] if superior is None or superior is pending[0] else [pending[0], superior]
+
+    def can_decide(self, actor: Employee, delegated_from: frozenset[uuid.UUID] = frozenset()) -> bool:
+        return actor.id != self.employee_id and any(self._decides(s, actor, delegated_from) for s in self.decidable_steps())
+
+    def involves(self, actor: Employee, delegated_from: frozenset[uuid.UUID] = frozenset()) -> bool:
+        """Está (o estuvo) en la ruta: puede ver la solicitud aunque el empleado no le reporte directo."""
+        return any(self._decides(s, actor, delegated_from) for s in self.approval_steps)
+
+    def _decides(self, step: dict[str, Any], actor: Employee, delegated_from: frozenset[uuid.UUID]) -> bool:
+        if step["level"] == ApprovalLevel.MANAGEMENT and step["approver_id"] is None:
+            return actor.role == Role.MANAGEMENT and actor.works_for(self.company_id)
+        approver_id = uuid.UUID(step["approver_id"]) if step["approver_id"] else None
+        return approver_id is not None and (approver_id == actor.id or approver_id in delegated_from)
+
+    def _my_step(
+        self, approver: Employee, requester: Employee, delegated_from: frozenset[uuid.UUID]
+    ) -> tuple[list[dict[str, Any]], int]:
+        if approver.id == requester.id:
+            raise PermissionDeniedError("Nobody can decide on their own advance", code="self_decision")
+        mine = [s for s in self.decidable_steps() if self._decides(s, approver, delegated_from)]
+        if not mine:
+            raise PermissionDeniedError("Not the approver of this step", code="not_your_approver")
+        # Si la misma persona está en dos pasos, decide en el más alto. Se copian los pasos para que el
+        # ORM note el cambio de la columna JSON.
+        index = self.approval_steps.index(mine[-1])
+        return [dict(s) for s in self.approval_steps], index
+
+    def _finish_approval(self, approver_id: uuid.UUID) -> None:
+        self._decide(AdvanceStatus.APPROVED, approver_id, None)
+        self.approved_at, self.approved_by = self.decided_at, approver_id
 
     def submit_for_review(self, now: datetime) -> None:
         self._require(AdvanceStatus.APPROVED, "submit")

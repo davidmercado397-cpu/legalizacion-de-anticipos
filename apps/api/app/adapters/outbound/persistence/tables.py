@@ -76,6 +76,8 @@ companies = sa.Table(
     sa.Column("timezone", sa.String(64), nullable=False),
     sa.Column("exchange_rate_policy", enum(ExchangeRatePolicy), nullable=False),
     sa.Column("cash_international_cap", pg.JSONB),
+    sa.Column("approval_tolerance_pct", sa.Numeric(5, 2), nullable=False, server_default="10"),
+    sa.Column("approval_thresholds", pg.JSONB, nullable=False, server_default="{}"),
     sa.Column("active", sa.Boolean, nullable=False, server_default=sa.true()),
     sa.Column("created_at", TZ, nullable=False),
 )
@@ -229,6 +231,8 @@ advances = sa.Table(
     sa.Column("budget_amount", MONEY),
     sa.Column("budget_breakdown", pg.JSONB, nullable=False, server_default="[]"),
     sa.Column("budget_justification", sa.String(1000)),
+    sa.Column("approval_steps", pg.JSONB, nullable=False, server_default="[]"),
+    sa.Column("escalation_reasons", pg.JSONB, nullable=False, server_default="[]"),
     sa.Column("decided_by", sa.Uuid, sa.ForeignKey("employees.id")),
     sa.Column("decided_at", TZ),
     sa.Column("decision_note", sa.String(1000)),

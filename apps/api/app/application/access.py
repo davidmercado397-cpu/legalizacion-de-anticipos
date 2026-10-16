@@ -17,8 +17,8 @@ from app.domain.permissions import Permission, has_permission
 from app.domain.ports import Clock, ScopeFilter, UnitOfWork
 
 NoDelegation: frozenset[uuid.UUID] = frozenset()
-# Contabilidad y tesorería ven todo lo de sus compañías.
-_COMPANY_WIDE = (Role.ACCOUNTANT, Role.TREASURY)
+# Contabilidad, tesorería y gerencia ven todo lo de sus compañías.
+_COMPANY_WIDE = (Role.ACCOUNTANT, Role.TREASURY, Role.MANAGEMENT)
 
 
 class AccessPolicy:

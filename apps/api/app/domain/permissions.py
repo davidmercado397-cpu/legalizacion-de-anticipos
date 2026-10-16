@@ -55,6 +55,11 @@ _TREASURY = _EMPLOYEE | {
     Permission.EXPENSES_READ_COMPANY,
     Permission.TREASURY_MANAGE,
 }
+# Gerencia aprueba los viajes de los directivos y ve lo de sus compañías.
+_MANAGEMENT = _EMPLOYEE | {
+    Permission.EXPENSES_READ_COMPANY,
+    Permission.ADVANCES_APPROVE,
+}
 _ADMIN = (
     _ACCOUNTANT
     | _TREASURY
@@ -70,6 +75,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     Role.APPROVER: frozenset(_APPROVER),
     Role.ACCOUNTANT: frozenset(_ACCOUNTANT),
     Role.TREASURY: frozenset(_TREASURY),
+    Role.MANAGEMENT: frozenset(_MANAGEMENT),
     Role.ADMIN: frozenset(_ADMIN),
     Role.SUPERADMIN: frozenset({Permission.SETTINGS_MANAGE, Permission.USAGE_READ, Permission.PLATFORM_COSTS_READ}),
 }

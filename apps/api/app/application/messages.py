@@ -135,6 +135,7 @@ ASSIGN_NONE_DESCRIPTION = "Tarjeta corporativa o reembolso"
 ASSIGNED = "📌 Asignado a: {label}."
 ACTION_NOT_ALLOWED = "No puedes realizar esa acción."
 ADVANCE_APPROVED_BY_WA = "✅ Anticipo de {name} aprobado."
+ADVANCE_STEP_APPROVED_BY_WA = "✅ Aprobaste el anticipo de {name}. Falta la aprobación de {next}."
 ADVANCE_REJECTED_BY_WA = "❌ Anticipo de {name} rechazado."
 # Títulos de botón: máximo 20 caracteres (límite de Meta).
 BUTTON_OK = "✅ Está bien"
@@ -210,6 +211,31 @@ LEGALIZATION_REMINDER_SUBMIT = "Cuando esté completa, envíala a revisión con 
 LEGALIZATION_REMINDER_NOTICE = (
     "tu viaje a {destination} terminó el {end}; recuerda enviar la legalización ({applied} de {amount})"
 )
+
+# Por qué una solicitud escala al jefe directivo (decisiones 4.1 y 4.2).
+ESCALATION_LABELS = {
+    "over_budget": "Supera en más del {tolerance_pct} % el presupuesto calculado ({budget})",
+    "over_threshold": "Supera el monto de {threshold} que exige la aprobación del jefe directivo",
+}
+
+
+def escalation_text(reason: Mapping[str, Any], currency: str) -> str:
+    values = {
+        "tolerance_pct": _plain_number(reason.get("tolerance_pct")),
+        "budget": money(Decimal(str(reason["budget"])), currency) if reason.get("budget") else "—",
+        "threshold": money(Decimal(str(reason["threshold"])), currency) if reason.get("threshold") else "—",
+    }
+    return ESCALATION_LABELS.get(str(reason.get("code")), str(reason.get("code"))).format(**values)
+
+
+def _plain_number(value: object) -> str:
+    """10.00 -> 10; 7.5 -> 7,5."""
+    if value is None:
+        return "—"
+    return f"{Decimal(str(value)).normalize():f}".replace(".", ",")
+
+
+APPROVAL_LEVEL_LABELS = {"boss": "el jefe inmediato", "director": "el jefe directivo", "management": "la gerencia"}
 
 FINDING_LABELS = {
     "duplicate_invoice": "Esta factura ya está registrada",
@@ -403,6 +429,13 @@ ERROR_MESSAGES: dict[str, ErrorText] = {
     "advance_not_open": "Ese anticipo no está abierto para recibir gastos.",
     "advance_of_other": "Ese anticipo es de otra persona.",
     "amount_required": "Indica el valor del anticipo: no hay tarifas de viaje para calcularlo.",
+    "escalation_justification_required": (
+        "Esta solicitud necesita la aprobación del jefe directivo (supera el presupuesto o el monto configurado): "
+        "explica por qué la necesitas."
+    ),
+    "no_approver_available": "No hay quién apruebe este viaje: pide que te asignen un jefe o que creen un usuario de gerencia.",
+    "invalid_approval_tolerance": "La tolerancia debe estar entre 0 % y 100 %.",
+    "invalid_approval_threshold": "Cada umbral debe tener una moneda de 3 letras y un valor mayor que cero.",
     "budget_justification_required": (
         "El valor calculado con las tarifas de viaje es {budget}. Si necesitas otro valor, explica por qué."
     ),

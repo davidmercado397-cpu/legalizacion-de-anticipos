@@ -9,6 +9,7 @@ from typing import Any
 
 from app.application.access import AccessPolicy
 from app.application.settings import SettingsService, check_currency
+from app.domain.approvals import check_thresholds
 from app.domain.entities import AuditEntry, Company, Employee, blocked_concepts_from, categories_from
 from app.domain.enums import Deductibility, DocumentType, ExchangeRatePolicy
 from app.domain.errors import NotFoundError, ValidationError
@@ -97,6 +98,31 @@ class CompanyService:
             raise NotFoundError("company")
         return company
 
+    async def approval_rules(self, actor: Employee, company_id: uuid.UUID) -> ApprovalRules:
+        company = await self.get(actor, company_id)
+        return ApprovalRules(company.approval_tolerance_pct, dict(company.approval_thresholds))
+
+    async def set_approval_rules(self, actor: Employee, company_id: uuid.UUID, rules: ApprovalRules) -> ApprovalRules:
+        """Cuándo una solicitud escala al jefe directivo (decisiones 4.1 y 4.2): lo ajusta contabilidad."""
+        self._access.require(actor, Permission.POLICIES_MANAGE)
+        if not Decimal(0) <= rules.tolerance_pct <= Decimal(100):
+            raise ValidationError("Invalid tolerance", code="invalid_approval_tolerance")
+        thresholds = check_thresholds(rules.thresholds)
+        async with self._uow() as uow:
+            company = await uow.companies.get(company_id)
+            if company is None or not (actor.is_admin or actor.works_for(company_id)):
+                raise NotFoundError("company")
+            before = {"tolerance_pct": str(company.approval_tolerance_pct), "thresholds": company.approval_thresholds}
+            company.approval_tolerance_pct, company.approval_thresholds = rules.tolerance_pct, thresholds
+            after = {"tolerance_pct": str(rules.tolerance_pct), "thresholds": thresholds}
+            await uow.audit.add(
+                AuditEntry(
+                    "approval_rules_updated", "company", str(company.id), actor.id, data={"before": before, "after": after}
+                )
+            )
+            await uow.commit()
+        return ApprovalRules(rules.tolerance_pct, thresholds)
+
     async def update(self, actor: Employee, company_id: uuid.UUID, changes: dict[str, Any]) -> Company:
         self._access.require(actor, Permission.COMPANIES_MANAGE)
         _check_codes(changes.get("country"), changes.get("timezone"))
@@ -119,6 +145,12 @@ class CompanyService:
             await uow.audit.add(AuditEntry("company_updated", "company", str(company.id), actor.id, data=changes))
             await uow.commit()
         return company
+
+
+@dataclass(frozen=True)
+class ApprovalRules:
+    tolerance_pct: Decimal
+    thresholds: dict[str, str]
 
 
 def _cash_cap(value: dict[str, Any] | None, supported: list[str]) -> dict[str, str] | None:
