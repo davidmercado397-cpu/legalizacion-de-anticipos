@@ -15,3 +15,4 @@ export * from './gastos/gastos.queries';
 export * from './organizacion/organizacion.queries';
 export * from './anticipos/conciliacion.queries';
 export * from './organizacion/tarifas.queries';
+export * from './organizacion/usuarios.queries';

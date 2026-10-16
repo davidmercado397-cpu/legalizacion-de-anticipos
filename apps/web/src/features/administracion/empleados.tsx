@@ -11,6 +11,7 @@ import { Boton } from '../../ui/boton';
 import { Campo, Entrada, Seleccion } from '../../ui/campos';
 import { Alerta, Cargando, Insignia, Tarjeta } from '../../ui/superficies';
 import { sinRechazo } from '../../lib/sin-rechazo';
+import { DetalleUsuario, tieneSuplentes } from './detalle-usuario';
 
 const ROLES: Rol[] = ['employee', 'approver', 'accountant', 'treasury', 'management', 'admin'];
 
@@ -33,6 +34,7 @@ export function Empleados() {
   const [editando, setEditando] = useState<Empleado | 'nuevo' | null>(null);
   const accion = useAccionEmpleado();
   const [claveTemporal, setClaveTemporal] = useState<{ email: string; clave: string } | null>(null);
+  const [abierto, setAbierto] = useState<string | null>(null);
 
   const nombre = (id: string | null) => aprobadores.data?.data.find((e) => e.id === id)?.full_name;
 
@@ -66,35 +68,41 @@ export function Empleados() {
       ) : (
         <ul className="divide-y divide-slate-200 rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
           {empleados.data.data.map((e) => (
-            <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-              <div className="min-w-0">
-                <p className="font-medium">
-                  {e.full_name} {!e.active && <Insignia tono="neutro">Inactivo</Insignia>}
-                </p>
-                <p className="text-sm text-slate-500">
-                  {e.email} · {etiqueta('rol', e.role)}
-                  {e.approver_id && ` · aprueba ${nombre(e.approver_id) ?? '—'}`}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                <Boton variante="fantasma" onClick={() => setEditando(e)}>
-                  Editar
-                </Boton>
-                <Boton
-                  variante="fantasma"
-                  onClick={() => accion.mutate({ tipo: 'clave_temporal', id: e.id }, { onSuccess: (clave) => clave && setClaveTemporal({ clave, email: e.email }) })}
-                >
-                  Contraseña temporal
-                </Boton>
-                {e.mfa_enabled && (
-                  <Boton variante="fantasma" onClick={() => accion.mutate({ tipo: 'reiniciar_mfa', id: e.id })}>
-                    Reiniciar verificación
+            <li key={e.id}>
+              <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="font-medium">
+                    {e.full_name} {!e.active && <Insignia tono="neutro">Inactivo</Insignia>}
+                  </p>
+                  <p className="text-sm text-slate-500">
+                    {e.email} · {etiqueta('rol', e.role)}
+                    {e.approver_id && ` · aprueba ${nombre(e.approver_id) ?? '—'}`}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  <Boton variante="fantasma" onClick={() => setEditando(e)}>
+                    Editar
                   </Boton>
-                )}
-                <Boton variante="fantasma" onClick={() => accion.mutate({ tipo: e.active ? 'desactivar' : 'activar', id: e.id })}>
-                  {e.active ? 'Desactivar' : 'Activar'}
-                </Boton>
+                  <Boton
+                    variante="fantasma"
+                    onClick={() => accion.mutate({ tipo: 'clave_temporal', id: e.id }, { onSuccess: (clave) => clave && setClaveTemporal({ clave, email: e.email }) })}
+                  >
+                    Contraseña temporal
+                  </Boton>
+                  {e.mfa_enabled && (
+                    <Boton variante="fantasma" onClick={() => accion.mutate({ tipo: 'reiniciar_mfa', id: e.id })}>
+                      Reiniciar verificación
+                    </Boton>
+                  )}
+                  <Boton variante="fantasma" onClick={() => accion.mutate({ tipo: e.active ? 'desactivar' : 'activar', id: e.id })}>
+                    {e.active ? 'Desactivar' : 'Activar'}
+                  </Boton>
+                  <Boton variante="fantasma" aria-expanded={abierto === e.id} onClick={() => setAbierto(abierto === e.id ? null : e.id)}>
+                    {abierto === e.id ? 'Menos' : tieneSuplentes(e) ? 'WhatsApp y suplentes' : 'WhatsApp'}
+                  </Boton>
+                </div>
               </div>
+              {abierto === e.id && <DetalleUsuario empleado={e} aprobadores={aprobadores.data?.data ?? []} />}
             </li>
           ))}
         </ul>

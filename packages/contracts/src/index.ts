@@ -101,3 +101,9 @@ export type Tarifa = S['TravelRateOut'];
 export type TarifaNueva = S['TravelRateIn'];
 export type TipoPersonal = S['StaffType'];
 export type UnidadTarifa = S['BudgetUnit'];
+
+/** Aprobador suplente por un periodo y código para vincular WhatsApp. */
+export type Suplencia = S['DelegationOut'];
+export type SuplenciaNueva = S['DelegationIn'];
+export type CodigoWhatsApp = S['LinkCodeOut'];
+export type EstadoWhatsApp = S['WhatsAppLinkStatus'];

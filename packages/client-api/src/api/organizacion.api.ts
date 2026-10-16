@@ -15,7 +15,10 @@ import type {
   ReglaPoliticaNueva,
   ReglasAprobacion,
   ReglasAprobacionNuevas,
+  CodigoWhatsApp,
   Rol,
+  Suplencia,
+  SuplenciaNueva,
   Tarifa,
   TarifaNueva,
   ZonaViaje,
@@ -51,6 +54,16 @@ export interface OrganizacionApi {
   claveTemporal(id: string, clave?: string): Promise<string>;
   /** Para un celular perdido: el usuario vuelve a activar la verificación al entrar. */
   reiniciarMfa(id: string): Promise<void>;
+  suplencias(empleadoId: string): Promise<Suplencia[]>;
+  crearSuplencia(empleadoId: string, datos: SuplenciaNueva): Promise<Suplencia>;
+  revocarSuplencia(empleadoId: string, suplenciaId: string): Promise<void>;
+  /** Reenvía la plantilla de bienvenida de WhatsApp (el usuario confirma que es él). */
+  bienvenidaWhatsApp(empleadoId: string): Promise<void>;
+  /** Código para que el usuario escriba «VINCULAR <código>» al número de WhatsApp. */
+  codigoWhatsApp(empleadoId: string): Promise<CodigoWhatsApp>;
+  desvincularWhatsApp(empleadoId: string): Promise<void>;
+  /** Habeas data de un retirado: borra celular e identidad de WhatsApp; los gastos se conservan. */
+  borrarContacto(empleadoId: string): Promise<Empleado>;
   zonas(companiaId: string): Promise<ZonaViaje[]>;
   crearZona(companiaId: string, datos: ZonaViajeNueva): Promise<ZonaViaje>;
   actualizarZona(companiaId: string, zonaId: string, cambios: ZonaViajeCambios): Promise<ZonaViaje>;
@@ -84,6 +97,19 @@ export const crearOrganizacionApi = (http: AxiosInstance): OrganizacionApi => ({
   reiniciarMfa: async (id) => {
     await http.post(`/employees/${id}/mfa/reset`);
   },
+  suplencias: async (empleadoId) => (await http.get<Lista<Suplencia>>(`/employees/${empleadoId}/delegations`)).data.data,
+  crearSuplencia: async (empleadoId, datos) => (await http.post<Suplencia>(`/employees/${empleadoId}/delegations`, datos)).data,
+  revocarSuplencia: async (empleadoId, suplenciaId) => {
+    await http.delete(`/employees/${empleadoId}/delegations/${suplenciaId}`);
+  },
+  bienvenidaWhatsApp: async (empleadoId) => {
+    await http.post(`/employees/${empleadoId}/whatsapp-welcome`);
+  },
+  codigoWhatsApp: async (empleadoId) => (await http.post<CodigoWhatsApp>(`/employees/${empleadoId}/whatsapp-link-code`)).data,
+  desvincularWhatsApp: async (empleadoId) => {
+    await http.delete(`/employees/${empleadoId}/whatsapp-link`);
+  },
+  borrarContacto: async (empleadoId) => (await http.post<Empleado>(`/employees/${empleadoId}/anonymize-contact`)).data,
   zonas: async (companiaId) => (await http.get<Lista<ZonaViaje>>(`/companies/${companiaId}/travel-zones`)).data.data,
   crearZona: async (companiaId, datos) => (await http.post<ZonaViaje>(`/companies/${companiaId}/travel-zones`, datos)).data,
   actualizarZona: async (companiaId, zonaId, cambios) =>
