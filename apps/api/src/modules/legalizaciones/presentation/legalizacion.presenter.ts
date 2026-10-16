@@ -48,8 +48,10 @@ export class PresentadorLegalizaciones {
         resumen: {
           totalAceptado: resumen.totalAceptado.toDto(),
           totalExcluido: resumen.totalExcluido.toDto(),
+          totalDescontado: resumen.totalDescontado.toDto(),
           saldo: resumen.saldo.toDto(),
         },
+        descuentos: l.descuentos.map((d) => ({ movimientoId: d.movimientoId, descripcion: d.descripcion, fecha: d.fecha.toString(), valor: d.valor.toDto() })),
         soportes: l.soportes.map((s) => presentarSoporte(s, l.montoAnticipo.moneda, nombre)),
         historial: l.historial.map((h) => ({ tipo: h.tipo, usuarioNombre: nombre(h.usuarioId), comentario: h.comentario, en: h.en.toISOString() })),
         creadaEn: l.creadaEn.toISOString(),
@@ -92,6 +94,7 @@ function presentarSoporte(s: Soporte, monedaAnticipo: string, nombre: (id: strin
       decididoEn: s.decision.decididoEn.toISOString(),
     },
     beneficiario: s.beneficiario,
+    cargoBancario: s.cargoBancario && { descripcion: s.cargoBancario.descripcion, fecha: s.cargoBancario.fecha.toString(), valor: s.cargoBancario.valor.toDto() },
     creadoEn: s.creadoEn.toISOString(),
   };
 }

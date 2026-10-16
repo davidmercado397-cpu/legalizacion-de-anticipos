@@ -22,6 +22,7 @@ export const extractos = pgTable(
     sha256: char('sha256', { length: 64 }).notNull().unique(),
     perfil: jsonb('perfil').$type<PerfilExtracto>().notNull(),
     rechazos: jsonb('rechazos').$type<Array<{ movimientoId: string; soporteId: string }>>().notNull(),
+    decisionesCargos: jsonb('decisiones_cargos').$type<Array<{ movimientoId: string; descontar: boolean; decididoPor: string; decididoEn: string }>>().notNull().default([]),
     cargadoPor: text('cargado_por').notNull(),
     cargadoEn: timestamp('cargado_en', { withTimezone: true }).notNull(),
     actualizadoEn: timestamp('actualizado_en', { withTimezone: true }).notNull(),

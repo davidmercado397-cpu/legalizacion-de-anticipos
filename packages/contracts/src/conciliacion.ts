@@ -59,6 +59,7 @@ export const cargarExtractoRequestSchema = z.object({
 });
 
 export const enlazarMovimientoRequestSchema = z.object({ soporteId: idSchema });
+export const descuentoCargoRequestSchema = z.object({ descontar: z.boolean() });
 
 export const movimientoLeidoSchema = z.object({
   fila: z.number(),
@@ -102,6 +103,8 @@ export const resumenConciliacionSchema = z.object({
   conciliados: z.number(),
   porRevisar: z.number(),
   cargosSinSoporte: z.number(),
+  /** Cargos sin factura sobre los que contabilidad aún no decide si se descuentan. */
+  cargosSinDecidir: z.number(),
   pagosSinMovimiento: z.number(),
   totalCargos: moneySchema,
   totalCargosSinSoporte: moneySchema,
@@ -134,6 +137,8 @@ export const extractoResponseSchema = extractoResumenResponseSchema.extend({
           pago: pagoSchema.nullable(),
         })
         .nullable(),
+      /** Solo cargos sin factura: si contabilidad decidió descontarlo al viajero. */
+      descuento: z.object({ descontar: z.boolean(), decididoEn: z.string() }).nullable(),
     }),
   ),
   /** Facturas con tarjeta del periodo que no aparecen en este ni en otro extracto. */

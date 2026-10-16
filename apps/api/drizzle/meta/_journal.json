@@ -43,6 +43,13 @@
       "when": 1792120385844,
       "tag": "0005_administracion",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792121191559,
+      "tag": "0006_conciliacion_legalizacion",
+      "breakpoints": true
     }
   ]
 }

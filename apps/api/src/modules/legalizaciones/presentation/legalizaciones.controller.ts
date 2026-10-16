@@ -60,9 +60,9 @@ export class LegalizacionesController {
     return this.presentar.una(await this.gestion.obtenerPorAnticipo(anticipoId, u, roles));
   }
 
-  /** Bandeja de contabilidad (por defecto: en revisión). */
+  /** Bandeja de contabilidad (por defecto: en revisión). Tesorería la usa para cargar extractos. */
   @Get('legalizaciones')
-  @Roles('CONTABILIDAD')
+  @Roles('CONTABILIDAD', 'TESORERIA')
   async porEstado(@Query(new ZodValidationPipe(filtroEstados)) filtro: z.output<typeof filtroEstados>): Promise<LegalizacionResponse[]> {
     return this.presentar.varias(await this.gestion.listarPorEstados(filtro.estado));
   }

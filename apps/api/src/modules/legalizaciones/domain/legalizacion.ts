@@ -11,6 +11,8 @@ import type { ReglaExclusion } from './reglas-exclusion';
 import type {
   Alerta,
   ArchivoSoporte,
+  CargoBancario,
+  CargoDescontado,
   CategoriaGasto,
   DatosExtraidos,
   DatosSoporte,
@@ -37,6 +39,8 @@ export interface Soporte {
   decision: DecisionContable | null;
   /** Solo recibos de caja: a quién se le compró (opcional, no es el viajero). */
   beneficiario: string | null;
+  /** Pago con tarjeta conciliado: lo que cobró el banco reemplaza el total de la factura. */
+  cargoBancario: CargoBancario | null;
   creadoEn: Date;
   actualizadoEn: Date;
 }
@@ -56,6 +60,8 @@ export interface LegalizacionProps {
   viaje: { inicio: FechaCalendario; fin: FechaCalendario };
   estado: EstadoLegalizacion;
   soportes: Soporte[];
+  /** Cargos de la tarjeta sin factura que el viajero debe devolver. */
+  descuentos: CargoDescontado[];
   historial: EventoHistorial[];
   creadaEn: Date;
   actualizadaEn: Date;
@@ -83,6 +89,8 @@ export interface SoporteEliminado extends EventoDominio {
 export interface ResumenLegalizacion {
   totalAceptado: Money;
   totalExcluido: Money;
+  /** Cargos de la tarjeta sin factura descontados al viajero. */
+  totalDescontado: Money;
   /** Positivo: el viajero devuelve. Negativo: la empresa le reembolsa. */
   saldo: Money;
 }
@@ -112,6 +120,7 @@ export class Legalizacion extends AgregadoRaiz {
       ...datos,
       estado: 'ABIERTA',
       soportes: [],
+      descuentos: [],
       historial: [],
       creadaEn: datos.ahora,
       actualizadaEn: datos.ahora,
@@ -177,6 +186,7 @@ export class Legalizacion extends AgregadoRaiz {
       alertas: [],
       decision: null,
       beneficiario: null,
+      cargoBancario: null,
       creadoEn: datos.ahora,
       actualizadoEn: datos.ahora,
     };
@@ -312,6 +322,7 @@ export class Legalizacion extends AgregadoRaiz {
       ],
       decision: null,
       beneficiario: datos.beneficiario?.trim() || null,
+      cargoBancario: null,
       creadoEn: datos.ahora,
       actualizadoEn: datos.ahora,
     };
@@ -421,7 +432,13 @@ export class Legalizacion extends AgregadoRaiz {
       aceptado = aceptado.sumar(montos.aceptado);
       excluido = excluido.sumar(montos.excluido);
     }
-    return { totalAceptado: aceptado, totalExcluido: excluido, saldo: this.props.montoAnticipo.restar(aceptado) };
+    const descontado = Money.sumarTodos(this.props.descuentos.map((d) => d.valor), moneda);
+    return {
+      totalAceptado: aceptado,
+      totalExcluido: excluido,
+      totalDescontado: descontado,
+      saldo: this.props.montoAnticipo.restar(aceptado).sumar(descontado),
+    };
   }
 
   /** Plazo para enviar la legalización: 1 mes después del regreso. */
@@ -435,7 +452,44 @@ export class Legalizacion extends AgregadoRaiz {
   }
 
   puedeVer(usuarioId: string, roles: readonly string[]): boolean {
-    return usuarioId === this.props.viajeroId || roles.includes('CONTABILIDAD');
+    return usuarioId === this.props.viajeroId || roles.includes('CONTABILIDAD') || roles.includes('TESORERIA');
+  }
+
+  get descuentos(): readonly CargoDescontado[] {
+    return this.props.descuentos;
+  }
+
+  /**
+   * Resultado de la conciliación para un pago con tarjeta: cruzado con un cargo (se
+   * legaliza lo cobrado por el banco), sin cargo en el extracto (alerta para
+   * contabilidad) o pendiente (aún por confirmar en la conciliación).
+   */
+  actualizarEstadoBancario(
+    soporteId: string,
+    estado: { tipo: 'CRUZADO'; cargo: CargoBancario } | { tipo: 'SIN_CARGO' } | { tipo: 'PENDIENTE' },
+    ahora: Date,
+  ): void {
+    this.exigirNoAprobada();
+    const s = this.soportes.find((x) => x.id === soporteId);
+    if (!s) return; // el soporte pudo eliminarse; no hay nada que actualizar
+    s.cargoBancario = estado.tipo === 'CRUZADO' ? estado.cargo : null;
+    const sinAlerta = s.alertas.filter((a) => a.codigo !== 'SIN_CARGO_BANCARIO');
+    s.alertas =
+      estado.tipo === 'SIN_CARGO'
+        ? [...sinAlerta, { codigo: 'SIN_CARGO_BANCARIO', severidad: 'REVISION', mensaje: 'Pago con tarjeta que no aparece en el extracto bancario' }]
+        : sinAlerta;
+    s.actualizadoEn = ahora;
+    this.tocar(ahora);
+  }
+
+  /** Contabilidad decidió descontar (o ya no descontar) un cargo de la tarjeta sin factura. */
+  registrarDescuento(cargo: CargoDescontado | null, movimientoId: string, ahora: Date): void {
+    this.exigirNoAprobada();
+    if (cargo && cargo.valor.moneda !== this.props.montoAnticipo.moneda) {
+      throw new DomainError('MONEDA_DESCUENTO', 'VALIDACION', 'El descuento debe estar en la moneda del anticipo');
+    }
+    this.props.descuentos = [...this.props.descuentos.filter((d) => d.movimientoId !== movimientoId), ...(cargo ? [cargo] : [])];
+    this.tocar(ahora);
   }
 
   toSnapshot(): LegalizacionProps {
@@ -480,6 +534,12 @@ export class Legalizacion extends AgregadoRaiz {
       throw new DomainError('LEGALIZACION_NO_EDITABLE', 'CONFLICTO', `La legalización está ${this.props.estado}`, {
         estado: this.props.estado,
       });
+    }
+  }
+
+  private exigirNoAprobada(): void {
+    if (this.props.estado === 'APROBADA') {
+      throw new DomainError('LEGALIZACION_CERRADA', 'CONFLICTO', 'La legalización ya fue aprobada');
     }
   }
 
@@ -531,6 +591,16 @@ export function montosDelSoporte(s: Soporte, monedaAnticipo: string): { aceptado
     liquidarLineas(lineas, propinaSugerida).map((l) => l.valorExcluido),
     total.moneda,
   );
+
+  // Pago con tarjeta conciliado: se legaliza lo que cobró el banco (incluye su tasa y la
+  // diferencia, p. ej. propina en el datáfono), y lo excluido se descuenta en la misma proporción.
+  if (s.cargoBancario) {
+    const { valor, tasa: tasaBanco } = s.cargoBancario;
+    const cobrado = valor.moneda === monedaAnticipo ? valor : valor.convertir(tasaBanco!);
+    const excluido = cobrado.prorratear(excluidoLineas, total);
+    return { aceptado: cobrado.restar(excluido), excluido };
+  }
+
   const aceptado = total.restar(excluidoLineas);
   return {
     aceptado: aMonedaAnticipo(aceptado.esNegativo() ? Money.cero(total.moneda) : aceptado),

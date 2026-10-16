@@ -6,6 +6,7 @@ const clonar = (p: ExtractoProps): ExtractoProps => ({
   movimientos: [...p.movimientos],
   cruces: p.cruces.map((c) => ({ ...c })),
   rechazos: p.rechazos.map((r) => ({ ...r })),
+  decisionesCargos: p.decisionesCargos.map((d) => ({ ...d })),
 });
 
 export class ExtractoRepositoryEnMemoria implements ExtractoRepository {

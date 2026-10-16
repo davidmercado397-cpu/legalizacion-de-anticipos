@@ -1,11 +1,16 @@
 import { createHash } from 'node:crypto';
 import { DomainError, FechaCalendario, Money } from '@viaticos/shared-kernel';
-import type { GeneradorIds, ProveedorTasaCambio, Reloj } from '../../../shared/application/puertos';
+import type { GeneradorIds, ProveedorTasaCambio, PublicadorEventos, Reloj } from '../../../shared/application/puertos';
 import { conciliar, PARAMETROS_POR_DEFECTO, type PagoTarjeta } from '../domain/conciliador';
 import { Extracto, type ExtractoRepository, type PerfilExtractoRepository } from '../domain/extracto';
 import { leerMovimientos, type PerfilExtracto } from '../domain/perfil-extracto';
 import { sugerirPerfil } from '../domain/sugerir-perfil';
+import type { CargoSinSoporteDecidido, EstadoBancarioActualizado } from './eventos-publicos';
 import type { ConsultaLegalizaciones, LectorTabular } from './puertos';
+
+/** Quién ve un extracto: el titular de la tarjeta, tesorería y contabilidad. */
+const VEN_TODO = ['CONTABILIDAD', 'TESORERIA'];
+const veTodo = (roles: readonly string[]) => roles.some((r) => VEN_TODO.includes(r));
 
 export const TAMANO_MAXIMO_EXTRACTO = 5 * 1024 * 1024;
 const FILAS_VISTA_PREVIA = 15;
@@ -32,6 +37,7 @@ export class GestionConciliacion {
     private readonly tasas: ProveedorTasaCambio,
     private readonly ids: GeneradorIds,
     private readonly reloj: Reloj,
+    private readonly eventos: PublicadorEventos,
   ) {}
 
   /** Muestra cómo se leería el archivo, con el perfil indicado o con uno sugerido. */
@@ -61,9 +67,14 @@ export class GestionConciliacion {
     usuarioId: string;
     roles: readonly string[];
   }): Promise<DetalleExtracto> {
+    // Tesorería carga el extracto cuando el viajero ya envió la legalización, para validar los pagos con tarjeta.
+    if (!datos.roles.includes('TESORERIA')) {
+      throw new DomainError('NO_AUTORIZADO', 'NO_AUTORIZADO', 'Solo tesorería carga extractos bancarios');
+    }
     const legalizacion = await this.legalizaciones.legalizacion(datos.legalizacionId);
-    if (!legalizacion || !(legalizacion.viajeroId === datos.usuarioId || datos.roles.includes('CONTABILIDAD'))) {
-      throw new DomainError('LEGALIZACION_NO_ENCONTRADA', 'NO_ENCONTRADO', 'La legalización no existe');
+    if (!legalizacion) throw new DomainError('LEGALIZACION_NO_ENCONTRADA', 'NO_ENCONTRADO', 'La legalización no existe');
+    if (legalizacion.estado !== 'EN_REVISION' && legalizacion.estado !== 'DEVUELTA') {
+      throw new DomainError('LEGALIZACION_NO_ENVIADA', 'REGLA_NEGOCIO', 'El extracto se carga cuando el viajero ya envió la legalización a revisión');
     }
     const sha256 = createHash('sha256').update(datos.archivo.contenido).digest('hex');
     if (await this.extractos.existeArchivo(sha256)) {
@@ -86,6 +97,7 @@ export class GestionConciliacion {
     });
     const detalle = await this.cruzar(extracto);
     await this.extractos.guardar(extracto);
+    await this.publicarEstados(detalle);
     if (datos.guardarPerfilComo?.trim()) {
       await this.perfiles.guardar({
         id: this.ids.nuevo(),
@@ -101,9 +113,20 @@ export class GestionConciliacion {
   /** Vuelve a cruzar (por ejemplo, después de que el viajero agregó facturas). */
   async recalcular(extractoId: string): Promise<DetalleExtracto> {
     const extracto = await this.exigir(extractoId);
+    const antes = [...extracto.decisionesCargos];
     const detalle = await this.cruzar(extracto);
     await this.extractos.guardar(extracto);
+    await this.publicarCambios(detalle, antes);
     return detalle;
+  }
+
+  /** Contabilidad decide si un cargo sin factura se descuenta al viajero (suma a lo que debe devolver). */
+  async decidirCargo(extractoId: string, movimientoId: string, descontar: boolean, usuarioId: string): Promise<DetalleExtracto> {
+    const extracto = await this.exigir(extractoId);
+    const cargo = extracto.decidirCargo(movimientoId, descontar, usuarioId, this.reloj.ahora());
+    await this.extractos.guardar(extracto);
+    await this.eventos.publicar([this.eventoDescuento(extracto, cargo, descontar, usuarioId)]);
+    return this.detalle(extracto, await this.pagosConvertidos(extracto));
   }
 
   async confirmar(extractoId: string, movimientoId: string, usuarioId: string): Promise<DetalleExtracto> {
@@ -122,14 +145,17 @@ export class GestionConciliacion {
     if ((await this.extractos.soportesCruzadosFuera(extracto.id, [soporteId])).has(soporteId)) {
       throw new DomainError('SOPORTE_YA_CONCILIADO', 'CONFLICTO', 'Esa factura ya está cruzada en otro extracto');
     }
+    const antes = [...extracto.decisionesCargos];
     extracto.enlazar(movimientoId, { soporteId, legalizacionId: pago.legalizacionId, montoSoporte: pago.totalEnMonedaExtracto }, usuarioId, this.reloj.ahora());
     await this.extractos.guardar(extracto);
-    return this.detalle(extracto, pagos);
+    const detalle = await this.detalle(extracto, pagos);
+    await this.publicarCambios(detalle, antes);
+    return detalle;
   }
 
   async obtener(extractoId: string, usuarioId: string, roles: readonly string[]): Promise<DetalleExtracto> {
     const extracto = await this.exigir(extractoId);
-    if (extracto.titularId !== usuarioId && !roles.includes('CONTABILIDAD')) {
+    if (extracto.titularId !== usuarioId && !veTodo(roles)) {
       throw new DomainError('EXTRACTO_NO_ENCONTRADO', 'NO_ENCONTRADO', 'El extracto no existe');
     }
     return this.detalle(extracto, await this.pagosConvertidos(extracto));
@@ -138,7 +164,7 @@ export class GestionConciliacion {
   /** Extractos del viajero de una legalización (el viajero ve los suyos; contabilidad, todos). */
   async listarDeLegalizacion(legalizacionId: string, usuarioId: string, roles: readonly string[]): Promise<Extracto[]> {
     const legalizacion = await this.legalizaciones.legalizacion(legalizacionId);
-    if (!legalizacion || !(legalizacion.viajeroId === usuarioId || roles.includes('CONTABILIDAD'))) {
+    if (!legalizacion || !(legalizacion.viajeroId === usuarioId || veTodo(roles))) {
       throw new DomainError('LEGALIZACION_NO_ENCONTRADA', 'NO_ENCONTRADO', 'La legalización no existe');
     }
     return this.extractos.listarPorTitular(legalizacion.viajeroId);
@@ -207,9 +233,69 @@ export class GestionConciliacion {
 
   private async modificar(extractoId: string, accion: (e: Extracto) => void): Promise<DetalleExtracto> {
     const extracto = await this.exigir(extractoId);
+    const antes = [...extracto.decisionesCargos];
     accion(extracto);
     await this.extractos.guardar(extracto);
-    return this.detalle(extracto, await this.pagosConvertidos(extracto));
+    const detalle = await this.detalle(extracto, await this.pagosConvertidos(extracto));
+    await this.publicarCambios(detalle, antes);
+    return detalle;
+  }
+
+  /** Estado bancario de cada pago y descuentos que dejaron de aplicar (el cargo quedó cruzado). */
+  private async publicarCambios(detalle: DetalleExtracto, decisionesAntes: ReadonlyArray<{ movimientoId: string; descontar: boolean }>) {
+    await this.publicarEstados(detalle);
+    const vigentes = new Set(detalle.extracto.decisionesCargos.map((d) => d.movimientoId));
+    const retirados = decisionesAntes.filter((d) => d.descontar && !vigentes.has(d.movimientoId));
+    const eventos = retirados.flatMap((d) => {
+      const cargo = detalle.extracto.movimientos.find((m) => m.id === d.movimientoId);
+      return cargo ? [this.eventoDescuento(detalle.extracto, cargo, false, 'sistema')] : [];
+    });
+    if (eventos.length) await this.eventos.publicar(eventos);
+  }
+
+  /**
+   * Publica el estado de cada pago con tarjeta del periodo. Un pago sin cargo solo se marca
+   * así si su fecha cae dentro del extracto con margen (si es del último día, el cargo puede
+   * llegar en el extracto siguiente).
+   */
+  private async publicarEstados({ extracto, pagos, cruzadosEnOtro }: DetalleExtracto): Promise<void> {
+    const { desde, hasta } = extracto.periodo();
+    const ultimoDiaSeguro = hasta.sumarDias(-PARAMETROS_POR_DEFECTO.diasMaximos);
+    const ahora = this.reloj.ahora();
+    const eventos: EstadoBancarioActualizado[] = [];
+    for (const pago of pagos) {
+      if (cruzadosEnOtro.has(pago.soporteId)) continue;
+      const cruce = extracto.cruces.find((c) => c.soporteId === pago.soporteId);
+      const movimiento = cruce && extracto.movimientos.find((m) => m.id === cruce.movimientoId);
+      const base = { tipo: 'conciliacion.EstadoBancarioActualizado' as const, agregadoId: extracto.id, ocurridoEn: ahora, legalizacionId: pago.legalizacionId, soporteId: pago.soporteId };
+      if (cruce && movimiento && cruce.estado !== 'SUGERIDO') {
+        eventos.push({
+          ...base,
+          estado: 'CRUZADO',
+          cargo: { movimientoId: movimiento.id, descripcion: movimiento.descripcion, fecha: movimiento.fecha.toString(), valor: movimiento.valor.toDto() },
+        });
+      } else if (!cruce && !pago.fecha.esAnteriorA(desde) && !pago.fecha.esPosteriorA(ultimoDiaSeguro)) {
+        eventos.push({ ...base, estado: 'SIN_CARGO', cargo: null });
+      } else {
+        eventos.push({ ...base, estado: 'PENDIENTE', cargo: null });
+      }
+    }
+    if (eventos.length) await this.eventos.publicar(eventos);
+  }
+
+  private eventoDescuento(extracto: Extracto, cargo: { id: string; descripcion: string; fecha: FechaCalendario; valor: Money }, descontar: boolean, usuarioId: string): CargoSinSoporteDecidido {
+    return {
+      tipo: 'conciliacion.CargoSinSoporteDecidido',
+      agregadoId: extracto.id,
+      ocurridoEn: this.reloj.ahora(),
+      legalizacionId: extracto.legalizacionId,
+      movimientoId: cargo.id,
+      descontar,
+      descripcion: cargo.descripcion,
+      fecha: cargo.fecha.toString(),
+      valor: cargo.valor.toDto(),
+      decididoPor: usuarioId,
+    };
   }
 
   private async exigir(id: string): Promise<Extracto> {

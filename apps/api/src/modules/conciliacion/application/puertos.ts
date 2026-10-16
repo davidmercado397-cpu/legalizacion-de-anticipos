@@ -15,7 +15,7 @@ export interface PagoTarjetaLegalizado {
 
 /** Lo que conciliación necesita del módulo de legalizaciones (capa anticorrupción). */
 export interface ConsultaLegalizaciones {
-  legalizacion(id: string): Promise<{ id: string; viajeroId: string } | null>;
+  legalizacion(id: string): Promise<{ id: string; viajeroId: string; estado: string } | null>;
   /** Facturas confirmadas pagadas con tarjeta por el viajero (sin las que contabilidad rechazó). */
   pagosConTarjeta(viajeroId: string): Promise<PagoTarjetaLegalizado[]>;
 }

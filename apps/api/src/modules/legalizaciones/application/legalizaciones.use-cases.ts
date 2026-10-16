@@ -368,10 +368,62 @@ export class GestionLegalizaciones {
     return this.legalizaciones.listarPorEstados(estados);
   }
 
+  // ---------------- Conciliación bancaria ----------------
+
+  /** Aplica el resultado de la conciliación a un pago con tarjeta (ver CargoBancario). */
+  async aplicarEstadoBancario(e: {
+    legalizacionId: string;
+    soporteId: string;
+    estado: 'CRUZADO' | 'SIN_CARGO' | 'PENDIENTE';
+    cargo: { movimientoId: string; descripcion: string; fecha: string; valor: MoneyDto } | null;
+  }): Promise<void> {
+    const legalizacion = await this.legalizaciones.obtenerPorId(e.legalizacionId);
+    if (!legalizacion) return;
+    if (legalizacion.estado === 'APROBADA') {
+      this.bitacora.advertencia(`Conciliación de ${e.soporteId} ignorada: la legalización ${e.legalizacionId} ya está aprobada`);
+      return;
+    }
+    let estado: Parameters<Legalizacion['actualizarEstadoBancario']>[1] = { tipo: e.estado === 'SIN_CARGO' ? 'SIN_CARGO' : 'PENDIENTE' };
+    if (e.estado === 'CRUZADO' && e.cargo) {
+      const valor = Money.fromDto(e.cargo.valor);
+      const fecha = FechaCalendario.of(e.cargo.fecha);
+      // El cargo se pasa a la moneda del anticipo con la TRM del día del cargo.
+      const tasa = await this.tasaHacia(valor.moneda, legalizacion.montoAnticipo.moneda, fecha);
+      estado = { tipo: 'CRUZADO', cargo: { movimientoId: e.cargo.movimientoId, descripcion: e.cargo.descripcion, fecha, valor, tasa } };
+    }
+    await this.modificar(e.legalizacionId, null, (l) => l.actualizarEstadoBancario(e.soporteId, estado, this.reloj.ahora()));
+  }
+
+  /** Cargo de la tarjeta sin factura que contabilidad decidió descontar (o dejar de descontar) al viajero. */
+  async aplicarDescuento(e: {
+    legalizacionId: string;
+    movimientoId: string;
+    descontar: boolean;
+    descripcion: string;
+    fecha: string;
+    valor: MoneyDto;
+    decididoPor: string;
+  }): Promise<void> {
+    const legalizacion = await this.legalizaciones.obtenerPorId(e.legalizacionId);
+    if (!legalizacion) return;
+    if (legalizacion.estado === 'APROBADA') {
+      this.bitacora.advertencia(`Descuento del cargo ${e.movimientoId} ignorado: la legalización ${e.legalizacionId} ya está aprobada`);
+      return;
+    }
+    let cargo = null;
+    if (e.descontar) {
+      const valor = Money.fromDto(e.valor);
+      const fecha = FechaCalendario.of(e.fecha);
+      const tasa = await this.tasaHacia(valor.moneda, legalizacion.montoAnticipo.moneda, fecha);
+      cargo = { movimientoId: e.movimientoId, descripcion: e.descripcion, fecha, valor: tasa ? valor.convertir(tasa) : valor, decididoPor: e.decididoPor };
+    }
+    await this.modificar(e.legalizacionId, null, (l) => l.registrarDescuento(cargo, e.movimientoId, this.reloj.ahora()));
+  }
+
   /** Para conciliación bancaria (el módulo que consulta valida los permisos). */
-  async titularDe(legalizacionId: string): Promise<{ id: string; viajeroId: string } | null> {
+  async titularDe(legalizacionId: string): Promise<{ id: string; viajeroId: string; estado: string } | null> {
     const legalizacion = await this.legalizaciones.obtenerPorId(legalizacionId);
-    return legalizacion && { id: legalizacion.id, viajeroId: legalizacion.viajeroId };
+    return legalizacion && { id: legalizacion.id, viajeroId: legalizacion.viajeroId, estado: legalizacion.estado };
   }
 
   /** Facturas confirmadas pagadas con tarjeta por el viajero, excepto las que contabilidad rechazó. */

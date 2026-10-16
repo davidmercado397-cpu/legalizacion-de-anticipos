@@ -62,10 +62,12 @@ export class Money {
     return new Money(this.valor.times(factor).round(DECIMALES, REDONDEO_HALF_UP), this.moneda);
   }
 
-  /** this × (parte / total), redondeado; para prorratear (p. ej. el impuesto de las líneas excluidas). */
+  /**
+   * this × (parte / total), redondeado; para prorratear (p. ej. el impuesto de las líneas
+   * excluidas). La proporción no tiene unidades: parte y total pueden estar en otra moneda.
+   */
   prorratear(parte: Money, total: Money): Money {
-    this.exigirMismaMoneda(parte);
-    this.exigirMismaMoneda(total);
+    parte.exigirMismaMoneda(total);
     if (total.valor.eq(0)) return Money.cero(this.moneda);
     return new Money(this.valor.times(parte.valor).div(total.valor).round(DECIMALES, REDONDEO_HALF_UP), this.moneda);
   }

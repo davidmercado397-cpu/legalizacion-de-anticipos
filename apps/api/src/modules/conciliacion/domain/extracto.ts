@@ -38,10 +38,19 @@ export interface ExtractoProps {
   movimientos: MovimientoBancario[];
   cruces: Cruce[];
   rechazos: Array<{ movimientoId: string; soporteId: string }>;
+  /** Cargos sin factura: contabilidad decide si se descuentan al viajero. */
+  decisionesCargos: DecisionCargo[];
   cargadoPor: string;
   cargadoEn: Date;
   actualizadoEn: Date;
   version: number;
+}
+
+export interface DecisionCargo {
+  movimientoId: string;
+  descontar: boolean;
+  decididoPor: string;
+  decididoEn: Date;
 }
 
 export class Extracto extends AgregadoRaiz {
@@ -49,7 +58,7 @@ export class Extracto extends AgregadoRaiz {
     super();
   }
 
-  static cargar(datos: Omit<ExtractoProps, 'cruces' | 'rechazos' | 'actualizadoEn' | 'version'>): Extracto {
+  static cargar(datos: Omit<ExtractoProps, 'cruces' | 'rechazos' | 'decisionesCargos' | 'actualizadoEn' | 'version'>): Extracto {
     if (datos.ultimos4 !== null && !/^\d{4}$/.test(datos.ultimos4)) {
       throw new DomainError('ULTIMOS4_INVALIDOS', 'VALIDACION', 'Los últimos 4 dígitos de la tarjeta deben ser 4 números');
     }
@@ -59,7 +68,7 @@ export class Extracto extends AgregadoRaiz {
     if (datos.movimientos.some((m) => m.valor.moneda !== datos.moneda)) {
       throw new DomainError('MONEDA_INCONSISTENTE', 'VALIDACION', 'Todos los movimientos deben estar en la moneda del extracto');
     }
-    return new Extracto({ ...datos, cruces: [], rechazos: [], actualizadoEn: datos.cargadoEn, version: 0 });
+    return new Extracto({ ...datos, cruces: [], rechazos: [], decisionesCargos: [], actualizadoEn: datos.cargadoEn, version: 0 });
   }
 
   static rehidratar(props: ExtractoProps): Extracto {
@@ -93,6 +102,27 @@ export class Extracto extends AgregadoRaiz {
   get version() {
     return this.props.version;
   }
+  get decisionesCargos(): readonly DecisionCargo[] {
+    return this.props.decisionesCargos;
+  }
+
+  /** Cargos sin factura (sin cruce). */
+  cargosSinSoporte(): MovimientoBancario[] {
+    const cruzados = new Set(this.props.cruces.map((c) => c.movimientoId));
+    return this.cargos.filter((m) => !cruzados.has(m.id));
+  }
+
+  /** Contabilidad decide si un cargo sin factura se descuenta al viajero. */
+  decidirCargo(movimientoId: string, descontar: boolean, usuarioId: string, ahora: Date): MovimientoBancario {
+    const cargo = this.cargosSinSoporte().find((m) => m.id === movimientoId);
+    if (!cargo) throw new DomainError('CARGO_NO_DECIDIBLE', 'REGLA_NEGOCIO', 'Solo se decide sobre cargos sin factura');
+    this.props.decisionesCargos = [
+      ...this.props.decisionesCargos.filter((d) => d.movimientoId !== movimientoId),
+      { movimientoId, descontar, decididoPor: usuarioId, decididoEn: ahora },
+    ];
+    this.props.actualizadoEn = ahora;
+    return cargo;
+  }
 
   /** Primer y último día con movimientos. */
   periodo(): { desde: FechaCalendario; hasta: FechaCalendario } {
@@ -118,6 +148,7 @@ export class Extracto extends AgregadoRaiz {
       .filter((p) => !movimientosFijos.has(p.movimientoId) && !soportesFijos.has(p.soporteId))
       .map<Cruce>((p) => ({ ...p, decididoPor: null, decididoEn: null }));
     this.props.cruces = [...fijos, ...nuevas];
+    this.quitarDecisionesDeCruzados();
     this.props.actualizadoEn = ahora;
   }
 
@@ -151,12 +182,18 @@ export class Extracto extends AgregadoRaiz {
     // Una propuesta automática sobre el mismo cargo o la misma factura cede ante la decisión manual.
     this.props.cruces = this.props.cruces.filter((c) => c.movimientoId !== movimientoId && c.soporteId !== pago.soporteId);
     this.props.cruces.push({ movimientoId, ...pago, puntaje: null, estado: 'MANUAL', decididoPor: usuarioId, decididoEn: ahora });
+    this.quitarDecisionesDeCruzados();
     this.props.rechazos = this.props.rechazos.filter((r) => !(r.movimientoId === movimientoId && r.soporteId === pago.soporteId));
     this.props.actualizadoEn = ahora;
   }
 
   toSnapshot(): ExtractoProps {
     return { ...this.props };
+  }
+
+  private quitarDecisionesDeCruzados(): void {
+    const cruzados = new Set(this.props.cruces.map((c) => c.movimientoId));
+    this.props.decisionesCargos = this.props.decisionesCargos.filter((d) => !cruzados.has(d.movimientoId));
   }
 
   private cruceDe(movimientoId: string): Cruce {

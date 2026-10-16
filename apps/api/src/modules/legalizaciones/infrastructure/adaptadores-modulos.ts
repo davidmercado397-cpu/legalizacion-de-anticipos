@@ -1,5 +1,6 @@
 import type { BusEventos } from '../../../shared/application/puertos';
 import type { AnticipoDesembolsado } from '../../anticipos/application/eventos-publicos';
+import type { CargoSinSoporteDecidido, EstadoBancarioActualizado } from '../../conciliacion/application/eventos-publicos';
 import type { ControlDuplicados } from '../../comprobantes/application/control-duplicados';
 import type { ConsultarUsuarioUseCase } from '../../organizacion/application/consultar-usuario.use-case';
 import type { GestionLegalizaciones } from '../application/legalizaciones.use-cases';
@@ -16,6 +17,12 @@ export function suscribirAperturaDeLegalizaciones(bus: BusEventos, legalizacione
       viajeFin: e.viajeFin,
     });
   });
+}
+
+/** La conciliación bancaria ajusta los pagos con tarjeta y registra los cargos descontados al viajero. */
+export function suscribirResultadosDeConciliacion(bus: BusEventos, legalizaciones: GestionLegalizaciones): void {
+  bus.suscribir<EstadoBancarioActualizado>('conciliacion.EstadoBancarioActualizado', (e) => legalizaciones.aplicarEstadoBancario(e));
+  bus.suscribir<CargoSinSoporteDecidido>('conciliacion.CargoSinSoporteDecidido', (e) => legalizaciones.aplicarDescuento(e));
 }
 
 /** Capa anticorrupción hacia el módulo de comprobantes (detección de duplicados). */

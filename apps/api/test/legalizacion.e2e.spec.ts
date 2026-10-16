@@ -138,14 +138,84 @@ describe('Legalización (e2e HTTP)', () => {
     expect(conRecibo.body.resumen).toEqual({
       totalAceptado: { monto: '70.00', moneda: 'USD' },
       totalExcluido: { monto: '5.56', moneda: 'USD' },
+      totalDescontado: { monto: '0.00', moneda: 'USD' },
       saldo: { monto: '325.00', moneda: 'USD' },
     });
 
-    // 6. Envío y revisión contable
+    // 6. Envío a revisión
+    const extracto = Buffer.from(
+      [
+        'EXTRACTO TARJETA DEBITO ****4321',
+        'Fecha;Descripción;Valor',
+        '02/11/2026;ABONO REINTEGRO;100.000,00',
+        '04/11/2026;COMPRA INTL CHURRASCARIA BOI SAO PAULO;-228.000,00',
+        '05/11/2026;COMPRA INTL UBER TRIP;-35.000,00',
+        '06/11/2026;ABONO TRANSFERENCIA;500.000,00',
+      ].join('\n'),
+      'latin1',
+    );
+    const previa = await como('u-tesoreria').post('/conciliacion/extractos/vista-previa').attach('archivo', extracto, 'extracto.csv').expect(200);
+    expect(previa.body).toMatchObject({ confianza: 'ALTA', totalCargos: 2, totalAbonos: 2, perfil: { filaEncabezado: 2, separadorDecimal: ',' } });
+    const cargar = (usuario = 'u-tesoreria') =>
+      como(usuario)
+        .post('/conciliacion/extractos')
+        .field({ legalizacionId: leg.id, ultimos4: '4321', perfil: JSON.stringify(previa.body.perfil) })
+        .attach('archivo', extracto, 'extracto.csv');
+    // Tesorería carga el extracto cuando la legalización ya fue enviada
+    expect((await cargar().expect(422)).body.code).toBe('LEGALIZACION_NO_ENVIADA');
     await como('u-viajero').post(`/legalizaciones/${leg.id}/enviar`).expect(200);
     await como('u-viajero').get('/legalizaciones').expect(403);
     const bandeja = await como('u-contabilidad').get('/legalizaciones').expect(200);
     expect(bandeja.body.map((x: { id: string }) => x.id)).toContain(leg.id);
+    expect((await como('u-tesoreria').get('/legalizaciones').expect(200)).body.map((x: { id: string }) => x.id)).toContain(leg.id);
+
+    // 7. Conciliación: el pago con tarjeta se legaliza por lo que cobró el banco
+    expect((await cargar('u-viajero').expect(403)).body.code).toBe('NO_AUTORIZADO');
+    const cargado = (await cargar().expect(201)).body;
+    // 300 BRL ≈ 222.222 COP con las tasas de desarrollo; el banco cobró 228.000 (2,6 % más): se cruza solo.
+    const [, churrasco, uber] = cargado.movimientos;
+    expect(churrasco.cruce).toMatchObject({ estado: 'AUTOMATICO', montoSoporte: { monto: '222222.22', moneda: 'COP' }, pago: { soporteId } });
+    expect(uber.cruce).toBeNull();
+    expect(cargado.resumen).toMatchObject({ cargos: 2, conciliados: 1, cargosSinSoporte: 1, cargosSinDecidir: 1, pagosSinMovimiento: 0 });
+    expect((await cargar().expect(409)).body.code).toBe('EXTRACTO_YA_CARGADO');
+
+    let leida = (await como('u-contabilidad').get(`/legalizaciones/${leg.id}`).expect(200)).body;
+    const soporteFactura = () => leida.soportes.find((x: { id: string }) => x.id === soporteId);
+    expect(soporteFactura().cargoBancario).toMatchObject({ valor: { monto: '228000.00', moneda: 'COP' } });
+    // 228.000 COP = 57 USD; el 10 % excluido (caipirinha) = 5,70 → se legalizan 51,30 + recibo 20
+    expect(soporteFactura().montos).toEqual({ aceptado: { monto: '51.30', moneda: 'USD' }, excluido: { monto: '5.70', moneda: 'USD' } });
+    expect(leida.resumen).toMatchObject({ totalAceptado: { monto: '71.30' }, saldo: { monto: '323.70' } });
+
+    // El cargo de Uber no tiene factura: contabilidad decide descontarlo al viajero
+    const descuento = (movimientoId: string, descontar: boolean, usuario = 'u-contabilidad') =>
+      como(usuario).post(`/conciliacion/extractos/${cargado.id}/movimientos/${movimientoId}/descuento`).send({ descontar });
+    await descuento(uber.id, true, 'u-tesoreria').expect(403);
+    expect((await descuento(uber.id, true).expect(200)).body.resumen.cargosSinDecidir).toBe(0);
+    leida = (await como('u-contabilidad').get(`/legalizaciones/${leg.id}`).expect(200)).body;
+    expect(leida.descuentos).toEqual([expect.objectContaining({ descripcion: 'COMPRA INTL UBER TRIP', valor: { monto: '8.75', moneda: 'USD' } })]);
+    expect(leida.resumen).toMatchObject({ totalDescontado: { monto: '8.75' }, saldo: { monto: '332.45' } });
+
+    // Si contabilidad dice que el cargo no corresponde, la factura queda sin cargo y pide revisión
+    const base = `/conciliacion/extractos/${cargado.id}/movimientos/${churrasco.id}`;
+    await como('u-viajero').post(`${base}/rechazar`).expect(403);
+    const rechazado = (await como('u-contabilidad').post(`${base}/rechazar`).expect(200)).body;
+    expect(rechazado.pagosSinMovimiento.map((p: { soporteId: string }) => p.soporteId)).toEqual([soporteId]);
+    leida = (await como('u-contabilidad').get(`/legalizaciones/${leg.id}`).expect(200)).body;
+    expect(soporteFactura().alertas.map((a: { codigo: string }) => a.codigo)).toContain('SIN_CARGO_BANCARIO');
+    expect(soporteFactura().cargoBancario).toBeNull();
+    // El enlace manual lo corrige
+    const enlazado = (await como('u-contabilidad').post(`${base}/enlazar`).send({ soporteId }).expect(200)).body;
+    expect(enlazado.movimientos[1].cruce.estado).toBe('MANUAL');
+    leida = (await como('u-contabilidad').get(`/legalizaciones/${leg.id}`).expect(200)).body;
+    expect(soporteFactura().alertas.map((a: { codigo: string }) => a.codigo)).not.toContain('SIN_CARGO_BANCARIO');
+    expect(soporteFactura().cargoBancario).not.toBeNull();
+
+    const lista = (await como('u-viajero').get(`/conciliacion/extractos?legalizacionId=${leg.id}`).expect(200)).body;
+    expect(lista).toMatchObject([{ id: cargado.id, titularNombre: 'Ana Viajera', ultimos4: '4321', periodo: { desde: '2026-11-02', hasta: '2026-11-06' } }]);
+    await como('u-jefe').get(`/conciliacion/extractos/${cargado.id}`).expect(404);
+    await como('u-viajero').get('/conciliacion/extractos').expect(403);
+
+    // 8. Revisión contable y aprobación
     await como('u-contabilidad').post(`/legalizaciones/${leg.id}/aprobar`).expect(422);
     await como('u-contabilidad')
       .post(`/legalizaciones/${leg.id}/soportes/${soporteId}/decision`)
@@ -153,56 +223,15 @@ describe('Legalización (e2e HTTP)', () => {
       .expect(200);
     const aprobada = await como('u-contabilidad').post(`/legalizaciones/${leg.id}/aprobar`).expect(200);
     expect(aprobada.body.estado).toBe('APROBADA');
+    expect(aprobada.body.resumen.saldo).toEqual({ monto: '332.45', moneda: 'USD' });
     expect(aprobada.body.historial.map((h: { tipo: string; usuarioNombre: string }) => `${h.tipo}:${h.usuarioNombre}`)).toEqual([
       'ENVIADA:Ana Viajera',
       'APROBADA:Laura Contable',
     ]);
 
-    // 7. El anticipo quedó legalizado
+    // 9. El anticipo quedó legalizado
     const final = await como('u-viajero').get(`/anticipos/${anticipo.id}`).expect(200);
     expect(final.body.estado).toBe('LEGALIZADO');
-
-    // 8. Conciliación con el extracto de la tarjeta (en pesos; la factura fue en reales)
-    const extracto = Buffer.from(
-      [
-        'EXTRACTO TARJETA DEBITO ****4321',
-        'Fecha;Descripción;Valor',
-        '04/11/2026;COMPRA INTL CHURRASCARIA BOI SAO PAULO;-228.000,00',
-        '05/11/2026;COMPRA INTL UBER TRIP;-35.000,00',
-        '06/11/2026;ABONO TRANSFERENCIA;500.000,00',
-      ].join('\n'),
-      'latin1',
-    );
-    const previa = await como('u-viajero').post('/conciliacion/extractos/vista-previa').attach('archivo', extracto, 'extracto.csv').expect(200);
-    expect(previa.body).toMatchObject({ confianza: 'ALTA', totalCargos: 2, totalAbonos: 1, perfil: { filaEncabezado: 2, separadorDecimal: ',' } });
-
-    const cargar = () =>
-      como('u-viajero')
-        .post('/conciliacion/extractos')
-        .field({ legalizacionId: leg.id, ultimos4: '4321', perfil: JSON.stringify(previa.body.perfil) })
-        .attach('archivo', extracto, 'extracto.csv');
-    const cargado = (await cargar().expect(201)).body;
-    // 300 BRL ≈ 222.222 COP con las tasas de desarrollo; el banco cobró 228.000 (2,6 % más): se cruza solo.
-    const [churrasco, uber, abono] = cargado.movimientos;
-    expect(churrasco.cruce).toMatchObject({ estado: 'AUTOMATICO', montoSoporte: { monto: '222222.22', moneda: 'COP' }, pago: { soporteId } });
-    expect([uber.cruce, abono.cruce]).toEqual([null, null]);
-    expect(cargado.resumen).toMatchObject({ cargos: 2, conciliados: 1, cargosSinSoporte: 1, pagosSinMovimiento: 0, totalCargosSinSoporte: { monto: '35000.00' } });
-    expect((await cargar().expect(409)).body.code).toBe('EXTRACTO_YA_CARGADO');
-
-    // Solo contabilidad decide; el rechazo se recuerda y el enlace manual lo corrige
-    const base = `/conciliacion/extractos/${cargado.id}/movimientos/${churrasco.id}`;
-    await como('u-viajero').post(`${base}/rechazar`).expect(403);
-    const rechazado = (await como('u-contabilidad').post(`${base}/rechazar`).expect(200)).body;
-    expect(rechazado.pagosSinMovimiento.map((p: { soporteId: string }) => p.soporteId)).toEqual([soporteId]);
-    const recalculado = (await como('u-contabilidad').post(`/conciliacion/extractos/${cargado.id}/recalcular`).expect(200)).body;
-    expect(recalculado.resumen.conciliados).toBe(0);
-    const enlazado = (await como('u-contabilidad').post(`${base}/enlazar`).send({ soporteId }).expect(200)).body;
-    expect(enlazado.movimientos[0].cruce.estado).toBe('MANUAL');
-
-    const lista = (await como('u-viajero').get(`/conciliacion/extractos?legalizacionId=${leg.id}`).expect(200)).body;
-    expect(lista).toMatchObject([{ id: cargado.id, titularNombre: 'Ana Viajera', ultimos4: '4321', periodo: { desde: '2026-11-04', hasta: '2026-11-06' } }]);
-    await como('u-jefe').get(`/conciliacion/extractos/${cargado.id}`).expect(404);
-    await como('u-viajero').get('/conciliacion/extractos').expect(403);
   });
 
   it('contabilidad administra la política; el resto solo la consulta', async () => {

@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, Inject, Param, Post, Query, UploadedFi
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   cargarExtractoRequestSchema,
+  descuentoCargoRequestSchema,
   enlazarMovimientoRequestSchema,
   vistaPreviaExtractoRequestSchema,
   type ExtractoResponse,
@@ -35,6 +36,7 @@ export class ConciliacionController {
   /** Lee el archivo sin guardarlo: muestra las filas y el mapeo sugerido (o el indicado). */
   @Post('extractos/vista-previa')
   @HttpCode(200)
+  @Roles('TESORERIA', 'CONTABILIDAD')
   @UseInterceptors(SUBIDA)
   async vistaPrevia(
     @UploadedFile() archivo: Express.Multer.File | undefined,
@@ -77,7 +79,9 @@ export class ConciliacionController {
     @Query(new ZodValidationPipe(porLegalizacion)) q: z.output<typeof porLegalizacion>,
   ): Promise<ExtractoResumenResponse[]> {
     if (q.legalizacionId) return this.presentar.varios(await this.gestion.listarDeLegalizacion(q.legalizacionId, usuarioId, roles));
-    if (!roles.includes('CONTABILIDAD')) throw new DomainError('NO_AUTORIZADO', 'NO_AUTORIZADO', 'Solo contabilidad ve todos los extractos');
+    if (!roles.includes('CONTABILIDAD') && !roles.includes('TESORERIA')) {
+      throw new DomainError('NO_AUTORIZADO', 'NO_AUTORIZADO', 'Solo contabilidad y tesorería ven todos los extractos');
+    }
     return this.presentar.varios(await this.gestion.listarRecientes());
   }
 
@@ -117,6 +121,19 @@ export class ConciliacionController {
     @Body(new ZodValidationPipe(enlazarMovimientoRequestSchema)) body: z.output<typeof enlazarMovimientoRequestSchema>,
   ): Promise<ExtractoResponse> {
     return this.presentar.detalle(await this.gestion.enlazar(id, movimientoId, body.soporteId, u));
+  }
+
+  /** Cargo sin factura: contabilidad decide si se descuenta al viajero. */
+  @Post('extractos/:id/movimientos/:movimientoId/descuento')
+  @HttpCode(200)
+  @Roles('CONTABILIDAD')
+  async descuento(
+    @UsuarioActual() u: string,
+    @Param('id') id: string,
+    @Param('movimientoId') movimientoId: string,
+    @Body(new ZodValidationPipe(descuentoCargoRequestSchema)) body: z.output<typeof descuentoCargoRequestSchema>,
+  ): Promise<ExtractoResponse> {
+    return this.presentar.detalle(await this.gestion.decidirCargo(id, movimientoId, body.descontar, u));
   }
 
   @Get('perfiles')

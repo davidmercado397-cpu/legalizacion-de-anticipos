@@ -21,8 +21,10 @@ function resumen(e: Extracto) {
   const cruzados = new Set(e.cruces.map((c) => c.movimientoId));
   const sinSoporte = e.cargos.filter((m) => !cruzados.has(m.id));
   const sumar = (ms: readonly { valor: Money }[]) => ms.reduce((t, m) => t.sumar(m.valor), Money.cero(e.moneda));
+  const decididos = new Set(e.decisionesCargos.map((d) => d.movimientoId));
   return {
     cargos: e.cargos.length,
+    cargosSinDecidir: sinSoporte.filter((m) => !decididos.has(m.id)).length,
     conciliados: e.cruces.filter((c) => c.estado !== 'SUGERIDO').length,
     porRevisar: e.cruces.filter((c) => c.estado === 'SUGERIDO').length,
     cargosSinSoporte: sinSoporte.length,
@@ -62,6 +64,10 @@ export class PresentadorExtractos {
           cruce: c
             ? { estado: c.estado, puntaje: c.puntaje, montoSoporte: c.montoSoporte?.toDto() ?? null, pago: pago ? presentarPago(pago) : null }
             : null,
+          descuento: (() => {
+            const d = !c && m.tipo === 'DEBITO' ? e.decisionesCargos.find((x) => x.movimientoId === m.id) : undefined;
+            return d ? { descontar: d.descontar, decididoEn: d.decididoEn.toISOString() } : null;
+          })(),
         };
       }),
       pagosSinMovimiento: pagosSinMovimiento.map(presentarPago),

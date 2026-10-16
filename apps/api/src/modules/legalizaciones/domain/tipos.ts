@@ -66,7 +66,8 @@ export type CodigoAlerta =
   | 'LINEAS_POR_VERIFICAR'
   | 'TOTAL_NO_CUADRA'
   | 'LECTURA_NO_DISPONIBLE'
-  | 'RECIBO_CAJA_222';
+  | 'RECIBO_CAJA_222'
+  | 'SIN_CARGO_BANCARIO';
 
 /** REVISION: contabilidad debe decidir si el soporte aplica. INFO: solo informa. */
 export interface Alerta {
@@ -81,6 +82,27 @@ export interface ArchivoSoporte {
   mime: string;
   tamano: number;
   sha256: string;
+}
+
+/** Lo que cobró el banco por un pago con tarjeta (conciliación): se legaliza este valor. */
+export interface CargoBancario {
+  movimientoId: string;
+  descripcion: string;
+  fecha: FechaCalendario;
+  /** En la moneda del extracto. */
+  valor: Money;
+  /** Del extracto a la moneda del anticipo (null si es la misma). */
+  tasa: TasaCambio | null;
+}
+
+/** Cargo de la tarjeta sin factura que contabilidad decidió descontar al viajero. */
+export interface CargoDescontado {
+  movimientoId: string;
+  descripcion: string;
+  fecha: FechaCalendario;
+  /** En la moneda del anticipo. */
+  valor: Money;
+  decididoPor: string;
 }
 
 export interface DecisionContable {

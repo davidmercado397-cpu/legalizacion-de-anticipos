@@ -177,6 +177,8 @@ export const soporteResponseSchema = z.object({
     .object({ aplica: z.boolean(), comentario: z.string().nullable(), contadorNombre: z.string(), decididoEn: z.string() })
     .nullable(),
   beneficiario: z.string().nullable(),
+  /** Pago con tarjeta conciliado: lo que cobró el banco (es lo que se legaliza). */
+  cargoBancario: z.object({ descripcion: z.string(), fecha: z.string(), valor: moneySchema }).nullable(),
   creadoEn: z.string(),
 });
 export type SoporteResponse = z.infer<typeof soporteResponseSchema>;
@@ -194,7 +196,9 @@ export const legalizacionResponseSchema = z.object({
   empresa: z.object({ nombre: z.string(), nit: z.string() }).nullable(),
   /** Plazo para enviar la legalización (1 mes después del regreso). */
   plazo: z.object({ fechaLimite: z.string(), vencida: z.boolean() }),
-  resumen: z.object({ totalAceptado: moneySchema, totalExcluido: moneySchema, saldo: moneySchema }),
+  resumen: z.object({ totalAceptado: moneySchema, totalExcluido: moneySchema, totalDescontado: moneySchema, saldo: moneySchema }),
+  /** Cargos de la tarjeta sin factura que contabilidad descontó al viajero. */
+  descuentos: z.array(z.object({ movimientoId: z.string(), descripcion: z.string(), fecha: z.string(), valor: moneySchema })),
   soportes: z.array(soporteResponseSchema),
   historial: z.array(
     z.object({ tipo: z.enum(['ENVIADA', 'DEVUELTA', 'APROBADA']), usuarioNombre: z.string(), comentario: z.string().nullable(), en: z.string() }),

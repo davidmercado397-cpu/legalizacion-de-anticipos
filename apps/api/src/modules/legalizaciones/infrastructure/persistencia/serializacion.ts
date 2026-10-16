@@ -1,7 +1,7 @@
 import { FechaCalendario, Money, TasaCambio, type MoneyDto, type TasaCambioDto } from '@viaticos/shared-kernel';
 import type { EventoHistorial } from '../../domain/legalizacion';
 import type { LineaSoporte, TipoLinea } from '../../domain/lineas';
-import type { DatosSoporte, DecisionContable } from '../../domain/tipos';
+import type { CargoBancario, CargoDescontado, DatosSoporte, DecisionContable } from '../../domain/tipos';
 
 /** Forma JSON (jsonb) de los objetos de dominio con Money / FechaCalendario / TasaCambio. */
 /** Las líneas guardadas antes de las reglas por línea no tienen tipo ni verificación (se leen como gasto). */
@@ -21,6 +21,26 @@ export type DatosSoporteJson = Omit<DatosSoporte, 'fecha' | 'total' | 'lineas' |
   propinaSugerida?: MoneyDto | null;
   tasa: TasaCambioDto | null;
 };
+export type CargoBancarioJson = Omit<CargoBancario, 'fecha' | 'valor' | 'tasa'> & { fecha: string; valor: MoneyDto; tasa: TasaCambioDto | null };
+export type CargoDescontadoJson = Omit<CargoDescontado, 'fecha' | 'valor'> & { fecha: string; valor: MoneyDto };
+
+const tasaDesdeJson = (j: TasaCambioDto) => new TasaCambio(j.origen, j.destino, j.valor, FechaCalendario.of(j.fecha), j.fuente);
+
+export const cargoBancarioAJson = (c: CargoBancario): CargoBancarioJson => ({
+  ...c,
+  fecha: c.fecha.toString(),
+  valor: c.valor.toDto(),
+  tasa: c.tasa?.toDto() ?? null,
+});
+export const cargoBancarioDesdeJson = (j: CargoBancarioJson): CargoBancario => ({
+  ...j,
+  fecha: FechaCalendario.of(j.fecha),
+  valor: Money.fromDto(j.valor),
+  tasa: j.tasa && tasaDesdeJson(j.tasa),
+});
+export const descuentoAJson = (d: CargoDescontado): CargoDescontadoJson => ({ ...d, fecha: d.fecha.toString(), valor: d.valor.toDto() });
+export const descuentoDesdeJson = (j: CargoDescontadoJson): CargoDescontado => ({ ...j, fecha: FechaCalendario.of(j.fecha), valor: Money.fromDto(j.valor) });
+
 export type DecisionJson = Omit<DecisionContable, 'decididoEn'> & { decididoEn: string };
 export type HistorialJson = Omit<EventoHistorial, 'en'> & { en: string };
 

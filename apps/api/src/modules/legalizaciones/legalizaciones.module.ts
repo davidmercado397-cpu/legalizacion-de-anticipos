@@ -19,7 +19,12 @@ import { GestionLegalizaciones } from './application/legalizaciones.use-cases';
 import type { AlmacenArchivos, ColaTrabajos, ExtractorComprobantes } from './application/puertos';
 import type { PoliticaLegalizacionRepository } from './domain/politica';
 import type { LegalizacionRepository } from './domain/repositorios';
-import { ControlDuplicadosAdapter, DirectorioEmpresasAdapter, suscribirAperturaDeLegalizaciones } from './infrastructure/adaptadores-modulos';
+import {
+  ControlDuplicadosAdapter,
+  DirectorioEmpresasAdapter,
+  suscribirAperturaDeLegalizaciones,
+  suscribirResultadosDeConciliacion,
+} from './infrastructure/adaptadores-modulos';
 import { AlmacenLocal } from './infrastructure/almacen-local';
 import { ExtractorClaude } from './infrastructure/extractor-claude';
 import { ExtractorManual } from './infrastructure/extractor-manual';
@@ -125,6 +130,7 @@ export class LegalizacionesModule implements OnModuleInit, OnApplicationBootstra
 
   onModuleInit(): void {
     suscribirAperturaDeLegalizaciones(this.bus, this.gestion);
+    suscribirResultadosDeConciliacion(this.bus, this.gestion);
   }
 
   async onApplicationBootstrap(): Promise<void> {

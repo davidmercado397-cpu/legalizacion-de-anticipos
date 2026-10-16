@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 import { char, check, date, index, integer, jsonb, numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import type { ConfiguracionExclusion } from '../../domain/reglas-exclusion';
 import type { Alerta, ArchivoSoporte, DatosExtraidos } from '../../domain/tipos';
-import type { DatosSoporteJson, DecisionJson, HistorialJson } from './serializacion';
+import type { CargoBancarioJson, CargoDescontadoJson, DatosSoporteJson, DecisionJson, HistorialJson } from './serializacion';
 
 export const legalizaciones = pgTable(
   'legalizaciones',
@@ -16,6 +16,7 @@ export const legalizaciones = pgTable(
     viajeFin: date('viaje_fin', { mode: 'string' }).notNull(),
     estado: text('estado').notNull(),
     historial: jsonb('historial').$type<HistorialJson[]>().notNull(),
+    descuentos: jsonb('descuentos').$type<CargoDescontadoJson[]>().notNull().default([]),
     creadaEn: timestamp('creada_en', { withTimezone: true }).notNull(),
     actualizadaEn: timestamp('actualizada_en', { withTimezone: true }).notNull(),
     version: integer('version').notNull(),
@@ -42,6 +43,7 @@ export const soportes = pgTable(
     alertas: jsonb('alertas').$type<Alerta[]>().notNull(),
     decision: jsonb('decision').$type<DecisionJson>(),
     beneficiario: text('beneficiario'),
+    cargoBancario: jsonb('cargo_bancario').$type<CargoBancarioJson>(),
     creadoEn: timestamp('creado_en', { withTimezone: true }).notNull(),
     actualizadoEn: timestamp('actualizado_en', { withTimezone: true }).notNull(),
   },

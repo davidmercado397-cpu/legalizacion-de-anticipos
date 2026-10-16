@@ -17,8 +17,10 @@ const legalizacion = (saldo: string): LegalizacionResponse => ({
   resumen: {
     totalAceptado: { monto: '70.00', moneda: 'USD' },
     totalExcluido: { monto: '5.56', moneda: 'USD' },
+    totalDescontado: { monto: '0.00', moneda: 'USD' },
     saldo: { monto: saldo, moneda: 'USD' },
   },
+  descuentos: [],
   soportes: [],
   historial: [],
   creadaEn: '2026-10-10T00:00:00Z',

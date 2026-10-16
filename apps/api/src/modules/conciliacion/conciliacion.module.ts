@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import type { GeneradorIds, ProveedorTasaCambio, Reloj } from '../../shared/application/puertos';
+import type { GeneradorIds, ProveedorTasaCambio, PublicadorEventos, Reloj } from '../../shared/application/puertos';
 import { segunPersistencia } from '../../shared/infrastructure/base-datos/segun-persistencia';
-import { GENERADOR_IDS, PROVEEDOR_TASA_CAMBIO, RELOJ } from '../../shared/tokens';
+import { GENERADOR_IDS, PROVEEDOR_TASA_CAMBIO, PUBLICADOR_EVENTOS, RELOJ } from '../../shared/tokens';
 import { GestionLegalizaciones } from '../legalizaciones/application/legalizaciones.use-cases';
 import { LegalizacionesModule } from '../legalizaciones/legalizaciones.module';
 import { ConsultarUsuarioUseCase } from '../organizacion/application/consultar-usuario.use-case';
@@ -39,9 +39,10 @@ const PERFIL_EXTRACTO_REPOSITORY = Symbol('PerfilExtractoRepository');
         tasas: ProveedorTasaCambio,
         ids: GeneradorIds,
         reloj: Reloj,
+        eventos: PublicadorEventos,
       ) =>
-        new GestionConciliacion(extractos, perfiles, new LectorTabularArchivos(), new ConsultaLegalizacionesAdapter(legalizaciones), tasas, ids, reloj),
-      inject: [EXTRACTO_REPOSITORY, PERFIL_EXTRACTO_REPOSITORY, GestionLegalizaciones, PROVEEDOR_TASA_CAMBIO, GENERADOR_IDS, RELOJ],
+        new GestionConciliacion(extractos, perfiles, new LectorTabularArchivos(), new ConsultaLegalizacionesAdapter(legalizaciones), tasas, ids, reloj, eventos),
+      inject: [EXTRACTO_REPOSITORY, PERFIL_EXTRACTO_REPOSITORY, GestionLegalizaciones, PROVEEDOR_TASA_CAMBIO, GENERADOR_IDS, RELOJ, PUBLICADOR_EVENTOS],
     },
     {
       provide: PresentadorExtractos,

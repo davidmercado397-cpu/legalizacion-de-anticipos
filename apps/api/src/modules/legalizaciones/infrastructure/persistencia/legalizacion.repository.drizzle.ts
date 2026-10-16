@@ -12,6 +12,10 @@ import type { LegalizacionRepository } from '../../domain/repositorios';
 import { politicaPorDefecto } from '../repositorios.memoria';
 import { legalizaciones, politicaLegalizacion, soportes } from './legalizaciones.schema';
 import {
+  cargoBancarioAJson,
+  cargoBancarioDesdeJson,
+  descuentoAJson,
+  descuentoDesdeJson,
   datosAJson,
   datosDesdeJson,
   decisionAJson,
@@ -25,7 +29,7 @@ export class LegalizacionRepositoryDrizzle implements LegalizacionRepository {
 
   async guardar(l: Legalizacion): Promise<void> {
     const s = l.toSnapshot();
-    const raiz = { estado: s.estado, historial: s.historial.map(historialAJson), actualizadaEn: s.actualizadaEn };
+    const raiz = { estado: s.estado, historial: s.historial.map(historialAJson), descuentos: s.descuentos.map(descuentoAJson), actualizadaEn: s.actualizadaEn };
 
     await this.db.transaction(async (tx) => {
       if (s.version === 0) {
@@ -67,6 +71,7 @@ export class LegalizacionRepositoryDrizzle implements LegalizacionRepository {
           alertas: x.alertas,
           decision: x.decision && decisionAJson(x.decision),
           beneficiario: x.beneficiario,
+          cargoBancario: x.cargoBancario && cargoBancarioAJson(x.cargoBancario),
           actualizadoEn: x.actualizadoEn,
         };
         await tx
@@ -133,10 +138,12 @@ export class LegalizacionRepositoryDrizzle implements LegalizacionRepository {
             alertas: h.alertas,
             decision: h.decision && decisionDesdeJson(h.decision),
             beneficiario: h.beneficiario,
+            cargoBancario: h.cargoBancario && cargoBancarioDesdeJson(h.cargoBancario),
             creadoEn: h.creadoEn,
             actualizadoEn: h.actualizadoEn,
           })),
         historial: r.historial.map(historialDesdeJson),
+        descuentos: r.descuentos.map(descuentoDesdeJson),
         creadaEn: r.creadaEn,
         actualizadaEn: r.actualizadaEn,
         version: r.version,

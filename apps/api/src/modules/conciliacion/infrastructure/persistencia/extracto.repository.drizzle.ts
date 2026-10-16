@@ -22,6 +22,7 @@ export class ExtractoRepositoryDrizzle implements ExtractoRepository {
             sha256: s.archivo.sha256,
             perfil: s.perfil,
             rechazos: s.rechazos,
+            decisionesCargos: s.decisionesCargos.map((d) => ({ ...d, decididoEn: d.decididoEn.toISOString() })),
             cargadoPor: s.cargadoPor,
             cargadoEn: s.cargadoEn,
             actualizadoEn: s.actualizadoEn,
@@ -45,7 +46,12 @@ export class ExtractoRepositoryDrizzle implements ExtractoRepository {
         } else {
           const filas = await tx
             .update(extractos)
-            .set({ rechazos: s.rechazos, actualizadoEn: s.actualizadoEn, version: s.version + 1 })
+            .set({
+              rechazos: s.rechazos,
+              decisionesCargos: s.decisionesCargos.map((d) => ({ ...d, decididoEn: d.decididoEn.toISOString() })),
+              actualizadoEn: s.actualizadoEn,
+              version: s.version + 1,
+            })
             .where(and(eq(extractos.id, s.id), eq(extractos.version, s.version)))
             .returning({ id: extractos.id });
           if (filas.length === 0) {
@@ -148,6 +154,7 @@ export class ExtractoRepositoryDrizzle implements ExtractoRepository {
             decididoEn: c.decididoEn,
           })),
         rechazos: r.rechazos,
+        decisionesCargos: r.decisionesCargos.map((d) => ({ ...d, decididoEn: new Date(d.decididoEn) })),
         cargadoPor: r.cargadoPor,
         cargadoEn: r.cargadoEn,
         actualizadoEn: r.actualizadoEn,
