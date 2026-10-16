@@ -37,13 +37,14 @@ export class DirectorioOrganizacionalAdapter implements DirectorioOrganizacional
 
   async obtenerViajero(usuarioId: string): Promise<PerfilViajero | null> {
     const usuario = await this.consultarUsuario.ejecutar(usuarioId);
-    return usuario
-      ? {
-          id: usuario.id,
-          cargoId: usuario.cargoId,
-          jefeInmediatoId: usuario.jefeInmediatoId,
-          jefeDirectivoId: usuario.jefeDirectivoId,
-        }
-      : null;
+    if (!usuario) return null;
+    const gerencia = (await this.consultarUsuario.conRol('GERENCIA')).find((g) => g.id !== usuario.id);
+    return {
+      id: usuario.id,
+      cargoId: usuario.cargoId,
+      jefeInmediatoId: usuario.jefeInmediatoId,
+      jefeDirectivoId: usuario.jefeDirectivoId,
+      gerenciaId: gerencia?.id ?? null,
+    };
   }
 }

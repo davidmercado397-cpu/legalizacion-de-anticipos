@@ -10,14 +10,13 @@ const destino = {
 
 describe('estimarViajeRequestSchema', () => {
   it('normaliza el país y asigna valores por defecto', () => {
-    const r = estimarViajeRequestSchema.parse({ monedaAnticipo: 'USD', destinos: [destino] });
+    const r = estimarViajeRequestSchema.parse({ destinos: [destino] });
     expect(r.destinos[0]?.paisCodigo).toBe('BR');
     expect(r.destinos[0]?.valoresSolicitados).toEqual([]);
   });
 
   it('rechaza fecha fin anterior a inicio con una clave i18n', () => {
     const r = estimarViajeRequestSchema.safeParse({
-      monedaAnticipo: 'USD',
       destinos: [{ ...destino, fechaFin: '2026-11-01' }],
     });
     expect(r.success).toBe(false);
@@ -27,15 +26,10 @@ describe('estimarViajeRequestSchema', () => {
     });
   });
 
-  it('solo admite USD o COP como moneda del anticipo', () => {
-    expect(estimarViajeRequestSchema.safeParse({ monedaAnticipo: 'BRL', destinos: [destino] }).success).toBe(false);
-  });
-
   it('rechaza montos con más de 2 decimales o no numéricos', () => {
     const conValor = (valorUnitario: string) =>
       estimarViajeRequestSchema.safeParse({
-        monedaAnticipo: 'USD',
-        destinos: [{ ...destino, valoresSolicitados: [{ conceptoCodigo: 'ALOJAMIENTO', valorUnitario }] }],
+          destinos: [{ ...destino, valoresSolicitados: [{ conceptoCodigo: 'ALOJAMIENTO', valorUnitario }] }],
       }).success;
     expect(conValor('50.00')).toBe(true);
     expect(conValor('50.001')).toBe(false);
@@ -44,7 +38,6 @@ describe('estimarViajeRequestSchema', () => {
 
   it('no permite el mismo concepto dos veces en un destino', () => {
     const r = estimarViajeRequestSchema.safeParse({
-      monedaAnticipo: 'USD',
       destinos: [
         {
           ...destino,

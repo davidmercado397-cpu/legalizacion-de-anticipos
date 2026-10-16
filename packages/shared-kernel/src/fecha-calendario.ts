@@ -31,6 +31,16 @@ export class FechaCalendario {
     return new FechaCalendario(this.diaEpoch + dias);
   }
 
+  /** Mismo día N meses después; si ese día no existe (31 → febrero), el último día del mes. */
+  sumarMeses(meses: number): FechaCalendario {
+    const fecha = new Date(this.diaEpoch * MS_POR_DIA);
+    const totalMeses = fecha.getUTCFullYear() * 12 + fecha.getUTCMonth() + meses;
+    const anio = Math.floor(totalMeses / 12);
+    const mes = totalMeses % 12;
+    const ultimoDia = new Date(Date.UTC(anio, mes + 1, 0)).getUTCDate();
+    return new FechaCalendario(Date.UTC(anio, mes, Math.min(fecha.getUTCDate(), ultimoDia)) / MS_POR_DIA);
+  }
+
   esAnteriorA(otra: FechaCalendario): boolean {
     return this.diaEpoch < otra.diaEpoch;
   }

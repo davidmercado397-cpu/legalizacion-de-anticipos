@@ -168,15 +168,23 @@ describe('GestionLegalizaciones', () => {
   });
 
   it('recibo de caja: tope en la moneda del anticipo cuando no hay tope en la del recibo', async () => {
-    const recibo = (valor: string) =>
+    const recibo = (valor: string, semilla = Number(valor)) =>
       gestion.agregarReciboCaja({
         legalizacionId,
         usuarioId: 'ana',
-        archivo: null,
+        archivo: { nombre: 'recibo.jpg', contenido: jpeg(semilla % 250) },
         recibo: { descripcion: 'Taxi informal', fecha: '2026-11-03', moneda: 'BRL', valor, categoria: 'TRANSPORTE', medioPago: 'EFECTIVO', paisCodigo: 'BR' },
       });
     // Tope 50 USD = 250 BRL
     await expect(recibo('260')).rejects.toMatchObject({ codigo: 'TOPE_RECIBO_EXCEDIDO' });
+    await expect(
+      gestion.agregarReciboCaja({
+        legalizacionId,
+        usuarioId: 'ana',
+        archivo: null,
+        recibo: { descripcion: 'Taxi informal', fecha: '2026-11-03', moneda: 'BRL', valor: '10', categoria: 'TRANSPORTE', medioPago: 'EFECTIVO', paisCodigo: 'BR' },
+      }),
+    ).rejects.toMatchObject({ codigo: 'FOTO_RECIBO_REQUERIDA' });
     const l = await recibo('100');
     expect(l.resumen().totalAceptado.toDto()).toEqual({ monto: '20.00', moneda: 'USD' });
   });

@@ -56,6 +56,8 @@ export const reciboCajaRequestSchema = z.object({
   medioPago: medioPagoSchema.default('EFECTIVO'),
   paisCodigo: paisSchema,
   beneficiario: textoOpcional(120),
+  /** El viajero declara que el recibo está firmado por quien le vendió (la foto es obligatoria). */
+  firmado: z.union([z.literal(true), z.literal('true')], { error: 'validation.firmaRequerida' }).transform(() => true as const),
 });
 export type ReciboCajaRequest = z.input<typeof reciboCajaRequestSchema>;
 
@@ -167,6 +169,8 @@ export const legalizacionResponseSchema = z.object({
   editable: z.boolean(),
   montoAnticipo: moneySchema,
   viaje: z.object({ inicio: z.string(), fin: z.string() }),
+  /** Plazo para enviar la legalización (1 mes después del regreso). */
+  plazo: z.object({ fechaLimite: z.string(), vencida: z.boolean() }),
   resumen: z.object({ totalAceptado: moneySchema, totalExcluido: moneySchema, saldo: moneySchema }),
   soportes: z.array(soporteResponseSchema),
   historial: z.array(

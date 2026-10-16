@@ -34,6 +34,14 @@ export function VistaLegalizacion({ legalizacion: l, modo }: { legalizacion: Leg
         <InsigniaEstadoLegalizacion estado={l.estado} />
       </div>
 
+      {l.plazo.vencida ? (
+        <Alerta tono="peligro" titulo="Plazo vencido">
+          El plazo para legalizar venció el {formatoFechaCalendario(l.plazo.fechaLimite)} (1 mes después del regreso).
+        </Alerta>
+      ) : (
+        l.editable && <p className="text-sm text-slate-600">Plazo para enviarla: hasta el {formatoFechaCalendario(l.plazo.fechaLimite)}.</p>
+      )}
+
       {l.estado === 'DEVUELTA' && devolucion && (
         <Alerta tono="peligro" titulo={`Contabilidad la devolvió (${devolucion.usuarioNombre})`}>
           {devolucion.comentario}

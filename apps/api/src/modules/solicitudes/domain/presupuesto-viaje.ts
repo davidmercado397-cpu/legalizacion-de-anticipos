@@ -152,6 +152,15 @@ export interface DestinoACotizar {
  * Servicio de dominio: arma el presupuesto a partir de destinos y tarifas.
  * Si el viajero no propone un valor, se usa la tarifa.
  */
+/**
+ * La moneda del anticipo depende del destino: un viaje solo por países con tarifas
+ * en pesos se anticipa en COP; si algún destino tiene tarifas en otra moneda, en USD.
+ */
+export function monedaAnticipoPara(tarifasPorDestino: ReadonlyArray<readonly TarifaAplicable[]>): MonedaAnticipo {
+  const monedas = tarifasPorDestino.flat().map((t) => t.valorUnitario.moneda);
+  return monedas.length > 0 && monedas.every((m) => m === 'COP') ? 'COP' : 'USD';
+}
+
 export function estimarPresupuesto(entrada: {
   monedaAnticipo: MonedaAnticipo;
   destinos: readonly DestinoACotizar[];

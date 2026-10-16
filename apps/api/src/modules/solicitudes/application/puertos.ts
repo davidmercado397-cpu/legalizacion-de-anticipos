@@ -12,6 +12,8 @@ export interface PerfilViajero {
   cargoId: string;
   jefeInmediatoId: string | null;
   jefeDirectivoId: string | null;
+  /** Usuario de gerencia que aprueba si no hay jefe (o el viajero es directivo). */
+  gerenciaId: string | null;
 }
 
 /** Datos organizacionales del viajero (lo implementa un adaptador al módulo de organización). */

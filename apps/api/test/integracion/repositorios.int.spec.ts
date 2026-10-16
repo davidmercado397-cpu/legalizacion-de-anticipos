@@ -75,20 +75,30 @@ describe.runIf(URL_PRUEBAS)('Repositorios PostgreSQL (integración)', () => {
       expect(leida.version).toBe(1);
     });
 
-    it('la bandeja solo muestra la solicitud al aprobador del turno actual', async () => {
+    it('la bandeja muestra la solicitud al jefe de turno y al directivo, que puede aprobar sin esperar', async () => {
       const repo = new SolicitudRepositoryDrizzle(conexion.db);
       const id = '00000000-0000-4000-8000-000000000002';
       await repo.guardar(await nuevaSolicitud(id, '50'));
       const ids = async (u: string) => (await repo.listarPendientesDeAprobador(u)).map((s) => s.id);
 
       expect(await ids('u-jefe')).toContain(id);
-      expect(await ids('u-directivo')).not.toContain(id);
+      expect(await ids('u-directivo')).toContain(id);
+      expect(await ids('u-tesoreria')).not.toContain(id);
 
       const s = (await repo.obtenerPorId(id))!;
       s.aprobar('u-jefe', new Date());
       await repo.guardar(s);
       expect(await ids('u-jefe')).not.toContain(id);
       expect(await ids('u-directivo')).toContain(id);
+
+      // Si el directivo aprueba primero, el paso del jefe queda omitido y sale de ambas bandejas.
+      const otra = '00000000-0000-4000-8000-000000000009';
+      await repo.guardar(await nuevaSolicitud(otra, '50'));
+      const directa = (await repo.obtenerPorId(otra))!;
+      directa.aprobar('u-directivo', new Date());
+      await repo.guardar(directa);
+      expect((await repo.obtenerPorId(otra))!.estado).toBe('APROBADA');
+      expect(await ids('u-jefe')).not.toContain(otra);
     });
 
     it('rechaza escrituras con versión desactualizada', async () => {

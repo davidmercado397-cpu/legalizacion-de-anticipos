@@ -86,7 +86,12 @@ export interface ResumenLegalizacion {
   saldo: Money;
 }
 
-const MARGEN_DIAS_VIAJE = 1;
+/** Plazo para legalizar, contado desde el regreso del viaje. */
+const MESES_PARA_LEGALIZAR = 1;
+
+/** Facturas aceptadas sin alerta: desde el día de salida hasta 1 día después del regreso. */
+const DIAS_ANTES_DEL_VIAJE = 0;
+const DIAS_DESPUES_DEL_VIAJE = 1;
 
 /** Una legalización por anticipo: reúne todos los soportes del viaje y calcula el saldo. */
 export class Legalizacion extends AgregadoRaiz {
@@ -232,7 +237,7 @@ export class Legalizacion extends AgregadoRaiz {
     if (!datos.claveFiscal && (datos.paisCodigo === 'CO' || datos.paisCodigo === 'BR')) {
       alertas.push({
         codigo: 'SIN_CLAVE_FISCAL',
-        severidad: 'INFO',
+        severidad: 'REVISION',
         mensaje: datos.paisCodigo === 'CO' ? 'Factura colombiana sin CUFE/CUDE' : 'Nota brasileña sin chave de acesso',
       });
     }
@@ -399,6 +404,16 @@ export class Legalizacion extends AgregadoRaiz {
     return { totalAceptado: aceptado, totalExcluido: excluido, saldo: this.props.montoAnticipo.restar(aceptado) };
   }
 
+  /** Plazo para enviar la legalización: 1 mes después del regreso. */
+  fechaLimite(): FechaCalendario {
+    return this.props.viaje.fin.sumarMeses(MESES_PARA_LEGALIZAR);
+  }
+
+  /** Vencida: el viajero aún no la envía (o la tiene devuelta) y ya pasó el plazo. */
+  estaVencida(hoy: FechaCalendario): boolean {
+    return (this.props.estado === 'ABIERTA' || this.props.estado === 'DEVUELTA') && hoy.esPosteriorA(this.fechaLimite());
+  }
+
   puedeVer(usuarioId: string, roles: readonly string[]): boolean {
     return usuarioId === this.props.viajeroId || roles.includes('CONTABILIDAD');
   }
@@ -434,7 +449,7 @@ export class Legalizacion extends AgregadoRaiz {
 
   private alertasDeFecha(fecha: FechaCalendario): Alerta[] {
     const { inicio, fin } = this.props.viaje;
-    const fuera = fecha.esAnteriorA(inicio.sumarDias(-MARGEN_DIAS_VIAJE)) || fecha.esPosteriorA(fin.sumarDias(MARGEN_DIAS_VIAJE));
+    const fuera = fecha.esAnteriorA(inicio.sumarDias(-DIAS_ANTES_DEL_VIAJE)) || fecha.esPosteriorA(fin.sumarDias(DIAS_DESPUES_DEL_VIAJE));
     return fuera
       ? [{ codigo: 'FECHA_FUERA_DEL_VIAJE', severidad: 'REVISION', mensaje: `La fecha ${fecha} está fuera del viaje (${inicio} a ${fin})` }]
       : [];

@@ -25,7 +25,7 @@ export interface ParametrosConciliacion {
   toleranciaMismaMoneda: number;
   /** Con conversión de moneda: el banco usa su propia tasa y suele sumar comisión. */
   toleranciaOtraMoneda: number;
-  /** El banco registra la compra hasta N días después (o antes, por zona horaria). Más allá, no se cruza. */
+  /** El banco registra la compra el mismo día o hasta N días después (o antes, por zona horaria). Más allá, no se cruza. */
   diasMaximos: number;
   pesos: { monto: number; fecha: number; comercio: number };
   umbralAutomatico: number;
@@ -35,7 +35,7 @@ export interface ParametrosConciliacion {
 export const PARAMETROS_POR_DEFECTO: ParametrosConciliacion = {
   toleranciaMismaMoneda: 0.01,
   toleranciaOtraMoneda: 0.06,
-  diasMaximos: 5,
+  diasMaximos: 1,
   pesos: { monto: 0.5, fecha: 0.3, comercio: 0.2 },
   umbralAutomatico: 0.8,
   umbralSugerido: 0.55,
@@ -50,8 +50,8 @@ export interface Propuesta {
   montoSoporte: Money;
 }
 
-/** Puntaje de fecha por días de diferencia: el mismo día es lo ideal; 1–3 días es normal en tarjetas. */
-const PUNTAJE_POR_DIAS = [1, 0.9, 0.8, 0.7, 0.4, 0.2];
+/** Puntaje de fecha por días de diferencia: el mismo día es lo ideal; 1 día es el máximo aceptado. */
+const PUNTAJE_POR_DIAS = [1, 0.8];
 
 export function puntuar(
   cargo: CargoBancario,

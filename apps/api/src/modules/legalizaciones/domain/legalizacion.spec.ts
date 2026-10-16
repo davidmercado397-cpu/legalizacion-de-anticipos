@@ -103,10 +103,10 @@ describe('Legalizacion · facturas', () => {
     expect(l.soporte('s1').alertas.map((a) => a.codigo)).toEqual(['POSIBLE_DUPLICADO', 'FECHA_FUERA_DEL_VIAJE']);
   });
 
-  it('una factura colombiana sin CUFE genera aviso informativo', () => {
+  it('una factura colombiana sin CUFE exige la decisión de contabilidad', () => {
     const l = conFactura(nueva('COP', 1_000_000));
     l.confirmarSoporte('s1', datos({ paisCodigo: 'CO', total: Money.of(85_000, 'COP') }), contexto(), ahora);
-    expect(l.soporte('s1').alertas).toEqual([expect.objectContaining({ codigo: 'SIN_CLAVE_FISCAL', severidad: 'INFO' })]);
+    expect(l.soporte('s1').alertas).toEqual([expect.objectContaining({ codigo: 'SIN_CLAVE_FISCAL', severidad: 'REVISION' })]);
   });
 
   it('convierte a la moneda del anticipo con la tasa del soporte', () => {

@@ -35,7 +35,7 @@ export function FormularioSolicitud() {
 
   const form = useForm<Entrada, unknown, Salida>({
     resolver: zodResolver(crearSolicitudRequestSchema),
-    defaultValues: { monedaAnticipo: 'USD', motivo: '', justificacion: '', destinos: [destinoVacio()] },
+    defaultValues: { motivo: '', justificacion: '', destinos: [destinoVacio()] },
     mode: 'onTouched',
   });
   const { register, control, formState, setValue, getValues, setError } = form;
@@ -43,9 +43,8 @@ export function FormularioSolicitud() {
   const { fields, append, remove } = useFieldArray({ control, name: 'destinos' });
 
   // Estimado en vivo: se consulta cuando la parte del viaje es válida y el usuario deja de escribir.
-  const monedaAnticipo = useWatch({ control, name: 'monedaAnticipo' });
   const destinos = useWatch({ control, name: 'destinos' });
-  const borrador = useValorDiferido(JSON.stringify({ monedaAnticipo, destinos }), 400);
+  const borrador = useValorDiferido(JSON.stringify({ destinos }), 400);
   const peticion = useMemo<EstimarViajeRequest | null>(() => {
     const datos = JSON.parse(borrador) as EstimarViajeRequest;
     return estimarViajeRequestSchema.safeParse(datos).success ? datos : null;
@@ -81,16 +80,9 @@ export function FormularioSolicitud() {
   return (
     <form noValidate onSubmit={enviar} className="space-y-5">
       <Tarjeta className="space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
           <h2 className="text-lg font-semibold">Viaje</h2>
-          <Campo etiqueta="Moneda del anticipo" className="w-40">
-            {(a11y) => (
-              <Seleccion {...a11y} {...register('monedaAnticipo')}>
-                <option value="USD">USD – Dólares</option>
-                <option value="COP">COP – Pesos</option>
-              </Seleccion>
-            )}
-          </Campo>
+          <p className="text-sm text-slate-600">El anticipo se da en pesos para viajes en Colombia y en dólares si algún destino es en el exterior.</p>
         </div>
         <TasasDelDia tasas={tasas.data} />
 

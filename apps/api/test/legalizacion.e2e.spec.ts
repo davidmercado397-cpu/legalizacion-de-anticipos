@@ -54,7 +54,6 @@ describe('Legalización (e2e HTTP)', () => {
     const sol = await como('u-viajero')
       .post('/solicitudes')
       .send({
-        monedaAnticipo: 'USD',
         motivo: 'Visita técnica São Paulo',
         destinos: [{ paisCodigo: 'BR', ciudad: 'São Paulo', fechaInicio: '2026-11-02', fechaFin: '2026-11-06' }],
       })
@@ -119,11 +118,22 @@ describe('Legalización (e2e HTTP)', () => {
     // 5. Recibo de caja 222 (sin factura)
     await como('u-viajero')
       .post(`/legalizaciones/${leg.id}/recibos-caja`)
-      .field({ descripcion: 'Taxi informal al hotel', fecha: '2026-11-02', moneda: 'USD', valor: '60', categoria: 'TRANSPORTE', paisCodigo: 'BR' })
+      .field({ descripcion: 'Taxi informal al hotel', fecha: '2026-11-02', moneda: 'USD', valor: '20', categoria: 'TRANSPORTE', paisCodigo: 'BR' })
+      .attach('archivo', JPEG(7), 'recibo.jpg')
+      .expect(400); // falta declarar que está firmado
+    await como('u-viajero')
+      .post(`/legalizaciones/${leg.id}/recibos-caja`)
+      .field({ descripcion: 'Taxi informal al hotel', fecha: '2026-11-02', moneda: 'USD', valor: '20', categoria: 'TRANSPORTE', paisCodigo: 'BR', firmado: 'true' })
+      .expect(422); // falta la foto
+    await como('u-viajero')
+      .post(`/legalizaciones/${leg.id}/recibos-caja`)
+      .field({ descripcion: 'Taxi informal al hotel', fecha: '2026-11-02', moneda: 'USD', valor: '60', categoria: 'TRANSPORTE', paisCodigo: 'BR', firmado: 'true' })
+      .attach('archivo', JPEG(8), 'recibo.jpg')
       .expect(422);
     const conRecibo = await como('u-viajero')
       .post(`/legalizaciones/${leg.id}/recibos-caja`)
-      .field({ descripcion: 'Taxi informal al hotel', fecha: '2026-11-02', moneda: 'USD', valor: '20', categoria: 'TRANSPORTE', paisCodigo: 'BR' })
+      .field({ descripcion: 'Taxi informal al hotel', fecha: '2026-11-02', moneda: 'USD', valor: '20', categoria: 'TRANSPORTE', paisCodigo: 'BR', firmado: 'true' })
+      .attach('archivo', JPEG(9), 'recibo.jpg')
       .expect(201);
     expect(conRecibo.body.resumen).toEqual({
       totalAceptado: { monto: '70.00', moneda: 'USD' },

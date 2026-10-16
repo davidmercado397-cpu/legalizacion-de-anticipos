@@ -34,8 +34,8 @@ export const destinoSchema = z
     { path: ['valoresSolicitados'], error: 'validation.duplicatedConcept' },
   );
 
+/** La moneda del anticipo no se pide: la define el país de destino (COP en Colombia, USD en el exterior). */
 export const estimarViajeRequestSchema = z.object({
-  monedaAnticipo: monedaAnticipoSchema,
   destinos: z.array(destinoSchema).min(1, { error: 'validation.atLeastOneDestination' }).max(10),
 });
 export type EstimarViajeRequest = z.input<typeof estimarViajeRequestSchema>;
@@ -105,10 +105,10 @@ export type EstadoSolicitud = z.infer<typeof estadoSolicitudSchema>;
 
 export const pasoAprobacionSchema = z.object({
   orden: z.number().int(),
-  nivel: z.enum(['JEFE_INMEDIATO', 'JEFE_DIRECTIVO']),
+  nivel: z.enum(['JEFE_INMEDIATO', 'JEFE_DIRECTIVO', 'GERENCIA']),
   aprobadorId: z.string(),
   aprobadorNombre: z.string(),
-  estado: z.enum(['PENDIENTE', 'APROBADO', 'RECHAZADO']),
+  estado: z.enum(['PENDIENTE', 'APROBADO', 'RECHAZADO', 'OMITIDO']),
   decididoEn: z.string().nullable(),
   comentario: z.string().nullable(),
 });

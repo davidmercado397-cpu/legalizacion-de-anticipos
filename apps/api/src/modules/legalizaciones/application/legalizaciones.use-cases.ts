@@ -215,6 +215,9 @@ export class GestionLegalizaciones {
     archivo: ArchivoSubido | null;
   }): Promise<Legalizacion> {
     const legalizacion = await this.exigirDelViajero(datos.legalizacionId, datos.usuarioId);
+    if (!datos.archivo) {
+      throw new DomainError('FOTO_RECIBO_REQUERIDA', 'VALIDACION', 'Adjunte la foto del recibo firmado por quien le vendió');
+    }
     const r = datos.recibo;
     const valor = Money.of(r.valor, r.moneda);
     const fecha = FechaCalendario.of(r.fecha);

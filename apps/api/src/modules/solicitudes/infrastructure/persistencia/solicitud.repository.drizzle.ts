@@ -110,7 +110,8 @@ export class SolicitudRepositoryDrizzle implements SolicitudRepository {
   }
 
   async listarPendientesDeAprobador(aprobadorId: string): Promise<SolicitudViaje[]> {
-    // Paso pendiente del aprobador cuyos pasos anteriores ya están aprobados (es el turno actual).
+    // Paso pendiente del aprobador que ya puede decidir: es su turno (los anteriores están aprobados)
+    // o es el nivel superior, que puede aprobar sin esperar.
     const p = solicitudPasosAprobacion;
     const filas = await this.db
       .select({ id: solicitudes.id })
@@ -121,11 +122,11 @@ export class SolicitudRepositoryDrizzle implements SolicitudRepository {
           eq(p.aprobadorId, aprobadorId),
           eq(p.estado, 'PENDIENTE'),
           eq(solicitudes.estado, 'EN_APROBACION'),
-          sql`NOT EXISTS (
+          sql`(${p.nivel} IN ('JEFE_DIRECTIVO', 'GERENCIA') OR NOT EXISTS (
             SELECT 1 FROM ${p} AS previo
             WHERE previo.solicitud_id = ${p.solicitudId}
               AND previo.orden < ${p.orden}
-              AND previo.estado <> 'APROBADO')`,
+              AND previo.estado NOT IN ('APROBADO', 'OMITIDO')))`,
         ),
       )
       .orderBy(asc(solicitudes.creadaEn))

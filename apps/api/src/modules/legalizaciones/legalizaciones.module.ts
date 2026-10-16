@@ -98,11 +98,12 @@ import { LegalizacionesController } from './presentation/legalizaciones.controll
     },
     {
       provide: PresentadorLegalizaciones,
-      useFactory: (consultar: ConsultarUsuarioUseCase) =>
-        new PresentadorLegalizaciones({
-          nombres: async (ids) => new Map((await consultar.varios(ids)).map((u) => [u.id, u.nombre])),
-        }),
-      inject: [ConsultarUsuarioUseCase],
+      useFactory: (consultar: ConsultarUsuarioUseCase, reloj: Reloj) =>
+        new PresentadorLegalizaciones(
+          { nombres: async (ids) => new Map((await consultar.varios(ids)).map((u) => [u.id, u.nombre])) },
+          () => reloj.hoy(),
+        ),
+      inject: [ConsultarUsuarioUseCase, RELOJ],
     },
   ],
   exports: [GestionLegalizaciones],

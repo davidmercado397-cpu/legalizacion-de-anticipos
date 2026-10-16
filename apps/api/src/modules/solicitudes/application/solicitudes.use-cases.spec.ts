@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { FechaCalendario, TasaCambio, type FechaCalendario as Fecha } from '@viaticos/shared-kernel';
 import type { EventoDominio } from '../../../shared/domain/agregado-raiz';
 import type { ProveedorTasaCambio, PublicadorEventos, Reloj } from '../../../shared/application/puertos';
-import { tarifasBrasil } from '../test-support/fabricas';
+import { tarifasBrasil, tarifasColombia } from '../test-support/fabricas';
 import {
   CONFIGURACION_ESCALAMIENTO_DESARROLLO,
   ConfiguracionEscalamientoEnMemoria,
@@ -21,11 +21,11 @@ const tasas: ProveedorTasaCambio = {
   obtener: async (o: string, d: string, f: Fecha) => new TasaCambio(o, d, o === 'USD' ? '4000' : '0.00025', f, 'FAKE'),
 };
 const tarifas: ConsultaTarifas = {
-  vigentes: async (_c, pais) => (pais === 'BR' ? tarifasBrasil() : []),
+  vigentes: async (_c, pais) => (pais === 'BR' ? tarifasBrasil() : pais === 'CO' ? tarifasColombia() : []),
   paisesDisponibles: async () => ['BR'],
 };
 const perfiles: Record<string, PerfilViajero> = {
-  ana: { id: 'ana', cargoId: 'ANALISTA', jefeInmediatoId: 'carlos', jefeDirectivoId: 'diana' },
+  ana: { id: 'ana', cargoId: 'ANALISTA', jefeInmediatoId: 'carlos', jefeDirectivoId: 'diana', gerenciaId: 'gabriela' },
 };
 const directorio: DirectorioOrganizacional = {
   obtenerViajero: async (id) => perfiles[id] ?? null,
@@ -68,20 +68,19 @@ describe('Casos de uso de solicitudes', () => {
 
   const crear = () => new CrearSolicitudUseCase(cotizador, repo, { nuevo: () => `s${++n}` }, reloj, eventos);
 
-  it('estima en COP convirtiendo tarifas en USD con la TRM', async () => {
-    const r = await new EstimarViajeUseCase(cotizador).ejecutar({
-      viajeroId: 'ana',
-      monedaAnticipo: 'COP',
-      destinos: [destinoRio()],
-    });
-    expect(r.presupuesto.totalAnticipo.toDto()).toEqual({ monto: '1180000.00', moneda: 'COP' });
-    expect(r.escalamiento.requiereJefeDirectivo).toBe(false);
+  it('la moneda del anticipo la define el destino: COP en Colombia, USD si hay un destino en el exterior', async () => {
+    const bogota = { paisCodigo: 'CO', ciudad: 'Bogotá', fechaInicio: '2026-10-28', fechaFin: '2026-10-29', valoresSolicitados: [] };
+    const soloColombia = await new EstimarViajeUseCase(cotizador).ejecutar({ viajeroId: 'ana', destinos: [bogota] });
+    expect(soloColombia.presupuesto.totalAnticipo.toDto()).toEqual({ monto: '490000.00', moneda: 'COP' }); // 1×250.000 + 2×120.000
+    expect(soloColombia.escalamiento.requiereJefeDirectivo).toBe(false);
+
+    const mixto = await new EstimarViajeUseCase(cotizador).ejecutar({ viajeroId: 'ana', destinos: [bogota, destinoRio()] });
+    expect(mixto.presupuesto.totalAnticipo.moneda).toBe('USD');
   });
 
   it('el caso del negocio: hotel a 50 USD con tarifa de 30 escala a jefe directivo', async () => {
     const r = await new EstimarViajeUseCase(cotizador).ejecutar({
       viajeroId: 'ana',
-      monedaAnticipo: 'USD',
       destinos: [destinoRio('50')],
     });
     expect(r.escalamiento).toMatchObject({ requiereJefeDirectivo: true, motivos: [{ codigo: 'EXCEDE_TARIFA' }] });
@@ -89,14 +88,13 @@ describe('Casos de uso de solicitudes', () => {
 
   it('falla si el viajero no existe', async () => {
     await expect(
-      new EstimarViajeUseCase(cotizador).ejecutar({ viajeroId: 'x', monedaAnticipo: 'USD', destinos: [destinoRio()] }),
+      new EstimarViajeUseCase(cotizador).ejecutar({ viajeroId: 'x', destinos: [destinoRio()] }),
     ).rejects.toMatchObject({ codigo: 'VIAJERO_NO_ENCONTRADO' });
   });
 
   it('crea la solicitud, la persiste y publica SolicitudEnviada', async () => {
     const s = await crear().ejecutar({
       viajeroId: 'ana',
-      monedaAnticipo: 'USD',
       destinos: [destinoRio()],
       motivo: 'Implementación en cliente Rio',
     });
@@ -107,14 +105,14 @@ describe('Casos de uso de solicitudes', () => {
   it('flujo completo con escalamiento: jefe inmediato → directivo → SolicitudAprobada', async () => {
     const s = await crear().ejecutar({
       viajeroId: 'ana',
-      monedaAnticipo: 'USD',
       destinos: [destinoRio('50')],
       motivo: 'Implementación en cliente Rio',
       justificacion: 'Único hotel disponible junto al cliente',
     });
     const consultar = new ConsultarSolicitudesUseCase(repo);
     expect((await consultar.listarPendientesDeAprobar('carlos')).map((x) => x.id)).toEqual([s.id]);
-    expect(await consultar.listarPendientesDeAprobar('diana')).toEqual([]);
+    // El directivo la ve desde el inicio: puede aprobar sin esperar al jefe inmediato.
+    expect((await consultar.listarPendientesDeAprobar('diana')).map((x) => x.id)).toEqual([s.id]);
 
     const aprobar = new AprobarSolicitudUseCase(repo, reloj, eventos);
     await aprobar.ejecutar({ solicitudId: s.id, aprobadorId: 'carlos' });
@@ -131,7 +129,6 @@ describe('Casos de uso de solicitudes', () => {
   it('detecta modificaciones concurrentes (concurrencia optimista)', async () => {
     const s = await crear().ejecutar({
       viajeroId: 'ana',
-      monedaAnticipo: 'USD',
       destinos: [destinoRio()],
       motivo: 'Implementación en cliente Rio',
     });

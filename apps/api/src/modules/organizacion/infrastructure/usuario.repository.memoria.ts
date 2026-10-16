@@ -1,4 +1,4 @@
-import type { Usuario, UsuarioRepository } from '../domain/usuario';
+import type { Rol, Usuario, UsuarioRepository } from '../domain/usuario';
 
 export class UsuarioRepositoryEnMemoria implements UsuarioRepository {
   private readonly usuarios = new Map<string, Usuario>();
@@ -15,13 +15,17 @@ export class UsuarioRepositoryEnMemoria implements UsuarioRepository {
     return ids.flatMap((id) => this.usuarios.get(id) ?? []);
   }
 
+  async listarActivosConRol(rol: Rol): Promise<Usuario[]> {
+    return [...this.usuarios.values()].filter((u) => u.activo && u.roles.includes(rol)).sort((a, b) => a.id.localeCompare(b.id));
+  }
+
   async obtenerPorEmail(email: string): Promise<Usuario | null> {
     const buscado = email.toLowerCase();
     return [...this.usuarios.values()].find((u) => u.email.toLowerCase() === buscado) ?? null;
   }
 }
 
-/** Datos de desarrollo: viajero → jefe inmediato → jefe directivo. */
+/** Datos de desarrollo: viajero → jefe inmediato → jefe directivo → gerencia. */
 export const USUARIOS_DESARROLLO: readonly Usuario[] = [
   {
     id: 'u-viajero',
@@ -71,6 +75,16 @@ export const USUARIOS_DESARROLLO: readonly Usuario[] = [
     jefeInmediatoId: 'u-directivo',
     jefeDirectivoId: 'u-directivo',
     roles: ['CONTABILIDAD'],
+    activo: true,
+  },
+  {
+    id: 'u-gerencia',
+    nombre: 'Gabriela Gerente',
+    email: 'gabriela@empresa.co',
+    cargoId: 'DIRECTOR',
+    jefeInmediatoId: null,
+    jefeDirectivoId: null,
+    roles: ['VIAJERO', 'APROBADOR', 'GERENCIA'],
     activo: true,
   },
 ];

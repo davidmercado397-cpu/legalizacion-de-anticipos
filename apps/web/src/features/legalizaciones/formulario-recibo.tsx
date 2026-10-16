@@ -19,6 +19,7 @@ export function FormularioReciboCaja({ legalizacionId, moneda, alTerminar }: { l
   const politica = useQuery(politicaLegalizacionOptions(api));
   const agregar = useAgregarReciboCaja();
   const [foto, setFoto] = useState<File | null>(null);
+  const [faltaFoto, setFaltaFoto] = useState(false);
   const {
     register,
     handleSubmit,
@@ -29,8 +30,11 @@ export function FormularioReciboCaja({ legalizacionId, moneda, alTerminar }: { l
   });
 
   const enviar = handleSubmit(async (datos) => {
-    const archivo = foto ? await prepararArchivo(foto) : null;
-    agregar.mutate({ id: legalizacionId, datos, archivo }, { onSuccess: alTerminar });
+    if (!foto) {
+      setFaltaFoto(true);
+      return;
+    }
+    agregar.mutate({ id: legalizacionId, datos, archivo: await prepararArchivo(foto) }, { onSuccess: alTerminar });
   });
 
   return (
@@ -87,9 +91,25 @@ export function FormularioReciboCaja({ legalizacionId, moneda, alTerminar }: { l
         <Campo etiqueta="A quién le compró (opcional)">
           {(a11y) => <Entrada {...a11y} {...register('beneficiario')} />}
         </Campo>
-        <Campo etiqueta="Foto del recibo firmado (opcional)" className="sm:col-span-2">
-          {(a11y) => <input {...a11y} type="file" accept="image/*,application/pdf" onChange={(e) => setFoto(e.target.files?.[0] ?? null)} className="text-sm" />}
+        <Campo etiqueta="Foto del recibo firmado" error={faltaFoto && !foto ? 'Adjunte la foto del recibo firmado' : undefined} className="sm:col-span-2">
+          {(a11y) => (
+            <input
+              {...a11y}
+              type="file"
+              accept="image/*,application/pdf"
+              capture="environment"
+              onChange={(e) => setFoto(e.target.files?.[0] ?? null)}
+              className="text-sm"
+            />
+          )}
         </Campo>
+        <label className="flex items-start gap-2 text-sm sm:col-span-2">
+          <input type="checkbox" className="mt-1 size-4" {...register('firmado')} value="true" />
+          <span>
+            Confirmo que el recibo está firmado por quien me vendió.
+            {errors.firmado && <span className="block text-red-700">{t('validation.firmaRequerida')}</span>}
+          </span>
+        </label>
         {agregar.isError && (
           <div className="sm:col-span-2">
             <Alerta tono="peligro">{mensajeDeError(agregar.error)}</Alerta>

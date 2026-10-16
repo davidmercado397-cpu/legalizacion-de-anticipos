@@ -28,6 +28,7 @@ export class CrearSolicitudUseCase {
         viajeroId: viajero.id,
         jefeInmediatoId: viajero.jefeInmediatoId,
         jefeDirectivoId: viajero.jefeDirectivoId,
+        gerenciaId: viajero.gerenciaId,
       },
       motivo: comando.motivo,
       justificacion: comando.justificacion ?? null,

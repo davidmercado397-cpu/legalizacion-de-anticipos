@@ -28,7 +28,6 @@ describe('API HTTP (e2e)', () => {
   });
 
   const viaje = (valorHotel?: string) => ({
-    monedaAnticipo: 'USD',
     destinos: [
       {
         paisCodigo: 'br',
@@ -58,12 +57,9 @@ describe('API HTTP (e2e)', () => {
   });
 
   it('valida la entrada con los contratos compartidos (400 + errores por campo)', async () => {
-    const r = await como('u-viajero').post('/solicitudes/estimar').send({ monedaAnticipo: 'EUR', destinos: [] });
+    const r = await como('u-viajero').post('/solicitudes/estimar').send({ destinos: [] });
     expect(r.status).toBe(400);
-    expect(r.body.errors).toMatchObject({
-      monedaAnticipo: ['validation.currency'],
-      destinos: ['validation.atLeastOneDestination'],
-    });
+    expect(r.body.errors).toMatchObject({ destinos: ['validation.atLeastOneDestination'] });
   });
 
   it('estima un viaje y avisa que escalará si el hotel supera la tarifa', async () => {
@@ -90,18 +86,37 @@ describe('API HTTP (e2e)', () => {
     expect(creada.body.viajeroNombre).toBe('Ana Viajera');
     expect(creada.body.ruta.map((p: { aprobadorNombre: string }) => p.aprobadorNombre)).toEqual(['Carlos Jefe', 'Diana Directiva']);
 
-    await como('u-directivo').post(`/solicitudes/${id}/aprobar`).send({}).expect(403);
-    const pendientes = await como('u-jefe').get('/aprobaciones/pendientes').expect(200);
-    expect(pendientes.body.map((s: { id: string }) => s.id)).toContain(id);
+    await como('u-tesoreria').post(`/solicitudes/${id}/aprobar`).send({}).expect(403);
+    // El jefe inmediato tiene el turno, pero el directivo también la ve: puede aprobar sin esperar.
+    for (const aprobador of ['u-jefe', 'u-directivo']) {
+      const pendientes = await como(aprobador).get('/aprobaciones/pendientes').expect(200);
+      expect(pendientes.body.map((s: { id: string }) => s.id)).toContain(id);
+    }
 
     await como('u-jefe').post(`/solicitudes/${id}/aprobar`).send({}).expect(200);
     const final = await como('u-directivo').post(`/solicitudes/${id}/aprobar`).send({ comentario: 'OK' }).expect(200);
     expect(final.body.estado).toBe('APROBADA');
 
+    // Directo del directivo: el paso del jefe inmediato queda omitido.
+    const otra = await como('u-viajero')
+      .post('/solicitudes')
+      .send({ ...viaje('50'), motivo: 'Segunda visita al cliente', justificacion: 'Hotel junto al cliente' })
+      .expect(201);
+    const directa = await como('u-directivo').post(`/solicitudes/${otra.body.id}/aprobar`).send({}).expect(200);
+    expect(directa.body.estado).toBe('APROBADA');
+    expect(directa.body.ruta.map((p: { estado: string }) => p.estado)).toEqual(['OMITIDO', 'APROBADO']);
+
+    // Los viajes de la directiva (sin jefe) los aprueba la gerencia.
+    const deDiana = await como('u-directivo')
+      .post('/solicitudes')
+      .send({ ...viaje(), motivo: 'Comité con el cliente en São Paulo' })
+      .expect(201);
+    expect(deDiana.body.ruta.map((p: { nivel: string; aprobadorId: string }) => `${p.nivel}:${p.aprobadorId}`)).toEqual(['GERENCIA:u-gerencia']);
+
     await como('u-contabilidad').get(`/solicitudes/${id}`).expect(404);
 
     // La aprobación final crea el anticipo (registrado en el ERP simulado)
-    const [anticipo] = (await como('u-viajero').get('/anticipos/mios').expect(200)).body;
+    const anticipo = (await como('u-viajero').get('/anticipos/mios').expect(200)).body.find((a: { solicitudId: string }) => a.solicitudId === id);
     expect(anticipo).toMatchObject({ solicitudId: id, estado: 'POR_DESEMBOLSAR', monto: { monto: '475.00', moneda: 'USD' } });
     expect(anticipo.viaje).toMatchObject({ fechaInicio: '2026-11-02', fechaFin: '2026-11-06' });
 

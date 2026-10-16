@@ -1,3 +1,4 @@
+import type { FechaCalendario } from '@viaticos/shared-kernel';
 import type { LegalizacionResponse, PoliticaLegalizacionResponse, SoporteResponse } from '@viaticos/contracts';
 import { Legalizacion, montosDelSoporte, requiereDecision, type Soporte } from '../domain/legalizacion';
 import type { PoliticaLegalizacion } from '../domain/politica';
@@ -8,7 +9,10 @@ export interface DirectorioNombres {
 }
 
 export class PresentadorLegalizaciones {
-  constructor(private readonly directorio: DirectorioNombres) {}
+  constructor(
+    private readonly directorio: DirectorioNombres,
+    private readonly hoy: () => FechaCalendario,
+  ) {}
 
   async una(l: Legalizacion): Promise<LegalizacionResponse> {
     return (await this.varias([l]))[0]!;
@@ -34,6 +38,7 @@ export class PresentadorLegalizaciones {
         editable: l.estado === 'ABIERTA' || l.estado === 'DEVUELTA',
         montoAnticipo: l.montoAnticipo.toDto(),
         viaje: { inicio: l.viaje.inicio.toString(), fin: l.viaje.fin.toString() },
+        plazo: { fechaLimite: l.fechaLimite().toString(), vencida: l.estaVencida(this.hoy()) },
         resumen: {
           totalAceptado: resumen.totalAceptado.toDto(),
           totalExcluido: resumen.totalExcluido.toDto(),

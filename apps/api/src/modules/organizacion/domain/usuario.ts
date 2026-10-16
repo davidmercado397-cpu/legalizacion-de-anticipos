@@ -1,4 +1,4 @@
-export const ROLES = ['VIAJERO', 'APROBADOR', 'TESORERIA', 'CONTABILIDAD', 'ADMIN'] as const;
+export const ROLES = ['VIAJERO', 'APROBADOR', 'GERENCIA', 'TESORERIA', 'CONTABILIDAD', 'ADMIN'] as const;
 export type Rol = (typeof ROLES)[number];
 
 export interface Usuario {
@@ -17,4 +17,6 @@ export interface UsuarioRepository {
   /** Búsqueda sin distinguir mayúsculas. */
   obtenerPorEmail(email: string): Promise<Usuario | null>;
   obtenerVarios(ids: readonly string[]): Promise<Usuario[]>;
+  /** Usuarios activos con un rol, ordenados por id. */
+  listarActivosConRol(rol: Rol): Promise<Usuario[]>;
 }

@@ -18,20 +18,43 @@ describe('RutaAprobacion', () => {
     expect(niveles(ruta)).toEqual(['JEFE_DIRECTIVO:j']);
   });
 
-  it('impide la autoaprobación y exige los jefes configurados', () => {
-    expect(() => RutaAprobacion.construir({ ...aprobadores, jefeInmediatoId: 'v' }, false)).toThrowError(/propio viaje/);
-    expect(() => RutaAprobacion.construir({ ...aprobadores, jefeInmediatoId: null }, false)).toThrowError(/jefe inmediato/);
-    expect(() => RutaAprobacion.construir({ ...aprobadores, jefeDirectivoId: null }, true)).toThrowError(/jefe directivo/);
+  it('los viajes de directivos (sin jefe inmediato) los aprueba la gerencia', () => {
+    const directivo = { viajeroId: 'd', jefeInmediatoId: null, jefeDirectivoId: null, gerenciaId: 'g' };
+    expect(niveles(RutaAprobacion.construir(directivo, false))).toEqual(['GERENCIA:g']);
+    expect(niveles(RutaAprobacion.construir(directivo, true))).toEqual(['GERENCIA:g']);
+    // Sin jefe directivo asignado, el escalamiento va a la gerencia.
+    expect(niveles(RutaAprobacion.construir({ ...aprobadores, jefeDirectivoId: null, gerenciaId: 'g' }, true))).toEqual([
+      'JEFE_INMEDIATO:j',
+      'GERENCIA:g',
+    ]);
   });
 
-  it('solo el aprobador del paso actual puede decidir, en orden', () => {
+  it('nadie aprueba su propio viaje: sin otro aprobador, no se puede crear la ruta', () => {
+    expect(() => RutaAprobacion.construir({ viajeroId: 'g', jefeInmediatoId: null, jefeDirectivoId: null, gerenciaId: 'g' }, false)).toThrowError(
+      /No hay quién apruebe/,
+    );
+    expect(niveles(RutaAprobacion.construir({ ...aprobadores, jefeInmediatoId: 'v', gerenciaId: 'g' }, false))).toEqual(['GERENCIA:g']);
+    expect(() => RutaAprobacion.construir({ ...aprobadores, jefeDirectivoId: null }, true)).toThrowError(/No hay quién apruebe/);
+  });
+
+  it('en orden: el jefe inmediato y luego el directivo', () => {
     const ruta = RutaAprobacion.construir(aprobadores, true);
-    expect(() => ruta.aprobar('d', new Date(), null)).toThrowError(/No le corresponde/);
+    expect(() => ruta.aprobar('x', new Date(), null)).toThrowError(/No le corresponde/);
     ruta.aprobar('j', new Date(), null);
     expect(ruta.esAprobadorActual('d')).toBe(true);
     ruta.aprobar('d', new Date(), 'ok');
     expect(ruta.estaCompleta()).toBe(true);
     expect(() => ruta.aprobar('d', new Date(), null)).toThrowError(/no tiene aprobaciones pendientes/);
+  });
+
+  it('el directivo puede aprobar sin esperar al jefe inmediato: la ruta queda completa', () => {
+    const ruta = RutaAprobacion.construir(aprobadores, true);
+    expect(ruta.esAprobadorActual('j')).toBe(true);
+    expect(ruta.esAprobadorActual('d')).toBe(true);
+    ruta.aprobar('d', new Date(), 'Aprobado por dirección');
+    expect(ruta.estaCompleta()).toBe(true);
+    expect(ruta.pasosSnapshot.map((p) => p.estado)).toEqual(['OMITIDO', 'APROBADO']);
+    expect(ruta.esAprobadorActual('j')).toBe(false);
   });
 
   it('el rechazo exige comentario y cierra la ruta', () => {

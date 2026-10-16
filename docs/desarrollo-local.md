@@ -38,10 +38,11 @@ Contraseña de todos: **`Viaticos2026*`**
 | `diana@empresa.co` | Jefa directiva | Aprobación cuando se supera la tarifa |
 | `tomas@empresa.co` | Tesorería | Registrar el desembolso del anticipo |
 | `laura@empresa.co` | Contabilidad | Revisar y aprobar legalizaciones; configurar NIT, topes y exclusiones |
+| `gabriela@empresa.co` | Gerencia | Aprobar los viajes de directivos (por ejemplo, los de Diana) |
 
 **Conciliación bancaria:** en una legalización con facturas pagadas con tarjeta, use *Cargar extracto* y suba un CSV o Excel del banco. El sistema propone las columnas, cruza los cargos con las facturas y contabilidad revisa el resultado en *Contabilidad → Conciliaciones bancarias*.
 
-**Caso de ejemplo:** con Ana, cree un viaje a Brasil y cambie el alojamiento a 50 USD por noche (la tarifa es 30). La solicitud pedirá justificación e irá primero a Carlos y luego a Diana.
+**Caso de ejemplo:** con Ana, cree un viaje a Brasil y cambie el alojamiento a 50 USD por noche (la tarifa es 30). La solicitud pedirá justificación y la verán Carlos y Diana: Carlos aprueba primero, aunque Diana puede aprobar sin esperarlo. La moneda del anticipo la define el destino: pesos para viajes en Colombia, dólares si algún destino es en el exterior.
 
 ### Lectura automática de facturas (opcional)
 

@@ -36,8 +36,8 @@ describe('puntuar', () => {
     expect(puntuar(cargo('m', '2026-10-03', '102000'), pago('s', '2026-10-03', '100000'), null)).toBeNull();
   });
 
-  it('descarta más de 5 días de diferencia, otra tarjeta o sin tasa de conversión', () => {
-    expect(puntuar(cargo('m', '2026-10-09', '100000'), pago('s', '2026-10-03', '100000'), null)).toBeNull();
+  it('descarta más de 1 día de diferencia, otra tarjeta o sin tasa de conversión', () => {
+    expect(puntuar(cargo('m', '2026-10-05', '100000'), pago('s', '2026-10-03', '100000'), null)).toBeNull();
     expect(puntuar(cargo('m', '2026-10-03', '100000'), pago('s', '2026-10-03', '100000', { ultimos4: '1111' }), '2222')).toBeNull();
     expect(puntuar(cargo('m', '2026-10-03', '100000'), pago('s', '2026-10-03', '100000', { totalEnMonedaExtracto: null }), null)).toBeNull();
   });
@@ -62,8 +62,8 @@ describe('conciliar', () => {
     ]);
   });
 
-  it('a 3 días sin parecido de nombre queda SUGERIDO; no vuelve a proponer pares rechazados', () => {
-    const cargos = [cargo('m1', '2026-10-06', '50000')];
+  it('al día siguiente sin parecido de nombre queda SUGERIDO; no vuelve a proponer pares rechazados', () => {
+    const cargos = [cargo('m1', '2026-10-04', '50000')];
     const pagos = [pago('s1', '2026-10-03', '50000')];
     expect(conciliar(cargos, pagos, { ultimos4Extracto: null })[0]?.estado).toBe('SUGERIDO');
     expect(conciliar(cargos, pagos, { ultimos4Extracto: null, rechazados: new Set(['m1|s1']) })).toEqual([]);

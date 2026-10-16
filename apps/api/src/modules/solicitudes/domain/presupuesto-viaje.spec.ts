@@ -44,8 +44,9 @@ describe('estimarPresupuesto', () => {
       ],
       tasas: [TRM],
     });
-    // Brasil: 295 USD × 4000 = 1.180.000 COP. Bogotá: 1 noche (250.000) + 1 día (120.000; el 6 ya se contó en Brasil)
-    expect(p.totalAnticipo.toDto()).toEqual({ monto: '1550000.00', moneda: 'COP' });
+    // Brasil: 4 noches × 30 + 4 días × 35 = 260 USD × 4000 = 1.040.000 COP (el día 6, de traslado, se paga en Bogotá).
+    // Bogotá: 1 noche (250.000) + 2 días (240.000) = 490.000 COP.
+    expect(p.totalAnticipo.toDto()).toEqual({ monto: '1530000.00', moneda: 'COP' });
     expect(p.tasasAplicadas.map((t) => `${t.origen}->${t.destino}`)).toEqual(['USD->COP']);
   });
 

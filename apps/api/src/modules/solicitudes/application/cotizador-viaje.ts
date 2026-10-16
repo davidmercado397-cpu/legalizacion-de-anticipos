@@ -1,15 +1,14 @@
-import { DomainError, type MonedaAnticipo } from '@viaticos/shared-kernel';
+import { DomainError } from '@viaticos/shared-kernel';
 import type { ProveedorTasaCambio, Reloj } from '../../../shared/application/puertos';
 import { Destino } from '../domain/destino';
 import { crearReglasEscalamiento } from '../domain/escalamiento/fabrica-reglas';
 import { evaluarEscalamiento, type ResultadoEscalamiento } from '../domain/escalamiento/regla-escalamiento';
-import { estimarPresupuesto, type PresupuestoViaje } from '../domain/presupuesto-viaje';
+import { estimarPresupuesto, monedaAnticipoPara, type PresupuestoViaje } from '../domain/presupuesto-viaje';
 import type { ConfiguracionEscalamientoRepository } from '../domain/repositorios';
 import type { ConsultaTarifas, DirectorioOrganizacional, PerfilViajero } from './puertos';
 
 export interface CotizarViajeComando {
   viajeroId: string;
-  monedaAnticipo: MonedaAnticipo;
   destinos: ReadonlyArray<{
     paisCodigo: string;
     ciudad: string;
@@ -55,18 +54,17 @@ export class CotizadorViaje {
       ),
     );
 
+    const monedaAnticipo = monedaAnticipoPara(destinos.map((d) => tarifasPorPais.get(d.paisCodigo) ?? []));
     const monedasAConvertir = new Set(
       [...tarifasPorPais.values()]
         .flat()
         .map((t) => t.valorUnitario.moneda)
-        .filter((m) => m !== comando.monedaAnticipo),
+        .filter((m) => m !== monedaAnticipo),
     );
-    const tasas = await Promise.all(
-      [...monedasAConvertir].map((m) => this.tasas.obtener(m, comando.monedaAnticipo, hoy)),
-    );
+    const tasas = await Promise.all([...monedasAConvertir].map((m) => this.tasas.obtener(m, monedaAnticipo, hoy)));
 
     const presupuesto = estimarPresupuesto({
-      monedaAnticipo: comando.monedaAnticipo,
+      monedaAnticipo,
       tasas,
       destinos: destinos.map((destino, i) => ({
         destino,

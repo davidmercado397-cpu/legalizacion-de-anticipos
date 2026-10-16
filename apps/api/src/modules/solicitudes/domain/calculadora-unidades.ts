@@ -11,7 +11,8 @@ export interface UnidadesDestino {
  *
  * - Un destino del 1 al 5 tiene 5 días y 4 noches.
  * - Si un destino empieza el mismo día en que termina el anterior (día de
- *   traslado), ese día se cuenta solo una vez, en el destino anterior.
+ *   traslado), ese día se cuenta solo una vez, con la tarifa de la ciudad de
+ *   llegada (el destino nuevo).
  * - Un solapamiento mayor a un día es un error.
  */
 export function calcularUnidades(destinos: readonly Destino[]): UnidadesDestino[] {
@@ -24,6 +25,7 @@ export function calcularUnidades(destinos: readonly Destino[]): UnidadesDestino[
 
   const resultado: UnidadesDestino[] = new Array(destinos.length);
   let anterior: Destino | null = null;
+  let indiceAnterior = -1;
 
   for (const { destino, indice } of ordenados) {
     if (anterior && destino.fechaInicio.esAnteriorA(anterior.fechaFin)) {
@@ -32,9 +34,12 @@ export function calcularUnidades(destinos: readonly Destino[]): UnidadesDestino[
       });
     }
     const noches = destino.fechaInicio.diasHasta(destino.fechaFin);
-    const comparteDiaConAnterior = anterior !== null && destino.fechaInicio.equals(anterior.fechaFin);
-    resultado[indice] = { dias: noches + 1 - (comparteDiaConAnterior ? 1 : 0), noches };
+    resultado[indice] = { dias: noches + 1, noches };
+    if (anterior !== null && destino.fechaInicio.equals(anterior.fechaFin)) {
+      resultado[indiceAnterior]!.dias -= 1;
+    }
     anterior = destino;
+    indiceAnterior = indice;
   }
 
   return resultado;

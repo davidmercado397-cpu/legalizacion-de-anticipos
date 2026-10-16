@@ -59,6 +59,12 @@ describe('FechaCalendario', () => {
     expect(inicio.sumarDias(25).toString()).toBe('2026-04-01');
   });
 
+  it('suma meses y ajusta al último día cuando el mes es más corto', () => {
+    expect(FechaCalendario.of('2026-11-06').sumarMeses(1).toString()).toBe('2026-12-06');
+    expect(FechaCalendario.of('2026-12-15').sumarMeses(1).toString()).toBe('2027-01-15');
+    expect(FechaCalendario.of('2027-01-31').sumarMeses(1).toString()).toBe('2027-02-28');
+  });
+
   it('rechaza fechas imposibles o mal formadas', () => {
     expect(() => FechaCalendario.of('2026-02-30')).toThrowError(/Fecha inválida/);
     expect(() => FechaCalendario.of('15/10/2026')).toThrowError(/Fecha inválida/);

@@ -1,4 +1,4 @@
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, arrayContains, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { BaseDatos } from '../../../../shared/infrastructure/base-datos/conexion';
 import { ROLES, type Rol, type Usuario, type UsuarioRepository } from '../../domain/usuario';
 import { usuarios } from './organizacion.schema';
@@ -27,6 +27,15 @@ export class UsuarioRepositoryDrizzle implements UsuarioRepository {
   async obtenerVarios(ids: readonly string[]): Promise<Usuario[]> {
     if (ids.length === 0) return [];
     return (await this.db.select().from(usuarios).where(inArray(usuarios.id, [...ids]))).map(aDominio);
+  }
+
+  async listarActivosConRol(rol: Rol): Promise<Usuario[]> {
+    const filas = await this.db
+      .select()
+      .from(usuarios)
+      .where(and(eq(usuarios.activo, true), arrayContains(usuarios.roles, [rol])))
+      .orderBy(asc(usuarios.id));
+    return filas.map(aDominio);
   }
 
   async obtenerPorEmail(email: string): Promise<Usuario | null> {

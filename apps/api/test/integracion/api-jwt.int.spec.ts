@@ -107,7 +107,6 @@ describe.runIf(URL_PRUEBAS)('API con JWT y PostgreSQL (integración)', () => {
       .post('/api/v1/solicitudes')
       .set('authorization', ana)
       .send({
-        monedaAnticipo: 'COP',
         motivo: 'Implementación en cliente São Paulo',
         justificacion: 'Hotel junto al cliente',
         destinos: [
@@ -122,7 +121,8 @@ describe.runIf(URL_PRUEBAS)('API con JWT y PostgreSQL (integración)', () => {
       })
       .expect(201);
     const id = creada.body.id as string;
-    expect(creada.body.presupuesto.totalAnticipo).toEqual({ monto: '1900000.00', moneda: 'COP' });
+    // Destino en el exterior: el anticipo es en dólares.
+    expect(creada.body.presupuesto.totalAnticipo).toEqual({ monto: '475.00', moneda: 'USD' });
 
     const [carlos, diana] = [await token('carlos@empresa.co'), await token('diana@empresa.co')];
     await http().post(`/api/v1/solicitudes/${id}/aprobar`).set('authorization', carlos).send({}).expect(200);

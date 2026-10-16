@@ -1,5 +1,5 @@
 import { hash } from '@node-rs/argon2';
-import { sql } from 'drizzle-orm';
+import { isNull, sql } from 'drizzle-orm';
 import { ConexionBaseDatos } from '../shared/infrastructure/base-datos/conexion';
 import { credenciales } from '../modules/identidad/infrastructure/persistencia/identidad.schema';
 import { usuarios } from '../modules/organizacion/infrastructure/persistencia/organizacion.schema';
@@ -73,7 +73,12 @@ export async function sembrar(url: string): Promise<void> {
           topesReciboCaja: politica.topesReciboCaja.map((t) => t.toDto()),
           exclusiones: politica.exclusiones,
         })
-        .onConflictDoNothing();
+        // Mientras contabilidad no haya editado la política, se actualiza con la lista vigente del sistema.
+        .onConflictDoUpdate({
+          target: politicaLegalizacion.id,
+          set: { exclusiones: politica.exclusiones },
+          setWhere: isNull(politicaLegalizacion.actualizadaPor),
+        });
     });
   } finally {
     await conexion.onApplicationShutdown();

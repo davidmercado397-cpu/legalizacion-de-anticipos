@@ -1,4 +1,4 @@
-import type { Usuario, UsuarioRepository } from '../domain/usuario';
+import type { Rol, Usuario, UsuarioRepository } from '../domain/usuario';
 
 /** Vista pública del usuario para otros módulos. */
 export type { Usuario };
@@ -15,6 +15,11 @@ export class ConsultarUsuarioUseCase {
   /** Para mostrar nombres en listados (incluye inactivos: el historial debe seguir legible). */
   varios(ids: readonly string[]): Promise<Usuario[]> {
     return ids.length ? this.usuarios.obtenerVarios([...new Set(ids)]) : Promise.resolve([]);
+  }
+
+  /** Usuarios activos con un rol (por ejemplo, GERENCIA para aprobar viajes de directivos). */
+  conRol(rol: Rol): Promise<Usuario[]> {
+    return this.usuarios.listarActivosConRol(rol);
   }
 
   async porEmail(email: string): Promise<Usuario | null> {

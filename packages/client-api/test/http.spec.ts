@@ -74,7 +74,7 @@ describe('cliente HTTP', () => {
       ),
     );
     const error = await crearApi({ baseURL: BASE, sesion: sesionFalsa('t', null) })
-      .solicitudes.estimar({ monedaAnticipo: 'USD', destinos: [] })
+      .solicitudes.estimar({ destinos: [] })
       .catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ApiError);
     expect(error).toMatchObject({ codigo: 'ENTRADA_INVALIDA', erroresCampo: { 'destinos.0.fechaFin': ['validation.endBeforeStart'] } });

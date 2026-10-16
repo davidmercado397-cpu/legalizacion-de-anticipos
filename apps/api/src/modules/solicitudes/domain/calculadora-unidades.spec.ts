@@ -14,11 +14,11 @@ describe('calcularUnidades', () => {
     expect(calcularUnidades([destino('2026-11-01', '2026-11-01')])).toEqual([{ dias: 1, noches: 0 }]);
   });
 
-  it('el día de traslado entre destinos se cuenta una sola vez', () => {
+  it('el día de traslado se cuenta una sola vez, con la tarifa de la ciudad de llegada', () => {
     const unidades = calcularUnidades([destino('2026-11-01', '2026-11-05', 'Lima'), destino('2026-11-05', '2026-11-08', 'Quito')]);
     expect(unidades).toEqual([
-      { dias: 5, noches: 4 },
-      { dias: 3, noches: 3 },
+      { dias: 4, noches: 4 },
+      { dias: 4, noches: 3 },
     ]);
     // 1→8 de noviembre: 8 días y 7 noches en total
     expect(unidades.reduce((s, u) => s + u.dias, 0)).toBe(8);
@@ -28,8 +28,8 @@ describe('calcularUnidades', () => {
   it('devuelve las unidades en el orden recibido aunque los destinos vengan desordenados', () => {
     const unidades = calcularUnidades([destino('2026-11-05', '2026-11-08', 'Quito'), destino('2026-11-01', '2026-11-05', 'Lima')]);
     expect(unidades).toEqual([
-      { dias: 3, noches: 3 },
-      { dias: 5, noches: 4 },
+      { dias: 4, noches: 3 },
+      { dias: 4, noches: 4 },
     ]);
   });
 
