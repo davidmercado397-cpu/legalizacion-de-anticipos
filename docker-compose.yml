@@ -1,110 +1,132 @@
 # Entorno de desarrollo local. Ver docs/desarrollo-local.md
 #
 #   docker compose up --build --watch     → todo el stack con recarga en caliente
-#   docker compose up -d db               → solo PostgreSQL (para correr API/web con pnpm en su equipo)
 #   docker compose down                   → detener (los datos se conservan)
-#   docker compose down -v                → detener y BORRAR la base de datos
+#   docker compose down -v                → detener y BORRAR la base de datos y los archivos
+#
+# MinIO reemplaza a Cloudflare R2 en desarrollo (misma API de S3): la API nunca guarda archivos en disco.
 name: viaticos
-
-x-app: &app
-  build:
-    context: .
-    dockerfile: docker/dev.Dockerfile
-  image: viaticos-dev:local
-  environment: &entorno-api
-    NODE_ENV: development
-    PERSISTENCIA: postgres
-    DATABASE_URL: postgres://${POSTGRES_USER:-viaticos}:${POSTGRES_PASSWORD:-viaticos_local}@db:5432/${POSTGRES_DB:-viaticos}
-    AUTH_MODE: ${AUTH_MODE:-jwt}
-    JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET en .env (copie .env.example)}
-    TASAS_PROVEEDOR: ${TASAS_PROVEEDOR:-oficial}
-    TRM_DESARROLLO: ${TRM_DESARROLLO:-4000}
-    CORS_ORIGINS: http://localhost:${WEB_PORT:-5173}
-    OCR_PROVEEDOR: ${OCR_PROVEEDOR:-manual}
-    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-    OCR_ESFUERZO: ${OCR_ESFUERZO:-medium}
 
 services:
   db:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-viaticos}
-      POSTGRES_USER: ${POSTGRES_USER:-viaticos}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-viaticos_local}
+      POSTGRES_USER: gastos
+      POSTGRES_PASSWORD: gastos
+      POSTGRES_DB: gastos
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
-      - db-data:/var/lib/postgresql/data
-      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+      - db-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U gastos"]
       interval: 5s
       timeout: 3s
       retries: 20
 
-  # Aplica migraciones y carga datos de desarrollo (idempotente) antes de arrancar la API.
-  migraciones:
-    <<: *app
-    command: sh -c "pnpm --filter @viaticos/api exec tsx src/database/cli.ts migrar && pnpm --filter @viaticos/api exec tsx src/database/cli.ts sembrar"
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: viaticos
+      MINIO_ROOT_PASSWORD: viaticos-local
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Crea el bucket privado de los soportes (idempotente).
+  minio-bucket:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    entrypoint: >-
+      sh -c "mc alias set local http://minio:9000 viaticos viaticos-local &&
+             mc mb --ignore-existing local/soportes"
     depends_on:
-      db:
+      minio:
         condition: service_healthy
     restart: "no"
 
   api:
-    <<: *app
-    command: pnpm --filter @viaticos/api exec tsx watch src/main.ts
+    build: ./apps/api
+    image: viaticos-api:dev
+    # Migraciones + datos de desarrollo (idempotente) + recarga en caliente.
+    entrypoint: >-
+      sh -c "alembic upgrade head && python -m scripts.seed_dev &&
+             exec uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8000 --reload"
+    env_file:
+      - path: .env
+        required: false
     environment:
-      <<: *entorno-api
-      PORT: 3000
-      ALMACEN_DIR: /app/almacen
-    volumes:
-      - almacen-data:/app/almacen
-    # Sin puerto publicado a propósito: la API se usa a través de la web en
-    # http://localhost:5173/api/v1 (mismo origen) y así no choca con otros proyectos
-    # que usen el puerto 3000 en su equipo.
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://gastos:gastos@db:5432/gastos
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:-desarrollo-local-no-usar-en-produccion-0123456789}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-x6rXhbMybM3IU7DmO7c2gE6PS-VzlI7nKeRuTzvYsBo=}
+      MFA_REQUIRED_ROLES: ${MFA_REQUIRED_ROLES:-superadmin}
+      CORS_ORIGINS: http://localhost:${WEB_PORT:-5173}
+      R2_ENDPOINT_URL: http://minio:9000
+      R2_PUBLIC_ENDPOINT_URL: http://localhost:${MINIO_PORT:-9000}
+      R2_BUCKET: soportes
+      R2_ACCESS_KEY_ID: viaticos
+      R2_SECRET_ACCESS_KEY: viaticos-local
+      R2_REGION: us-east-1
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+    # Sin puerto publicado a propósito: se usa a través de la web en http://localhost:5173/api/v1.
     depends_on:
-      migraciones:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-bucket:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/v1/salud || exit 1"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
       timeout: 3s
       retries: 12
-      start_period: 10s
+      start_period: 15s
     develop:
       watch:
-        - { action: sync, path: ./apps/api/src, target: /app/apps/api/src }
-        - { action: sync, path: ./packages/shared-kernel/src, target: /app/packages/shared-kernel/src }
-        - { action: sync, path: ./packages/contracts/src, target: /app/packages/contracts/src }
-        - { action: rebuild, path: ./pnpm-lock.yaml }
-        - { action: rebuild, path: ./apps/api/drizzle }
+        - { action: sync, path: ./apps/api/app, target: /app/app }
+        - { action: sync, path: ./apps/api/prompts, target: /app/prompts }
+        - { action: rebuild, path: ./apps/api/alembic }
+        - { action: rebuild, path: ./apps/api/requirements.txt }
 
   web:
-    <<: *app
+    build:
+      context: .
+      dockerfile: docker/dev.Dockerfile
+    image: viaticos-web:dev
     command: pnpm --filter @viaticos/web exec vite --host 0.0.0.0 --port 5173
     environment:
-      VITE_API_PROXY: http://api:3000
+      VITE_API_PROXY: http://api:8000
     ports:
       - "${WEB_PORT:-5173}:5173"
     depends_on:
       api:
         condition: service_healthy
-    # Sano solo si la web responde Y alcanza la API a través del proxy (detecta problemas de red entre contenedores).
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:5173/api/v1/salud || exit 1"]
-      interval: 10s
-      timeout: 3s
-      retries: 12
-      start_period: 10s
     develop:
       watch:
         - { action: sync, path: ./apps/web/src, target: /app/apps/web/src }
         - { action: sync, path: ./apps/web/public, target: /app/apps/web/public }
-        - { action: sync, path: ./packages/contracts/src, target: /app/packages/contracts/src }
-        - { action: sync, path: ./packages/client-api/src, target: /app/packages/client-api/src }
-        - { action: sync, path: ./packages/client-app/src, target: /app/packages/client-app/src }
+        - { action: sync, path: ./packages, target: /app/packages }
         - { action: rebuild, path: ./pnpm-lock.yaml }
 
   # Explorador web de la base de datos: docker compose --profile herramientas up -d adminer
@@ -119,5 +141,4 @@ services:
 
 volumes:
   db-data:
-  # Fotos y PDF de las facturas
-  almacen-data:
+  minio-data:

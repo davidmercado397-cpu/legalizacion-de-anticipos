@@ -1,0 +1,34 @@
+[
+  {
+    "file": "restaurante_el_cielo.jpg",
+    "country": "CO",
+    "currency": "COP",
+    "expected": {
+      "vendor_name": "Restaurante El Cielo",
+      "vendor_tax_id": "890903938-8",
+      "invoice_number": "POS-4521",
+      "invoice_date": "2026-10-13",
+      "currency": "COP",
+      "total": 45000,
+      "category": "meals"
+    }
+  },
+  {
+    "file": "hotel_miami_en_ingles.pdf",
+    "country": "CO",
+    "currency": "COP",
+    "expected": {
+      "vendor_name": "Hilton Miami Downtown",
+      "invoice_date": "2026-09-30",
+      "currency": "USD",
+      "total": 216.0,
+      "category": "lodging"
+    }
+  },
+  {
+    "file": "recibo_a_mano_taxi.jpg",
+    "country": "CO",
+    "currency": "COP",
+    "expected": {"invoice_date": "2026-10-14", "currency": "COP", "total": 18000, "category": "transport"}
+  }
+]

@@ -1,0 +1,15 @@
+# Development / test only (not installed in the production image).
+-r requirements.txt
+pytest==9.1.1
+pytest-asyncio==1.4.0
+respx==0.23.1
+fakeredis==2.40.0
+ruff==0.17.1
+pytest-cov==7.1.0
+mypy==2.4.0
+import-linter==2.15
+vulture==2.16
+deptry==0.25.1
+bandit==1.9.4
+pip-audit==2.10.1
+cyclonedx-bom==7.5.0

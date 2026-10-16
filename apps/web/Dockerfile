@@ -12,7 +12,7 @@ COPY . .
 RUN pnpm install --offline --frozen-lockfile && pnpm --filter @viaticos/web build
 
 FROM nginx:1.29-alpine AS runtime
-ENV API_UPSTREAM=http://api:3000
+ENV API_UPSTREAM=http://api:8000
 COPY docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/apps/web/dist /usr/share/nginx/html
 EXPOSE 8080

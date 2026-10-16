@@ -1,0 +1,54 @@
+{
+  "version": "7.3",
+  "screens": [
+    {
+      "id": "REQUEST",
+      "title": "Solicitar anticipo",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "companies": {
+          "type": "array",
+          "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
+          "__example__": [{"id": "c1", "title": "Forsa Colombia"}]
+        },
+        "company_id": {"type": "string", "__example__": "c1"},
+        "kinds": {
+          "type": "array",
+          "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
+          "__example__": [{"id": "cash", "title": "Efectivo"}]
+        },
+        "currencies": {
+          "type": "array",
+          "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
+          "__example__": [{"id": "COP", "title": "COP"}]
+        },
+        "currency": {"type": "string", "__example__": "COP"}
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {"type": "Dropdown", "name": "company_id", "label": "Compañía", "required": true,
+           "data-source": "${data.companies}", "init-value": "${data.company_id}"},
+          {"type": "TextInput", "name": "destination", "label": "Destino", "input-type": "text", "required": true},
+          {"type": "TextInput", "name": "purpose", "label": "Motivo del viaje", "input-type": "text", "required": true},
+          {"type": "DatePicker", "name": "start_date", "label": "Fecha de salida", "required": true},
+          {"type": "DatePicker", "name": "end_date", "label": "Fecha de regreso", "required": true},
+          {"type": "Dropdown", "name": "kind", "label": "Tipo", "required": true,
+           "data-source": "${data.kinds}", "init-value": "cash"},
+          {"type": "Dropdown", "name": "currency", "label": "Moneda", "required": true,
+           "data-source": "${data.currencies}", "init-value": "${data.currency}"},
+          {"type": "TextInput", "name": "amount", "label": "Valor", "input-type": "number", "required": false,
+           "helper-text": "Déjalo vacío para usar el valor calculado con las tarifas de viaje"},
+          {"type": "TextArea", "name": "justification", "label": "Justificación", "required": false,
+           "helper-text": "Solo si pides un valor distinto al calculado"},
+          {"type": "Footer", "label": "Solicitar",
+           "on-click-action": {"name": "complete", "payload": {
+             "company_id": "${form.company_id}", "destination": "${form.destination}", "purpose": "${form.purpose}",
+             "start_date": "${form.start_date}", "end_date": "${form.end_date}", "kind": "${form.kind}",
+             "currency": "${form.currency}", "amount": "${form.amount}", "justification": "${form.justification}"}}}
+        ]
+      }
+    }
+  ]
+}

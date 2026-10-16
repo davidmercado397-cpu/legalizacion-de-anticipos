@@ -2,6 +2,8 @@
 
 Respuestas al documento «Decisiones por confirmar» (16 de octubre de 2026). Cada fila dice qué se decidió y cómo queda en el sistema.
 
+Este documento manda cuando difiere de lo que hacía el backend base (`apps/api`).
+
 ## 1. Tasas de cambio
 
 | # | Decisión | En el sistema |
@@ -92,7 +94,7 @@ Respuestas al documento «Decisiones por confirmar» (16 de octubre de 2026). Ca
 | 8.3 | Tesorería registra el desembolso | Sin cambios |
 | 8.4 | Saldo a favor de la empresa: consignación registrada por tesorería | Registro de reintegro |
 | 8.5 | Saldo a favor del viajero: siempre se reembolsa | Registro de reembolso por tesorería |
-| 8.6 | Lectura con IA activa; proveedor configurable, no solo Anthropic | El administrador elige proveedor y modelo; claves cifradas |
+| 8.6 | Lectura con IA activa | OpenRouter con modelos configurables; solo el superadmin de NextByte los cambia (ajuste del 16/10) |
 | 8.7 | Sesión de 7 días aceptada | Sin cambios |
 | 8.8 | Usuarios gestionados por un administrador | Rol `ADMIN` y pantalla de usuarios |
-| 8.9 | La traducción es de las facturas, no de la aplicación | La IA traduce las líneas al español |
+| 8.9 | Facturas en otros idiomas | La IA las lee en español, inglés y portugués, sin traducirlas (ajuste del 16/10) |

@@ -2,26 +2,19 @@
   "name": "viaticos",
   "private": true,
   "version": "0.1.0",
-  "description": "Legalización de anticipos de viaje: presupuesto, aprobaciones, captura de soportes y exportación a Siesa",
+  "description": "Legalización de anticipos de viaje: web React sobre la API Python (apps/api)",
   "packageManager": "pnpm@10.28.0",
   "engines": {
     "node": ">=22.12"
   },
   "scripts": {
-    "dev:api": "pnpm --filter @viaticos/api dev",
     "dev:web": "pnpm --filter @viaticos/web dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "db:migrar": "pnpm --filter @viaticos/api db:migrar",
-    "db:sembrar": "pnpm --filter @viaticos/api db:sembrar",
-    "db:generar": "pnpm --filter @viaticos/api db:generar",
-    "test:integracion": "pnpm --filter @viaticos/api test:integracion",
     "docker:dev": "docker compose up --build --watch",
-    "docker:db": "docker compose up -d db",
     "docker:bajar": "docker compose down",
-    "docker:reiniciar-datos": "docker compose down -v",
-    "docker:prod-local": "docker compose -f docker-compose.prod.yml up --build -d"
+    "docker:reiniciar-datos": "docker compose down -v"
   },
   "devDependencies": {
     "@types/node": "^22.19.0",

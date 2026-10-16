@@ -1,0 +1,11 @@
+/tmp/claude-0/-home-user/33966f3a-34e3-50ee-a159-2a9326cfc816/scratchpad/backups/gastos-20261016T035310Z.dump: OK
+Respaldo:         /tmp/claude-0/-home-user/33966f3a-34e3-50ee-a159-2a9326cfc816/scratchpad/backups/gastos-20261016T035310Z.dump
+Restaurado en:    0 s
+Filas companies: 0
+Filas employees: 0
+Filas advances: 0
+Filas expenses: 0
+Filas audit_log: 0
+Filas system_settings: 21
+Versión del esquema: 0004
+Simulacro OK (2026-10-16T03:53:12Z)

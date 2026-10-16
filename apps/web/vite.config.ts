@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 // En Docker la API se llama "api"; en su equipo, localhost.
-const destinoApi = process.env.VITE_API_PROXY ?? 'http://localhost:3000';
+const destinoApi = process.env.VITE_API_PROXY ?? 'http://localhost:8000';
 
 export default defineConfig({
   plugins: [tanstackRouter({ target: 'react', autoCodeSplitting: true }), react(), tailwindcss()],

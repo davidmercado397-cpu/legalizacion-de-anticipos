@@ -1,9 +1,22 @@
 # Viáticos: legalización de anticipos
 
-Proyección de viajes con presupuesto por cargo × país × concepto, aprobaciones por niveles, creación del anticipo en Siesa Enterprise, radicación de soportes con OCR, detección de duplicados, conciliación con extractos y legalización.
+Solicitud y aprobación de anticipos de viaje, captura de facturas por la app o por WhatsApp con lectura por IA, conciliación con el extracto bancario y legalización en Siesa.
 
-- Plan y alcance: [docs/plan.md](docs/plan.md)
-- Decisiones de arquitectura: [docs/adr](docs/adr)
+- Reglas de negocio confirmadas (mandan sobre cualquier otra fuente): [docs/decisiones-confirmadas.md](docs/decisiones-confirmadas.md)
+- Desarrollo local: [docs/desarrollo-local.md](docs/desarrollo-local.md)
+
+## Estructura
+
+```
+apps/api/        API: Python 3.13 · FastAPI · SQLAlchemy 2 (async) · Alembic · Redis
+                 WhatsApp Cloud API, OpenRouter (IA de visión), Cloudflare R2 (archivos)
+                 Arquitectura hexagonal verificada con import-linter. Guía: apps/api/CLAUDE.md
+apps/web/        Web: React 19 · TanStack Router/Query · Zustand · Axios · React Hook Form + Zod · Tailwind
+packages/        Cliente HTTP y hooks de la web (reutilizables en una app móvil)
+docker/          Imagen de desarrollo de la web y nginx de producción
+```
+
+El backend TypeScript que existía antes se reemplazó por `apps/api`; queda en el historial de git (commit `05c7bdb`).
 
 ## Inicio rápido (Docker)
 
@@ -14,74 +27,17 @@ cp .env.example .env
 docker compose up --build --watch
 ```
 
-Abra **http://localhost:5173** e ingrese con `ana@empresa.co` y la contraseña `Viaticos2026*`. Guía completa (Windows incluido), usuarios de prueba y solución de problemas: **[docs/desarrollo-local.md](docs/desarrollo-local.md)**.
+Abra **http://localhost:5173** e ingrese con `ana@empresa.co` y la contraseña `Viaticos2026*`. Usuarios por rol y solución de problemas en [docs/desarrollo-local.md](docs/desarrollo-local.md).
 
-## Comandos (con Node 22 + pnpm en su equipo)
-
-```bash
-pnpm install
-pnpm test               # unitarias + e2e en memoria
-pnpm test:integracion   # contra PostgreSQL (docker compose up -d db)
-pnpm typecheck          # TypeScript estricto en todo el monorepo
-pnpm build              # bundles de producción (API y web)
-pnpm db:generar         # nueva migración a partir de los *.schema.ts
-```
-
-## Estructura
-
-```
-apps/api/            NestJS · monolito modular con arquitectura limpia
-  src/modules/<contexto>/{domain,application,infrastructure,presentation}
-  drizzle/           migraciones SQL versionadas
-  test/              e2e, prueba de arquitectura e integración (PostgreSQL)
-apps/web/            React 19 · TanStack Router/Query · RHF + Zod · Tailwind (PWA responsive)
-packages/
-  shared-kernel/     Money (decimal exacto), monedas, fechas, tasas, errores de dominio
-  contracts/         esquemas Zod compartidos por API, web y (futuro) móvil
-  client-api/        cliente axios: token, renovación, errores RFC 7807
-  client-app/        sesión (Zustand) y hooks de TanStack Query (reutilizable en React Native)
-docker/              imagen de desarrollo, nginx, init de PostgreSQL
-```
-
-## API
-
-Autenticación: `POST /auth/login` devuelve el access token (Bearer). La web recibe el refresh token en una cookie httpOnly; la app móvil, en el cuerpo (`x-cliente: movil`). Para pruebas rápidas con curl existe el modo `AUTH_MODE=dev` el usuario se indica con la cabecera `x-usuario-id`. Este modo está prohibido en producción: la app no arranca. Usuarios de prueba:
-
-| Usuario | Rol |
-|---------|-----|
-| `u-viajero` (ana@empresa.co) | Analista; jefe inmediato `u-jefe`, jefe directivo `u-directivo` |
-| `u-jefe` (carlos@empresa.co) | Coordinador / aprobador |
-| `u-directivo` (diana@empresa.co) | Director / aprobador |
-| `u-contabilidad` (laura@empresa.co) | Contabilidad |
+## Pruebas
 
 ```bash
-# Estimado: hotel a 50 USD/noche en Brasil (tarifa 30) → escala a jefe directivo
-curl -s -X POST localhost:3000/api/v1/solicitudes/estimar \
-  -H 'content-type: application/json' -H 'x-usuario-id: u-viajero' \
-  -d '{"monedaAnticipo":"COP","destinos":[{"paisCodigo":"BR","ciudad":"São Paulo",
-       "fechaInicio":"2026-11-02","fechaFin":"2026-11-06",
-       "valoresSolicitados":[{"conceptoCodigo":"ALOJAMIENTO","valorUnitario":"50"}]}]}'
+# API (PostgreSQL y Redis reales; ver apps/api/CLAUDE.md)
+cd apps/api && python -m pytest -q --cov
+ruff check . && mypy && lint-imports
+
+# Web
+pnpm install && pnpm typecheck && pnpm test && pnpm build
 ```
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| POST | `/auth/login` · `/auth/refresh` · `/auth/logout` | Sesión |
-| GET | `/auth/me` | Perfil del usuario autenticado |
-| GET | `/solicitudes/destinos-disponibles` | Países con tarifa para el cargo del usuario |
-| POST | `/solicitudes/estimar` | Proyecta el viaje (no persiste) |
-| POST | `/solicitudes` | Crea y envía a aprobación |
-| GET | `/solicitudes` | Mis solicitudes |
-| GET | `/solicitudes/:id` | Detalle (viajero o aprobadores) |
-| POST | `/solicitudes/:id/aprobar` · `/rechazar` · `/cancelar` | Decisiones |
-| GET | `/aprobaciones/pendientes` | Bandeja del aprobador |
-| GET | `/anticipos/mios` · `/anticipos` (tesorería) · `/anticipos/:id` | Anticipos |
-| POST | `/anticipos/:id/desembolso` · `/reintentar-erp` | Tesorería |
-| GET | `/legalizaciones/por-anticipo/:anticipoId` · `/legalizaciones/:id` · `/legalizaciones` (contabilidad) | Legalizaciones |
-| POST | `/legalizaciones/:id/soportes` (multipart) · `/recibos-caja` · `/enviar` | Viajero |
-| PUT / DELETE | `/legalizaciones/:id/soportes/:soporteId/confirmacion` · `/legalizaciones/:id/soportes/:soporteId` | Viajero |
-| POST | `/legalizaciones/:id/soportes/:soporteId/decision` · `/aprobar` · `/devolver` | Contabilidad |
-| GET / PUT | `/politica-legalizacion` | NIT, topes del recibo 222, exclusiones |
-| POST | `/comprobantes/duplicados/verificar` | Verificación de duplicados |
-| GET | `/salud` | Health check (público) |
-
-Los errores siguen RFC 7807 (`application/problem+json`) con un `code` estable para i18n.
+La documentación interactiva de la API está en `/docs` (Swagger) y el contrato en `apps/api/docs/API_CONTRACT.md`.

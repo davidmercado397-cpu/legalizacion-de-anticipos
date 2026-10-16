@@ -1,0 +1,19 @@
+== Verificación de mínimo privilegio (2026-10-16T03:53:36Z)
+-- gastos_app lee y escribe datos:
+insert audit_log OK
+INSERT 0 1
+select system_settings OK: 21
+-- gastos_app NO puede hacer DDL ni alterar la auditoría:
+   CREATE TABLE x(id int) ->
+      ERROR:  permission denied for schema public
+      LINE 1: CREATE TABLE x(id int)
+                           ^
+   DROP TABLE expenses ->
+      ERROR:  must be owner of table expenses
+   UPDATE audit_log SET action='x' ->
+      ERROR:  permission denied for table audit_log
+   DELETE FROM audit_log ->
+      ERROR:  permission denied for table audit_log
+-- incluso el dueño de la tabla choca con el trigger de solo-inserción:
+      ERROR:  audit_log is append-only (DELETE blocked)
+      CONTEXT:  PL/pgSQL function audit_log_is_append_only() line 3 at RAISE

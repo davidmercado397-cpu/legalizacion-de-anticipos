@@ -1,0 +1,25 @@
+{
+  "version": "7.3",
+  "screens": [
+    {
+      "id": "JUSTIFY",
+      "title": "Justificar gasto",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "summary": {"type": "string", "__example__": "Hotel Dann · $350.000 COP"},
+        "reason": {"type": "string", "__example__": "La factura no detalla los productos"}
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {"type": "TextSubheading", "text": "${data.summary}"},
+          {"type": "TextBody", "text": "${data.reason}"},
+          {"type": "TextArea", "name": "justification", "label": "¿Por qué es un gasto del viaje?", "required": true},
+          {"type": "Footer", "label": "Enviar y confirmar",
+           "on-click-action": {"name": "complete", "payload": {"justification": "${form.justification}"}}}
+        ]
+      }
+    }
+  ]
+}

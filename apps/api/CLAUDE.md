@@ -1,0 +1,206 @@
+# CLAUDE.md — API de anticipos y gastos de viaje (Forsa)
+
+Guía para una IA (o dev) que retoma este repo sin contexto previo. Léela entera antes de tocar código.
+
+## Qué es este servicio
+
+API (solo backend; el frontend lo hace otra persona) para **solicitar, aprobar y legalizar anticipos
+de gastos de viaje** del grupo Forsa (Colombia, Panamá y México), tipo Rindegastos. Los gastos se
+capturan con una **foto de la factura** por **WhatsApp** (Meta Cloud API, conexión directa) o por la
+app; la imagen se archiva en **Cloudflare R2** y la lee una **IA de visión vía OpenRouter**, con una
+capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificaciones).
+
+- **Un solo cliente (Forsa), no multitenant**, pero **multiempresa** dentro del grupo (`companies`).
+- Base de la propuesta comercial NBT-2026-P4. Lo que está fuera del MVP se lista en "Pendiente".
+
+## Estado actual
+
+- Incremento 1 (núcleo) y 2 (políticas, líneas, revisión, Excel) entregados.
+- Limpieza de código zombie, R2 obligatorio y herramientas de calidad en CI.
+- Contrato de API (errores con código + mensaje en español, listados paginados, `X-Request-ID`).
+- Configuración del sistema llave-valor (`system_settings`, migración 0003) administrada por el rol
+  `superadmin`; Redis para límites de peticiones y caché compartida entre workers.
+- Seguridad: MFA TOTP obligatorio para `MFA_REQUIRED_ROLES` (login en dos pasos, semilla cifrada
+  con `MFA_ENCRYPTION_KEY`), auditoría inmutable (trigger + permisos, migración 0004), roles de BD
+  separados (`gastos_app` sin DDL, `gastos_migrator` vía `MIGRATION_DATABASE_URL`), respaldos con
+  prueba de restauración y expediente de seguridad para el cliente en `docs/security/`.
+- 3a entregada: país por compañía (zona horaria, razón social, tercero genérico desde
+  `defaults.countries`), categorías configurables por compañía (`expense_categories`), extracción
+  v3 multilingüe (hora, impuestos desglosados, adquiriente, "no es factura") y monedas soportadas
+  (`operation.supported_currencies`). Migración 0005.
+- Tasas de cambio (migración 0006): TRM oficial (datos.gov.co) y BCE (Frankfurter) se descargan
+  cada `EXCHANGE_RATES_SYNC_SECONDS`; todo cruza por el dólar (`domain/exchange.py`). El gasto en
+  otra moneda trae su tasa automática según `companies.exchange_rate_policy`; el usuario puede
+  mandar su valor (tasa `manual`). Anticipos en otra moneda muestran el saldo también en la de la
+  compañía. Las tareas periódicas (`PeriodicJobs`) usan un candado en Redis por ronda.
+- Presupuestos de viaje (migración 0007): zonas (`travel_zones`, lugares que resuelven el destino)
+  y tarifas zona x tipo de personal x categoría (`travel_budget_rates`, carga por Excel todo o
+  nada con reporte por fila). Solo calculan el valor del anticipo (`domain/budgets.py`), no son
+  topes: pedir otro valor exige justificación. Tope de efectivo en moneda extranjera por compañía.
+- Legalización (migración 0008): detalle con foto (URL firmada + miniatura), líneas y fechas en la
+  zona de la compañía (`schemas.localize`, único lugar de conversión), línea de tiempo desde la
+  auditoría, cancelar/anular/reabrir, entrega y liquidación de la diferencia (`TreasuryService`,
+  permiso `advances:administer`), aprobadores suplentes (`approver_delegations`; `AccessPolicy`
+  resuelve la suplencia vigente), devolución con gastos marcados y supresión de contacto de retirados.
+- Deducibilidad (migración 0009): regla `buyer_not_company` (la factura electrónica a nombre de la
+  compañía; genéricos por país en `fiscal.generic_buyer_ids`; a nombre de otra compañía del grupo
+  alerta aparte), facturas del exterior a `requires_review`, datos mínimos de recibos
+  (`required_fields`) y desglose por línea (`domain/deductibility.py`) en la API y el Excel. Si
+  contabilidad fija la deducibilidad a mano, la reevaluación no la pisa. Solo es una sugerencia: el
+  criterio tributario lo define contabilidad de Forsa.
+- Tableros (migración 0010): `ReportRepository` en `persistence/reports.py` con SQLAlchemy Core
+  (saldos por legalizar con antigüedad, gasto por categoría/país/compañía, cumplimiento del
+  presupuesto, facturas a nombre de otra compañía del grupo, uso y precisión de la IA), todos con
+  `?format=xlsx`.
+- Costo de la IA (migración 0012, reemplaza el presupuesto): `GET /ai-costs` solo para el superadmin
+  (`platform_costs:read`), por mes, modelo y compañía, con tokens y USD. Sin tope: la lectura nunca
+  se degrada por costo.
+- Aprendizaje (migración 0011, `pg_trgm`): `LearningService` se llama directo desde los casos de uso,
+  en la misma transacción. Lo que corrige un revisor queda activo; lo del empleado, pendiente hasta
+  que lo valide su aprobador (categorías por NIT: al cerrar la legalización). Al leer: memoria exacta
+  (texto normalizado / NIT; la compañía gana al grupo) y alerta por parecido (nunca etiqueta solo);
+  correcciones recientes van como ejemplos al prompt. No es retroactivo: solo recalcula lo no
+  confirmado. Nunca se borra: se desactiva, con historial.
+- Set de evaluación: `python -m scripts.extraction_eval` (dataset fuera del repo; formato en
+  `docs/eval_dataset_example.json`). mypy también revisa `scripts/`.
+- 3b, primera parte (migración 0013): sesión de WhatsApp (`whatsapp_sessions`: ventana de 24 h de
+  Meta y conversación nueva tras `whatsapp.session_ttl_minutes`), presentador puro
+  (`whatsapp_presenter.py`, con los límites de Meta y el formato de moneda de
+  `defaults.countries[X].number_format`), un mensaje por factura con [Está bien] [Corregir] (nada se
+  confirma solo), duplicado propio (misma foto antes de la IA, mismo CUFE después; queda
+  `discarded` con `duplicate_of_id`), anticipo por la fecha de la factura y recordatorio de legalizar
+  (`LegalizationReminders`). Los avisos que inicia el sistema van por `WhatsAppNotifier`: texto
+  libre dentro de la ventana y plantilla `whatsapp.notice_template` afuera.
+- 3b, menú (`whatsapp_menu.py`, `MenuHandler`): saludo al empezar la conversación, palabras clave
+  (`whatsapp.keywords`), despedida que cierra la sesión, opciones por rol (Mis anticipos, Saldo,
+  Pendientes, Mis gastos, Enviar legalización, Por aprobar con `AdvanceService.decision_queue`) y
+  cierre por inactividad con un solo recordatorio (`WhatsAppSessions.close_idle`).
+- 3b, WhatsApp Flows (migración 0014, `whatsapp_flows.py`): corregir, justificar y solicitar anticipo
+  con los JSON de `whatsapp_flows/` (sin endpoint de datos; respuesta `nfm_reply`). El token del Flow
+  (JWT `typ=flow`, `FLOW_TOKEN_TTL_MINUTES`) dice quién, para qué y sobre qué registro; responde solo
+  si coincide con el remitente. Sin el ID del Flow configurado, el bot remite a la app.
+- 3b, avisos de estado: `AdvanceService` y `TreasuryService` emiten `AdvanceEvents` después del commit
+  (Observer mínimo); `StatusNotices` avisa al empleado (aprobado con razón social y NIT, rechazado,
+  anulado, entregado, devuelto con marcas, cerrado con el resultado) y al aprobador (enviada o
+  reenviada). La métrica `corrected_before_confirm` va en `/ai-accuracy`.
+- **Pendiente:** nada del plan aprobado. Preguntas abiertas a Forsa: el tercero genérico de Panamá
+  (`fiscal.generic_buyer_ids.PA` está vacío) y si los recibos de caja deben traer nombre e
+  identificación de quien vende (`required_fields`). Plantillas que Forsa aprueba en Meta:
+  bienvenida (`{{1}}` nombre, `{{2}}` asistente), aprobación y aviso.
+- **Stubs intencionales (no son bugs ni código zombie):** ninguno todavía. Si se agrega un puerto sin
+  adaptador real (p. ej. Siesa), se lista aquí.
+
+## Arquitectura y decisiones (respétalas)
+
+- **Hexagonal** (`domain` ← `application` ← `adapters`; composition root en `app/container.py`).
+  Lo verifica `import-linter` en CI: el dominio no importa frameworks y la aplicación no importa
+  adaptadores. Si CI falla por esto, se corrige el diseño, no el contrato.
+- **SOLID + KISS, KISS manda. Clean code no estricto:** nada de sobreingeniería ni YAGNI.
+  - Patrones **permitidos**: Ports & Adapters con `typing.Protocol`, Strategy + registro (reglas de
+    política, enrutamiento de modelos), Repository + Unit of Work (un caso de uso guarda varias
+    tablas en una transacción), Chain of Responsibility (handlers del bot), Observer mínimo
+    (callbacks tras el commit), Null Object/Decorator solo si ya existen.
+  - **Prohibidos**: CQRS, event sourcing, mediator, contenedor DI propio, capas "por si acaso".
+- **YAGNI con proveedores:** un proveedor detrás de un Protocol; maquinaria multi-proveedor solo
+  cuando exista un segundo real. Comprometidos con Meta: el puerto de WhatsApp existe para pruebas.
+- **Una sola fuente de verdad para la lógica de negocio:** vive en los casos de uso
+  (`app/application`). WhatsApp y la API llaman al mismo servicio; una regla implementada solo en un
+  canal es un bug.
+- **Open/Closed por registro:** agregar una regla, un handler o un tipo de evento = una clase nueva
+  en su registro, sin tocar el despachador.
+- **Nada de valores quemados:** lo de negocio por compañía va en sus tablas; lo del sistema (modelos,
+  plantillas, umbrales, valores por defecto) en `system_settings`, cuyas filas traen tipo, rango y
+  descripción. Los valores iniciales se cargan en una migración y desde ahí solo cambian por API
+  (superadmin). El código conoce los nombres de las llaves (`RuntimeSettings`), nunca sus valores;
+  agregar una llave = una migración que la inserta. El `.env` es solo para secretos,
+  infraestructura y controles de seguridad base. Tras escribir configuración, invalidar la caché.
+- **Integración no configurada = error claro, nunca degradación silenciosa:** si faltan R2, WhatsApp
+  u OpenRouter, la app arranca, lo que dependa responde **503 `service_not_configured`** y `/ready`
+  lo muestra. Solo `DATABASE_URL`, `JWT_SECRET`, `MFA_ENCRYPTION_KEY` y `REDIS_URL` impiden arrancar.
+  **No hay almacenamiento local.**
+- **Los efectos secundarios son falla-segura:** reacciones, "escribiendo…", avisos y registro de uso
+  de IA nunca rompen el flujo principal (se registran en el log y se sigue).
+- **Webhook:** body crudo, firma HMAC `X-Hub-Signature-256` (obligatoria fuera de desarrollo), 200
+  inmediato, proceso en background e idempotencia por `wa_message_id`.
+- **Seguridad:** 403 si el rol no tiene el permiso o la acción está prohibida sobre algo que sí ve;
+  **404 si el registro está fuera de su visibilidad** (nunca se confirma que existe); 409 estado
+  inválido. Segregación de funciones (nadie aprueba lo suyo). Nunca loguear tokens, secretos ni PII.
+  `audit_log` es solo inserción (no se agregan rutas para editarla). Un control de seguridad nuevo
+  lleva su prueba en `tests/security/` y su fila en `docs/security/02_MATRIZ_DE_CONTROLES.md`.
+- **IA:** la IA solo extrae hechos; las políticas las aplica código determinístico. Todo cambio de
+  prompt o modelo se mide con el set de evaluación antes y después. Sin modelos de origen chino.
+- **PostgreSQL es la cola** de reintentos (transaccional con el gasto, `SKIP LOCKED`). **Redis** es
+  obligatorio para límites de peticiones y caché compartida (`SharedCache`: versión por espacio de
+  nombres; si Redis cae, se lee de la BD en vez de servir datos viejos). No se usa como cola.
+
+## Convenciones de código
+
+- **Identificadores, nombres de tests y mensajes de commit en inglés.**
+- **Comentarios y docstrings en español y solo los necesarios:** el porqué de lo no obvio. Si un
+  comentario repite lo que el código ya dice, sobra.
+- Cada error de negocio lleva un `code` estable; su texto está en `ERROR_MESSAGES` de `messages.py` (un test
+  exige que todo código tenga mensaje). Las respuestas de error y los listados siguen `docs/API_CONTRACT.md`.
+- Textos que lee el usuario final (bot y errores) en `app/application/messages.py`, en español claro,
+  tuteando, sin jerga técnica ni frases genéricas de IA ("Lo sentimos", "No dudes en"…). En el bot se
+  usan emojis con significado fijo; en los errores de la API no.
+- Type hints en todo (lo verifica `mypy`). `logging`, nunca `print` (única excepción: la CLI).
+- Fechas en UTC en la BD; la fecha de negocio se calcula en la zona horaria de la compañía.
+
+## Flujo de un gasto por WhatsApp
+
+1. `POST /webhooks/whatsapp`: firma → 200 → background.
+2. Parser → `InboundMessage`; identidad por BSUID o teléfono (vinculación por bienvenida).
+3. Se crea el gasto (`received`), reacción ⏳, descarga del media de Meta (la misma foto ya enviada se
+   descarta sin IA) y, en paralelo, archivo en R2 + lectura (QR → IA con enrutamiento por
+   dificultad → verificaciones → escalamiento).
+4. Duplicado propio → políticas de la compañía → anticipo (único abierto o por la fecha) → un mensaje
+   por factura con [Está bien] [Corregir].
+5. Fallo → reintento por el barrido (`ExpenseSweeper`) hasta `EXPENSE_MAX_ATTEMPTS`.
+
+## Estructura
+
+```
+app/
+  domain/        entidades, enums, errores, valores, permisos, políticas (Strategy), fiscal, puertos
+  application/   casos de uso, bot (cadena de handlers), notificaciones, lectura, mensajes
+  adapters/
+    inbound/     HTTP (routers, esquemas, deps, errores) y webhook de WhatsApp (firma, parser)
+    outbound/    PostgreSQL (tablas, mapeo imperativo, repos, UoW), R2, OpenRouter, Graph API,
+                 documentos (Pillow, zxing), seguridad (Argon2, JWT), infraestructura
+  container.py   composition root          main.py  app FastAPI + lifespan
+prompts/         prompts versionados de la IA
+whatsapp_flows/  Flow JSON de los formularios de WhatsApp (se publican en WhatsApp Manager)
+alembic/         migraciones (PostgreSQL)
+tests/           unit/, integration/ y security/ (PostgreSQL real; IA, WhatsApp y R2 simulados en tests/fakes.py)
+scripts/         CLI de apoyo: evidencia de seguridad, respaldo y simulacro de restauración, roles de BD
+```
+
+## Cómo trabajar aquí
+
+```bash
+python -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
+export TEST_DATABASE_URL=postgresql+asyncpg://gastos:gastos@localhost:5432/gastos_test
+.venv/bin/python -m pytest -q --cov          # tests contra PostgreSQL real (cobertura mínima 85 %)
+.venv/bin/ruff check . && .venv/bin/ruff format --check .
+.venv/bin/mypy && .venv/bin/lint-imports && .venv/bin/vulture && .venv/bin/deptry .
+alembic upgrade head                          # migraciones
+```
+
+## Al hacer cambios
+
+- Tests verdes y tests nuevos para lo nuevo (mismo estilo: PostgreSQL real + fakes de `tests/fakes.py`
+  + respx para HTTP).
+- **Cada cambio de esquema lleva su migración Alembic**, verificada con `upgrade`, `downgrade` y
+  `alembic check` en PostgreSQL real. En PostgreSQL manda Alembic.
+- Sin código zombie: si algo deja de usarse, se borra (lo vigilan `vulture` y `deptry`).
+- Endpoints nuevos: permiso con `require(...)` y visibilidad por registro con `AccessPolicy`.
+- Actualiza la sección "Estado actual" de este documento en cada incremento.
+
+## Documentación
+
+`README.md` (visión, puesta en marcha, configuración de servicios externos, despliegue),
+`docs/API_CONTRACT.md` (forma de errores, códigos HTTP, paginación, cabeceras, fechas),
+`docs/USE_CASES.md` (casos de uso por rol, con canal y endpoint), `docs/security/`
+(expediente para el cliente; la evidencia se regenera con `./scripts/security_evidence.sh`) y `docs/MENSAJES.md` (todos los
+textos al usuario; se genera con `python -m scripts.export_messages`, no se edita a mano). OpenAPI en vivo en
+`/docs`.

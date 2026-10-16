@@ -1,0 +1,72 @@
+# Configuración de herramientas. El servicio no se publica como paquete: las dependencias viven en
+# requirements.txt (producción) y requirements-dev.txt (desarrollo).
+
+[tool.ruff]
+line-length = 130
+target-version = "py313"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "ASYNC"]
+ignore = ["E501", "B008"]
+
+[tool.mypy]
+python_version = "3.13"
+packages = ["app", "scripts"]
+# Modo moderado: verifica los type hints sin exigir el modo --strict completo.
+check_untyped_defs = true
+disallow_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/cli.py"]
+# SQLAlchemy async corre el código dentro de greenlets: sin esto, coverage no ve lo que pasa ahí.
+concurrency = ["greenlet", "thread"]
+
+[tool.coverage.report]
+fail_under = 85
+skip_covered = true
+show_missing = true
+
+[tool.importlinter]
+root_package = "app"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Hexagonal layers"
+type = "layers"
+layers = ["app.adapters", "app.application", "app.domain"]
+
+[[tool.importlinter.contracts]]
+name = "Domain is framework-free"
+type = "forbidden"
+source_modules = ["app.domain"]
+forbidden_modules = ["fastapi", "sqlalchemy", "httpx", "pydantic", "aioboto3", "openpyxl", "PIL", "jwt", "argon2", "limits"]
+
+[[tool.importlinter.contracts]]
+name = "Application does not depend on frameworks or adapters"
+type = "forbidden"
+source_modules = ["app.application"]
+forbidden_modules = ["fastapi", "sqlalchemy", "httpx", "aioboto3", "openpyxl", "PIL", "jwt", "argon2", "limits", "app.adapters"]
+
+[tool.vulture]
+paths = ["app", "vulture_allowlist.py"]
+min_confidence = 80
+
+[tool.deptry]
+known_first_party = ["app"]
+extend_exclude = ["alembic", "tests", "vulture_allowlist.py"]
+
+[tool.deptry.per_rule_ignores]
+# Se usan sin import directo: uvicorn (Dockerfile), email-validator (EmailStr), asyncpg (driver de
+# SQLAlchemy), alembic (migraciones) y python-multipart (formularios de FastAPI).
+DEP002 = ["uvicorn", "email-validator", "asyncpg", "alembic", "python-multipart"]
+
+[tool.bandit]
+# B101: los assert del código son invariantes internos (estrechan tipos), nunca controles de seguridad;
+# la imagen no corre Python con -O. Los controles de seguridad lanzan errores explícitos.
+skips = ["B101"]

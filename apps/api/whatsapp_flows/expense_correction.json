@@ -1,0 +1,48 @@
+{
+  "version": "7.3",
+  "screens": [
+    {
+      "id": "CORRECT",
+      "title": "Corregir gasto",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "summary": {"type": "string", "__example__": "Restaurante El Cielo · $45.000 COP"},
+        "vendor_name": {"type": "string", "__example__": "Restaurante El Cielo"},
+        "vendor_tax_id": {"type": "string", "__example__": "890903938-8"},
+        "invoice_number": {"type": "string", "__example__": "POS-1"},
+        "invoice_date": {"type": "string", "__example__": "2026-10-13"},
+        "total": {"type": "string", "__example__": "45000"},
+        "categories": {
+          "type": "array",
+          "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
+          "__example__": [{"id": "meals", "title": "Alimentación"}]
+        },
+        "category": {"type": "string", "__example__": "meals"}
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {"type": "TextBody", "text": "${data.summary}"},
+          {"type": "TextInput", "name": "vendor_name", "label": "Proveedor", "input-type": "text", "required": true,
+           "init-value": "${data.vendor_name}"},
+          {"type": "TextInput", "name": "vendor_tax_id", "label": "NIT del proveedor", "input-type": "text",
+           "required": false, "init-value": "${data.vendor_tax_id}"},
+          {"type": "TextInput", "name": "invoice_number", "label": "Número de factura", "input-type": "text",
+           "required": false, "init-value": "${data.invoice_number}"},
+          {"type": "DatePicker", "name": "invoice_date", "label": "Fecha", "required": true,
+           "init-value": "${data.invoice_date}"},
+          {"type": "TextInput", "name": "total", "label": "Total", "input-type": "number", "required": true,
+           "init-value": "${data.total}"},
+          {"type": "Dropdown", "name": "category", "label": "Categoría", "required": true,
+           "data-source": "${data.categories}", "init-value": "${data.category}"},
+          {"type": "Footer", "label": "Guardar y confirmar",
+           "on-click-action": {"name": "complete", "payload": {
+             "vendor_name": "${form.vendor_name}", "vendor_tax_id": "${form.vendor_tax_id}",
+             "invoice_number": "${form.invoice_number}", "invoice_date": "${form.invoice_date}",
+             "total": "${form.total}", "category": "${form.category}"}}}
+        ]
+      }
+    }
+  ]
+}
