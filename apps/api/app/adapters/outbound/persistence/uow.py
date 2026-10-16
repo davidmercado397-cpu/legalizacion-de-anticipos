@@ -22,6 +22,7 @@ from app.adapters.outbound.persistence.repositories import (
     SqlLinkCodeRepository,
     SqlPolicyRuleRepository,
     SqlRefreshTokenRepository,
+    SqlStatementRepository,
     SqlSystemSettingRepository,
     SqlTravelBudgetRateRepository,
     SqlTravelZoneRepository,
@@ -66,6 +67,7 @@ class SqlAlchemyUnitOfWork:
         self.whatsapp_sessions: ports.WhatsAppSessionRepository = SqlWhatsAppSessionRepository(s)
         self.reports: ports.ReportRepository = SqlReportRepository(s)
         self.examples: ports.ExampleRepository = SqlExampleRepository(s)
+        self.statements: ports.StatementRepository = SqlStatementRepository(s)
         return self
 
     async def __aexit__(self, *exc: object) -> None:

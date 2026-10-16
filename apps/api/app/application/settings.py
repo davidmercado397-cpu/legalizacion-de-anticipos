@@ -69,6 +69,9 @@ class RuntimeSettings:
     usage_price_currency: str = _key("usage.price_currency")
     learning_similarity: float = _key("learning.similarity")
     learning_prompt_examples: int = _key("learning.prompt_examples")
+    reconciliation_match: dict[str, Any] = _key("reconciliation.match")
+    reconciliation_max_file_mb: int = _key("reconciliation.max_file_mb")
+    ai_statement_prompt_version: str = _key("ai.statement_prompt_version")
 
     @classmethod
     def setting_keys(cls) -> list[str]:

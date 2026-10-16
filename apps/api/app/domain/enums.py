@@ -51,6 +51,7 @@ class ExpenseStatus(StrEnum):
 class ExpenseSource(StrEnum):
     WHATSAPP = "whatsapp"
     APP = "app"
+    BANK = "bank"  # cargo del extracto sin factura que la empresa asume (conciliación)
 
 
 class DocumentType(StrEnum):
@@ -184,3 +185,35 @@ class ExampleStatus(StrEnum):
     PENDING = "pending"  # corrección de un empleado: espera que la valide su aprobador
     REJECTED = "rejected"
     INACTIVE = "inactive"
+
+
+class PaymentMethod(StrEnum):
+    """Cómo pagó el empleado; solo los pagos con tarjeta se cruzan con el extracto."""
+
+    CARD = "card"
+    CASH = "cash"
+    TRANSFER = "transfer"
+
+
+class MatchStatus(StrEnum):
+    """Cruce de un cargo del extracto con un gasto. AUTO y SUGGESTED los propone el sistema y se
+    recalculan; CONFIRMED y MANUAL los decidió contabilidad y el recálculo no los toca."""
+
+    AUTO = "auto"
+    SUGGESTED = "suggested"
+    CONFIRMED = "confirmed"
+    MANUAL = "manual"
+
+
+class ChargeDecision(StrEnum):
+    """Qué hace contabilidad con un cargo del extracto que no tiene factura (decisión 7.6)."""
+
+    ABSORB = "absorb"  # lo asume la empresa: cuenta como legalizado
+    DISCOUNT = "discount"  # se le descuenta al empleado: queda en lo que debe reintegrar
+
+
+class BankStatus(StrEnum):
+    """Estado de un gasto pagado con tarjeta frente al extracto."""
+
+    MATCHED = "matched"  # se legaliza por el valor que cobró el banco (decisión 7.8)
+    NO_CHARGE = "no_charge"  # el extracto cubre su fecha y no trae el cargo: alerta a contabilidad (7.7)

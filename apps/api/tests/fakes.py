@@ -16,7 +16,15 @@ from PIL import Image, ImageDraw
 from app.domain.entities import ExchangeRate
 from app.domain.enums import DocumentType, ExchangeRateSource, Legibility
 from app.domain.errors import ExternalServiceError, NotFoundError
-from app.domain.ports import Button, ExtractionRequest, ExtractionResponse, FlowMessage, ListRow
+from app.domain.ports import (
+    Button,
+    ExtractionOptions,
+    ExtractionRequest,
+    ExtractionResponse,
+    FlowMessage,
+    ListRow,
+    StatementTable,
+)
 from app.domain.values import InvoiceData, InvoiceLine, WhatsAppAddress
 
 
@@ -120,6 +128,18 @@ def invoice(**overrides: Any) -> InvoiceData:
     )
     base.update(overrides)
     return InvoiceData(**base)
+
+
+@dataclass
+class FakeStatementExtractor:
+    """Extracto en PDF "leído por la IA": devuelve la tabla que se le indique."""
+
+    table: StatementTable = field(default_factory=lambda: StatementTable(rows=[]))
+    calls: int = 0
+
+    async def extract(self, content: bytes, model: str, options: ExtractionOptions) -> StatementTable:
+        self.calls += 1
+        return self.table
 
 
 @dataclass
