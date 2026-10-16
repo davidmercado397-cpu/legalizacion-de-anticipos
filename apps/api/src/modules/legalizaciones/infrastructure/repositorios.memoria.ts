@@ -39,6 +39,10 @@ export class LegalizacionRepositoryEnMemoria implements LegalizacionRepository {
       .map((p) => Legalizacion.rehidratar(clonar(p)));
   }
 
+  async listarPorViajero(viajeroId: string) {
+    return [...this.datos.values()].filter((p) => p.viajeroId === viajeroId).map((p) => Legalizacion.rehidratar(clonar(p)));
+  }
+
   async listarSoportesProcesando() {
     return [...this.datos.values()].flatMap((p) =>
       p.soportes.filter((s) => s.estado === 'PROCESANDO').map((s) => ({ legalizacionId: p.id, soporteId: s.id })),

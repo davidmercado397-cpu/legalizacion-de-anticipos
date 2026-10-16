@@ -1,4 +1,5 @@
 import { Module, type DynamicModule } from '@nestjs/common';
+import { ConciliacionModule } from './modules/conciliacion/conciliacion.module';
 import { AnticiposModule } from './modules/anticipos/anticipos.module';
 import { ComprobantesModule } from './modules/comprobantes/comprobantes.module';
 import { IdentidadModule } from './modules/identidad/identidad.module';
@@ -15,7 +16,7 @@ export class AppModule {
   static forRoot(configuracion: Configuracion): DynamicModule {
     return {
       module: AppModule,
-      imports: [SharedModule.forRoot(configuracion), TasasModule, IdentidadModule, TarifasModule, SolicitudesModule, AnticiposModule, LegalizacionesModule, ComprobantesModule],
+      imports: [SharedModule.forRoot(configuracion), TasasModule, IdentidadModule, TarifasModule, SolicitudesModule, AnticiposModule, LegalizacionesModule, ComprobantesModule, ConciliacionModule],
       controllers: [SaludController],
     };
   }

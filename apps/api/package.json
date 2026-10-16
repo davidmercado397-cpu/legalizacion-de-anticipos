@@ -24,6 +24,7 @@
     "@viaticos/contracts": "workspace:*",
     "@viaticos/shared-kernel": "workspace:*",
     "drizzle-orm": "^0.45.4",
+    "exceljs": "4.4.0",
     "jose": "^6.2.12",
     "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",

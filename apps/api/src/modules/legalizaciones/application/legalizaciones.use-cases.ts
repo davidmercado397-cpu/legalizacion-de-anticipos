@@ -42,6 +42,16 @@ export interface ArchivoSubido {
 
 const MAX_REINTENTOS_CONFLICTO = 3;
 
+export interface PagoConTarjeta {
+  soporteId: string;
+  legalizacionId: string;
+  fecha: string;
+  total: { monto: string; moneda: string };
+  emisor: string;
+  ultimos4: string | null;
+  numeroDocumento: string | null;
+}
+
 export class GestionLegalizaciones {
   constructor(
     private readonly legalizaciones: LegalizacionRepository,
@@ -344,6 +354,34 @@ export class GestionLegalizaciones {
 
   listarPorEstados(estados: readonly EstadoLegalizacion[]): Promise<Legalizacion[]> {
     return this.legalizaciones.listarPorEstados(estados);
+  }
+
+  /** Para conciliación bancaria (el módulo que consulta valida los permisos). */
+  async titularDe(legalizacionId: string): Promise<{ id: string; viajeroId: string } | null> {
+    const legalizacion = await this.legalizaciones.obtenerPorId(legalizacionId);
+    return legalizacion && { id: legalizacion.id, viajeroId: legalizacion.viajeroId };
+  }
+
+  /** Facturas confirmadas pagadas con tarjeta por el viajero, excepto las que contabilidad rechazó. */
+  async pagosConTarjeta(viajeroId: string): Promise<PagoConTarjeta[]> {
+    const legalizaciones = await this.legalizaciones.listarPorViajero(viajeroId);
+    return legalizaciones.flatMap((l) =>
+      l.soportes.flatMap((s) =>
+        s.tipo === 'FACTURA' && s.estado === 'CONFIRMADO' && s.datos?.medioPago === 'TARJETA' && s.decision?.aplica !== false
+          ? [
+              {
+                soporteId: s.id,
+                legalizacionId: l.id,
+                fecha: s.datos.fecha.toString(),
+                total: s.datos.total.toJSON(),
+                emisor: s.datos.emisorNombre,
+                ultimos4: s.datos.ultimos4Tarjeta,
+                numeroDocumento: s.datos.numeroDocumento,
+              },
+            ]
+          : [],
+      ),
+    );
   }
 
   async leerArchivo(datos: { legalizacionId: string; soporteId: string; usuarioId: string; roles: readonly string[] }) {

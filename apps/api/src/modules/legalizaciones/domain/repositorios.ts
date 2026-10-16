@@ -6,6 +6,7 @@ export interface LegalizacionRepository {
   obtenerPorId(id: string): Promise<Legalizacion | null>;
   obtenerPorAnticipo(anticipoId: string): Promise<Legalizacion | null>;
   listarPorEstados(estados: readonly EstadoLegalizacion[]): Promise<Legalizacion[]>;
+  listarPorViajero(viajeroId: string): Promise<Legalizacion[]>;
   /** Soportes que quedaron en PROCESANDO (para reencolar al arrancar). */
   listarSoportesProcesando(): Promise<Array<{ legalizacionId: string; soporteId: string }>>;
 }

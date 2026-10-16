@@ -151,6 +151,48 @@ describe('Legalización (e2e HTTP)', () => {
     // 7. El anticipo quedó legalizado
     const final = await como('u-viajero').get(`/anticipos/${anticipo.id}`).expect(200);
     expect(final.body.estado).toBe('LEGALIZADO');
+
+    // 8. Conciliación con el extracto de la tarjeta (en pesos; la factura fue en reales)
+    const extracto = Buffer.from(
+      [
+        'EXTRACTO TARJETA DEBITO ****4321',
+        'Fecha;Descripción;Valor',
+        '04/11/2026;COMPRA INTL CHURRASCARIA BOI SAO PAULO;-228.000,00',
+        '05/11/2026;COMPRA INTL UBER TRIP;-35.000,00',
+        '06/11/2026;ABONO TRANSFERENCIA;500.000,00',
+      ].join('\n'),
+      'latin1',
+    );
+    const previa = await como('u-viajero').post('/conciliacion/extractos/vista-previa').attach('archivo', extracto, 'extracto.csv').expect(200);
+    expect(previa.body).toMatchObject({ confianza: 'ALTA', totalCargos: 2, totalAbonos: 1, perfil: { filaEncabezado: 2, separadorDecimal: ',' } });
+
+    const cargar = () =>
+      como('u-viajero')
+        .post('/conciliacion/extractos')
+        .field({ legalizacionId: leg.id, ultimos4: '4321', perfil: JSON.stringify(previa.body.perfil) })
+        .attach('archivo', extracto, 'extracto.csv');
+    const cargado = (await cargar().expect(201)).body;
+    // 300 BRL ≈ 222.222 COP con las tasas de desarrollo; el banco cobró 228.000 (2,6 % más): se cruza solo.
+    const [churrasco, uber, abono] = cargado.movimientos;
+    expect(churrasco.cruce).toMatchObject({ estado: 'AUTOMATICO', montoSoporte: { monto: '222222.22', moneda: 'COP' }, pago: { soporteId } });
+    expect([uber.cruce, abono.cruce]).toEqual([null, null]);
+    expect(cargado.resumen).toMatchObject({ cargos: 2, conciliados: 1, cargosSinSoporte: 1, pagosSinMovimiento: 0, totalCargosSinSoporte: { monto: '35000.00' } });
+    expect((await cargar().expect(409)).body.code).toBe('EXTRACTO_YA_CARGADO');
+
+    // Solo contabilidad decide; el rechazo se recuerda y el enlace manual lo corrige
+    const base = `/conciliacion/extractos/${cargado.id}/movimientos/${churrasco.id}`;
+    await como('u-viajero').post(`${base}/rechazar`).expect(403);
+    const rechazado = (await como('u-contabilidad').post(`${base}/rechazar`).expect(200)).body;
+    expect(rechazado.pagosSinMovimiento.map((p: { soporteId: string }) => p.soporteId)).toEqual([soporteId]);
+    const recalculado = (await como('u-contabilidad').post(`/conciliacion/extractos/${cargado.id}/recalcular`).expect(200)).body;
+    expect(recalculado.resumen.conciliados).toBe(0);
+    const enlazado = (await como('u-contabilidad').post(`${base}/enlazar`).send({ soporteId }).expect(200)).body;
+    expect(enlazado.movimientos[0].cruce.estado).toBe('MANUAL');
+
+    const lista = (await como('u-viajero').get(`/conciliacion/extractos?legalizacionId=${leg.id}`).expect(200)).body;
+    expect(lista).toMatchObject([{ id: cargado.id, titularNombre: 'Ana Viajera', ultimos4: '4321', periodo: { desde: '2026-11-04', hasta: '2026-11-06' } }]);
+    await como('u-jefe').get(`/conciliacion/extractos/${cargado.id}`).expect(404);
+    await como('u-viajero').get('/conciliacion/extractos').expect(403);
   });
 
   it('contabilidad administra la política; el resto solo la consulta', async () => {

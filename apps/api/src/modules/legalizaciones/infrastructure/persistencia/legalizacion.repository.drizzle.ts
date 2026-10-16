@@ -91,6 +91,10 @@ export class LegalizacionRepositoryDrizzle implements LegalizacionRepository {
     return this.cargar(inArray(legalizaciones.estado, [...estados]));
   }
 
+  listarPorViajero(viajeroId: string) {
+    return this.cargar(eq(legalizaciones.viajeroId, viajeroId));
+  }
+
   async listarSoportesProcesando() {
     const filas = await this.db
       .select({ legalizacionId: soportes.legalizacionId, soporteId: soportes.id })

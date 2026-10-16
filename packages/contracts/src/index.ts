@@ -6,3 +6,4 @@ export * from './tarifas';
 export * from './anticipos';
 export * from './legalizaciones';
 export * from './tasas';
+export * from './conciliacion';
