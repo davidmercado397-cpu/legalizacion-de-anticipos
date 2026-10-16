@@ -57,6 +57,14 @@
             "title": "Amount",
             "type": "string"
           },
+          "approval_steps": {
+            "description": "Ruta de aprobación; vacía en solicitudes anteriores",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalStepOut"
+            },
+            "title": "Approval Steps",
+            "type": "array"
+          },
           "approved_at": {
             "anyOf": [
               {
@@ -281,6 +289,14 @@
             ],
             "title": "End Date"
           },
+          "escalation_reasons": {
+            "description": "Por qué necesita al jefe directivo",
+            "items": {
+              "$ref": "#/components/schemas/EscalationReasonOut"
+            },
+            "title": "Escalation Reasons",
+            "type": "array"
+          },
           "expenses": {
             "items": {
               "$ref": "#/components/schemas/ExpenseDetailOut"
@@ -411,6 +427,8 @@
           "budget_amount",
           "budget_breakdown",
           "budget_justification",
+          "approval_steps",
+          "escalation_reasons",
           "decided_by",
           "decided_at",
           "decision_note",
@@ -564,6 +582,14 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Amount",
             "type": "string"
+          },
+          "approval_steps": {
+            "description": "Ruta de aprobación; vacía en solicitudes anteriores",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalStepOut"
+            },
+            "title": "Approval Steps",
+            "type": "array"
           },
           "approved_at": {
             "anyOf": [
@@ -782,6 +808,14 @@
             ],
             "title": "End Date"
           },
+          "escalation_reasons": {
+            "description": "Por qué necesita al jefe directivo",
+            "items": {
+              "$ref": "#/components/schemas/EscalationReasonOut"
+            },
+            "title": "Escalation Reasons",
+            "type": "array"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -905,6 +939,8 @@
           "budget_amount",
           "budget_breakdown",
           "budget_justification",
+          "approval_steps",
+          "escalation_reasons",
           "decided_by",
           "decided_at",
           "decision_note",
@@ -935,6 +971,14 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Amount",
             "type": "string"
+          },
+          "approval_steps": {
+            "description": "Ruta de aprobación; vacía en solicitudes anteriores",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalStepOut"
+            },
+            "title": "Approval Steps",
+            "type": "array"
           },
           "approved_at": {
             "anyOf": [
@@ -1149,6 +1193,14 @@
             ],
             "title": "End Date"
           },
+          "escalation_reasons": {
+            "description": "Por qué necesita al jefe directivo",
+            "items": {
+              "$ref": "#/components/schemas/EscalationReasonOut"
+            },
+            "title": "Escalation Reasons",
+            "type": "array"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -1272,6 +1324,8 @@
           "budget_amount",
           "budget_breakdown",
           "budget_justification",
+          "approval_steps",
+          "escalation_reasons",
           "decided_by",
           "decided_at",
           "decision_note",
@@ -1488,6 +1542,160 @@
           "months"
         ],
         "title": "AiCostsOut",
+        "type": "object"
+      },
+      "ApprovalLevel": {
+        "description": "Niveles de la ruta de aprobación de una solicitud (decisiones 4.1 a 4.5).",
+        "enum": [
+          "boss",
+          "director",
+          "management"
+        ],
+        "title": "ApprovalLevel",
+        "type": "string"
+      },
+      "ApprovalRulesIO-Input": {
+        "properties": {
+          "thresholds": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Moneda -> monto total por encima del cual escala al jefe directivo",
+            "title": "Thresholds",
+            "type": "object"
+          },
+          "tolerance_pct": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "description": "Sobre el presupuesto calculado, antes de escalar",
+            "title": "Tolerance Pct"
+          }
+        },
+        "required": [
+          "tolerance_pct"
+        ],
+        "title": "ApprovalRulesIO",
+        "type": "object"
+      },
+      "ApprovalRulesIO-Output": {
+        "properties": {
+          "thresholds": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "description": "Moneda -> monto total por encima del cual escala al jefe directivo",
+            "title": "Thresholds",
+            "type": "object"
+          },
+          "tolerance_pct": {
+            "description": "Sobre el presupuesto calculado, antes de escalar",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Tolerance Pct",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tolerance_pct"
+        ],
+        "title": "ApprovalRulesIO",
+        "type": "object"
+      },
+      "ApprovalStepOut": {
+        "properties": {
+          "approver_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "None en gerencia: decide cualquier usuario de gerencia",
+            "title": "Approver Id"
+          },
+          "approver_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approver Name"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "decided_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided By"
+          },
+          "level": {
+            "$ref": "#/components/schemas/ApprovalLevel"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StepStatus"
+          }
+        },
+        "required": [
+          "level",
+          "approver_id",
+          "approver_name",
+          "status",
+          "decided_by",
+          "decided_at",
+          "note"
+        ],
+        "title": "ApprovalStepOut",
         "type": "object"
       },
       "AuditOut": {
@@ -2284,6 +2492,18 @@
             "title": "Active",
             "type": "boolean"
           },
+          "approval_thresholds": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Approval Thresholds",
+            "type": "object"
+          },
+          "approval_tolerance_pct": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Approval Tolerance Pct",
+            "type": "string"
+          },
           "cash_international_cap": {
             "anyOf": [
               {
@@ -2376,6 +2596,8 @@
           "timezone",
           "exchange_rate_policy",
           "cash_international_cap",
+          "approval_tolerance_pct",
+          "approval_thresholds",
           "tax_id",
           "is_test",
           "active",
@@ -3284,6 +3506,24 @@
           }
         },
         "title": "EmployeePatch",
+        "type": "object"
+      },
+      "EscalationReasonOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "EscalationReasonOut",
         "type": "object"
       },
       "ExampleHistoryOut": {
@@ -5450,6 +5690,22 @@
         "title": "LinkCodeOut",
         "type": "object"
       },
+      "ListOut_AdvanceListItemOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/AdvanceListItemOut"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "ListOut[AdvanceListItemOut]",
+        "type": "object"
+      },
       "ListOut_BlockedConceptOut_": {
         "properties": {
           "data": {
@@ -6563,6 +6819,7 @@
           "approver",
           "accountant",
           "treasury",
+          "management",
           "admin",
           "superadmin"
         ],
@@ -6763,6 +7020,16 @@
           "operational"
         ],
         "title": "StaffType",
+        "type": "string"
+      },
+      "StepStatus": {
+        "enum": [
+          "pending",
+          "approved",
+          "rejected",
+          "skipped"
+        ],
+        "title": "StepStatus",
         "type": "string"
       },
       "SyncOut": {
@@ -7616,6 +7883,32 @@
         "summary": "Suggested advance for a trip",
         "tags": [
           "travel budgets"
+        ]
+      }
+    },
+    "/api/v1/advances/pending-approval": {
+      "get": {
+        "operationId": "pending_approval_api_v1_advances_pending_approval_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOut_AdvanceListItemOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Requests waiting for this user's decision (their step of the route, or the upper level)",
+        "tags": [
+          "advances"
         ]
       }
     },
@@ -9348,6 +9641,110 @@
         "summary": "How often the AI read right",
         "tags": [
           "reports"
+        ]
+      }
+    },
+    "/api/v1/companies/{company_id}/approval-rules": {
+      "get": {
+        "operationId": "approval_rules_api_v1_companies__company_id__approval_rules_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "company_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Company Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRulesIO-Output"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "When a request escalates to the director",
+        "tags": [
+          "policies"
+        ]
+      },
+      "put": {
+        "operationId": "set_approval_rules_api_v1_companies__company_id__approval_rules_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "company_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Company Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalRulesIO-Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRulesIO-Output"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Configure the escalation (accounting)",
+        "tags": [
+          "policies"
         ]
       }
     },

@@ -93,8 +93,13 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
   Sin IA configurada, la factura subida por la app queda de una vez para completar a mano.
   `R2_PUBLIC_ENDPOINT_URL` firma las URLs con la dirección del navegador (SeaweedFS en Docker local);
   datos de desarrollo con `python -m scripts.seed_dev`.
-- **Pendiente:** aplicar `docs/decisiones-confirmadas.md` (conciliación bancaria, contabilidad cierra
-  y rol de tesorería, aprobación por niveles, reglas de propina/CUFE/fechas/plazo/firma, multidestino
+- Roles por paso (decisiones 4 y 8): el jefe aprueba la solicitud, contabilidad revisa y cierra la
+  legalización, tesorería (`treasury`) desembolsa y liquida, gerencia (`management`) aprueba a los
+  directivos. Ruta de aprobación por niveles (migración 0015, `domain/approvals.py`): cada solicitud
+  guarda sus pasos; escala al jefe directivo (el jefe del jefe) si supera el presupuesto más la
+  tolerancia o el monto de `companies.approval_*` (lo configura contabilidad); el nivel superior aprueba
+  sin esperar; sin jefe, gerencia. Las solicitudes anteriores (sin pasos) conservan la regla anterior.
+- **Pendiente:** aplicar `docs/decisiones-confirmadas.md` (conciliación bancaria, reglas de propina/CUFE/fechas/plazo/firma, multidestino
   con tarifas por cargo y país, integración con Siesa). Preguntas abiertas a Forsa: el tercero genérico de Panamá
   (`fiscal.generic_buyer_ids.PA` está vacío) y si los recibos de caja deben traer nombre e
   identificación de quien vende (`required_fields`). Plantillas que Forsa aprueba en Meta:

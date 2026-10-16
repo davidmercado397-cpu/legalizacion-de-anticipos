@@ -70,6 +70,7 @@ async def seed() -> None:
         await create("Ana Analista", "ana@empresa.co", Role.EMPLOYEE, carlos)
         await create("Laura Contadora", "laura@empresa.co", Role.ACCOUNTANT)
         await create("Tomás Tesorero", "tomas@empresa.co", Role.TREASURY)
+        await create("Gabriela Gerente", "gabriela@empresa.co", Role.MANAGEMENT)
 
         async with container.uow() as uow:
             for employee_id in (e.id for e in created):

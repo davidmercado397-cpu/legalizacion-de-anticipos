@@ -394,7 +394,7 @@ async def test_approver_approves_from_whatsapp_but_not_their_own(harness: Harnes
     assert detail["status"] == "approved"
 
     # El empleado intenta aprobar su propio anticipo con una respuesta falsificada: se rechaza.
-    await harness.add_employee(company, "x@forsa.com")
+    await harness.add_employee(company, "x@forsa.com", Role.MANAGEMENT)
     own = await harness.client.post(
         "/api/v1/advances",
         headers=await harness.login(approver),

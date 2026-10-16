@@ -65,6 +65,7 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `ASSIGNED` | 📌 Asignado a: {label}. |
 | `ACTION_NOT_ALLOWED` | No puedes realizar esa acción. |
 | `ADVANCE_APPROVED_BY_WA` | ✅ Anticipo de {name} aprobado. |
+| `ADVANCE_STEP_APPROVED_BY_WA` | ✅ Aprobaste el anticipo de {name}. Falta la aprobación de {next}. |
 | `ADVANCE_REJECTED_BY_WA` | ❌ Anticipo de {name} rechazado. |
 | `BUTTON_OK` | ✅ Está bien |
 | `BUTTON_CORRECT` | ✏️ Corregir |
@@ -228,6 +229,10 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `advance_not_open` | Ese anticipo no está abierto para recibir gastos. |
 | `advance_of_other` | Ese anticipo es de otra persona. |
 | `amount_required` | Indica el valor del anticipo: no hay tarifas de viaje para calcularlo. |
+| `escalation_justification_required` | Esta solicitud necesita la aprobación del jefe directivo (supera el presupuesto o el monto configurado): explica por qué la necesitas. |
+| `no_approver_available` | No hay quién apruebe este viaje: pide que te asignen un jefe o que creen un usuario de gerencia. |
+| `invalid_approval_tolerance` | La tolerancia debe estar entre 0 % y 100 %. |
+| `invalid_approval_threshold` | Cada umbral debe tener una moneda de 3 letras y un valor mayor que cero. |
 | `budget_justification_required` | No se pudo completar la acción. |
 | `budget_currency_mismatch` | No se pudo completar la acción. |
 | `budget_rates_missing` | Las tarifas de este destino están en varias monedas. Pide a contabilidad que las revise. |

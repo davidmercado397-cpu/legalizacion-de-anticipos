@@ -33,11 +33,17 @@ Canales: **App** (frontend), **WA** (WhatsApp) y **Sistema** (tareas automática
 
 | # | Caso | Canal | Endpoint |
 |---|---|---|---|
-| A1 | Aprobar o rechazar un anticipo de su equipo (también como suplente) | App / WA (plantilla o ✅ Por aprobar) | `POST /advances/{id}/approve`, `POST /advances/{id}/reject` |
+| A1 | Aprobar o rechazar el paso que le toca de la ruta: jefe inmediato o, si escala, jefe directivo, que puede aprobar sin esperar (también como suplente) | App / WA (plantilla o ✅ Por aprobar) | `GET /advances/pending-approval`, `POST /advances/{id}/approve`, `POST /advances/{id}/reject` |
 | A2 | Ver los anticipos y gastos de su equipo | App | `GET /advances`, `GET /expenses` |
 | A3 | Validar o rechazar lo que corrigió su equipo | App | `GET /classification-examples?status=pending`, `POST /classification-examples/{id}/approve\|reject` |
 
 El jefe solo aprueba la solicitud; la legalización la revisa y la cierra contabilidad (decisión 8).
+
+## Gerencia
+
+| # | Caso | Canal | Endpoint |
+|---|---|---|---|
+| G1 | Aprobar los viajes de quien no tiene jefe (directivos) y lo que escala cuando falta el jefe directivo | App / WA | `GET /advances/pending-approval`, `POST /advances/{id}/approve`, `POST /advances/{id}/reject` |
 
 ## Contabilidad
 
@@ -48,6 +54,7 @@ El jefe solo aprueba la solicitud; la legalización la revisa y la cierra contab
 | C0c | Ver sugerencias de marcas y devolver la legalización marcando gastos | App | `GET /advances/{id}/return-suggestions`, `POST /advances/{id}/return` |
 | C0d | Aprobar la legalización (cerrar) y descargar su Excel | App | `POST /advances/{id}/close`, `GET /advances/{id}/legalization.xlsx` |
 | C1 | Configurar reglas de política, conceptos bloqueados y categorías | App | `/companies/{id}/policy-rules`, `/blocked-concepts`, `/categories` |
+| C1b | Configurar cuándo una solicitud escala al jefe directivo (tolerancia sobre el presupuesto y monto total) | App | `GET/PUT /companies/{id}/approval-rules` |
 | C2 | Cargar zonas y tarifas de viaje (también desde Excel) | App | `/companies/{id}/travel-zones`, `/travel-rates`, `POST /travel-rates/import` |
 | C5 | Anular un anticipo o reabrir una legalización cerrada | App | `POST /advances/{id}/void`, `POST /advances/{id}/reopen` |
 | C6 | Revisar la deducibilidad (desglose por línea, pendientes de revisión, cambiarla) | App | `GET /expenses/{id}/deductibility`, `GET /expenses?deductibility=requires_review`, `POST /expenses/{id}/deductibility` |

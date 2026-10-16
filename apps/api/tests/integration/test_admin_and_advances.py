@@ -89,7 +89,8 @@ async def test_advance_flow_with_segregation_of_duties(harness: Harness) -> None
     balances = (await harness.client.get("/api/v1/me/balances", headers=emp_h)).json()["data"]
     assert balances[0]["balance"]["pending"] == "800000.00"
 
-    # Un aprobador tampoco puede aprobar su propio anticipo.
+    # Un aprobador tampoco puede aprobar su propio anticipo (sin jefe, lo aprueba la gerencia).
+    await harness.add_employee(company, "gerencia@forsa.com", Role.MANAGEMENT)
     own = await harness.client.post(
         "/api/v1/advances",
         headers=appr_h,

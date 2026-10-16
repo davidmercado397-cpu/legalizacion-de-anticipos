@@ -34,6 +34,7 @@ async def test_request_id_is_echoed_or_generated(harness: Harness) -> None:
 async def test_business_errors_never_leak_internal_english_text(harness: Harness) -> None:
     company = await harness.add_company()
     approver = await harness.add_employee(company, "ana@forsa.com", Role.APPROVER)
+    await harness.add_employee(company, "gerencia@forsa.com", Role.MANAGEMENT)  # aprueba a quien no tiene jefe
     headers = await harness.login(approver)
     body = {"company_id": str(company.id), "kind": "cash", "currency": "COP", "amount": "100", "purpose": "Obra"}
     advance = await harness.client.post("/api/v1/advances", headers=headers, json=body)

@@ -175,9 +175,9 @@ class AdvanceService:
             )
             if reasons and justification is None:
                 raise ValidationError("Justification required", code="escalation_justification_required")
-            steps = await self._route(uow, actor, company.id, bool(reasons))
             if data.kind == AdvanceKind.CASH and currency != company.currency:
                 await self._check_cash_cap(uow, company, currency, amount)
+            steps = await self._route(uow, actor, company.id, bool(reasons))
             advance = Advance(
                 employee_id=actor.id,
                 company_id=data.company_id,

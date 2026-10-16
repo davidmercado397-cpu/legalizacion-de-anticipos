@@ -28,6 +28,8 @@ async def _setup(harness: Harness):  # type: ignore[no-untyped-def]
     company = await harness.add_company()
     accountant = await harness.add_employee(company, "conta@forsa.com", Role.ACCOUNTANT)
     approver = await harness.add_employee(company, "ana@forsa.com", Role.APPROVER)
+    # Ana no tiene jefe: lo que escala de su equipo lo aprueba la gerencia (decisión 4.5).
+    await harness.add_employee(company, "gerencia@forsa.com", Role.MANAGEMENT)
     employee = await harness.add_employee(company, "juan@forsa.com", approver=approver, staff_type=StaffType.OPERATIONAL)
     acc_h, emp_h, appr_h = await harness.login(accountant), await harness.login(employee), await harness.login(approver)
     zone = await harness.client.post(
@@ -116,6 +118,10 @@ async def test_the_advance_amount_comes_from_the_budget(harness: Harness) -> Non
     detail = (await harness.client.get(f"/api/v1/advances/{justified.json()['id']}", headers=appr_h)).json()
     assert Decimal(detail["amount"]) == Decimal("700000") and Decimal(detail["budget_amount"]) == Decimal("540000")
     assert detail["budget_justification"] == "Dos noches más de obra" and len(detail["budget_breakdown"]) == 2
+    # 700.000 supera en más del 10 % los 540.000 calculados: escala por encima del jefe inmediato.
+    assert [r["code"] for r in detail["escalation_reasons"]] == ["over_budget"]
+    assert detail["escalation_reasons"][0]["message"] == "Supera en más del 10 % el presupuesto calculado ($540.000 COP)"
+    assert [s["level"] for s in detail["approval_steps"]] == ["boss", "management"]
 
     # Sin tarifas para el destino: el valor lo pone el empleado.
     elsewhere = await harness.client.post("/api/v1/advances", headers=emp_h, json={**base, "destination": "Pasto"})
@@ -127,7 +133,7 @@ async def test_the_advance_amount_comes_from_the_budget(harness: Harness) -> Non
 async def test_cash_in_foreign_currency_has_a_cap(harness: Harness) -> None:
     company = await harness.add_company()
     admin = await harness.add_employee(company, "admin@forsa.com", Role.ADMIN)
-    employee = await harness.add_employee(company, "juan@forsa.com")
+    employee = await harness.add_employee(company, "juan@forsa.com", approver=admin)
     admin_h, emp_h = await harness.login(admin), await harness.login(employee)
     patched = await harness.client.patch(
         f"/api/v1/companies/{company.id}", headers=admin_h, json={"cash_international_cap": {"amount": "200", "currency": "USD"}}

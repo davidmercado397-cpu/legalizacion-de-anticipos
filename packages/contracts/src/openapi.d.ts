@@ -39,6 +39,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/advances/pending-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Requests waiting for this user's decision (their step of the route, or the upper level) */
+        get: operations["pending_approval_api_v1_advances_pending_approval_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/advances/{advance_id}": {
         parameters: {
             query?: never;
@@ -498,6 +515,24 @@ export interface paths {
         /** How often the AI read right */
         get: operations["ai_accuracy_api_v1_companies__company_id__ai_accuracy_get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/companies/{company_id}/approval-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** When a request escalates to the director */
+        get: operations["approval_rules_api_v1_companies__company_id__approval_rules_get"];
+        /** Configure the escalation (accounting) */
+        put: operations["set_approval_rules_api_v1_companies__company_id__approval_rules_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1378,6 +1413,11 @@ export interface components {
         AdvanceDetailOut: {
             /** Amount */
             amount: string;
+            /**
+             * Approval Steps
+             * @description Ruta de aprobación; vacía en solicitudes anteriores
+             */
+            approval_steps: components["schemas"]["ApprovalStepOut"][];
             /** Approved At */
             approved_at: string | null;
             /** Approved By */
@@ -1437,6 +1477,11 @@ export interface components {
             employee_id: string;
             /** End Date */
             end_date: string | null;
+            /**
+             * Escalation Reasons
+             * @description Por qué necesita al jefe directivo
+             */
+            escalation_reasons: components["schemas"]["EscalationReasonOut"][];
             /** Expenses */
             expenses: components["schemas"]["ExpenseDetailOut"][];
             /**
@@ -1506,6 +1551,11 @@ export interface components {
         AdvanceListItemOut: {
             /** Amount */
             amount: string;
+            /**
+             * Approval Steps
+             * @description Ruta de aprobación; vacía en solicitudes anteriores
+             */
+            approval_steps: components["schemas"]["ApprovalStepOut"][];
             /** Approved At */
             approved_at: string | null;
             /** Approved By */
@@ -1561,6 +1611,11 @@ export interface components {
             /** End Date */
             end_date: string | null;
             /**
+             * Escalation Reasons
+             * @description Por qué necesita al jefe directivo
+             */
+            escalation_reasons: components["schemas"]["EscalationReasonOut"][];
+            /**
              * Id
              * Format: uuid
              */
@@ -1588,6 +1643,11 @@ export interface components {
         AdvanceOut: {
             /** Amount */
             amount: string;
+            /**
+             * Approval Steps
+             * @description Ruta de aprobación; vacía en solicitudes anteriores
+             */
+            approval_steps: components["schemas"]["ApprovalStepOut"][];
             /** Approved At */
             approved_at: string | null;
             /** Approved By */
@@ -1640,6 +1700,11 @@ export interface components {
             employee_id: string;
             /** End Date */
             end_date: string | null;
+            /**
+             * Escalation Reasons
+             * @description Por qué necesita al jefe directivo
+             */
+            escalation_reasons: components["schemas"]["EscalationReasonOut"][];
             /**
              * Id
              * Format: uuid
@@ -1738,6 +1803,60 @@ export interface components {
             /** To Month */
             to_month: string;
             totals: components["schemas"]["AiCostTotalsOut"];
+        };
+        /**
+         * ApprovalLevel
+         * @description Niveles de la ruta de aprobación de una solicitud (decisiones 4.1 a 4.5).
+         * @enum {string}
+         */
+        ApprovalLevel: "boss" | "director" | "management";
+        /** ApprovalRulesIO */
+        "ApprovalRulesIO-Input": {
+            /**
+             * Thresholds
+             * @description Moneda -> monto total por encima del cual escala al jefe directivo
+             */
+            thresholds?: {
+                [key: string]: number | string;
+            };
+            /**
+             * Tolerance Pct
+             * @description Sobre el presupuesto calculado, antes de escalar
+             */
+            tolerance_pct: number | string;
+        };
+        /** ApprovalRulesIO */
+        "ApprovalRulesIO-Output": {
+            /**
+             * Thresholds
+             * @description Moneda -> monto total por encima del cual escala al jefe directivo
+             */
+            thresholds?: {
+                [key: string]: string;
+            };
+            /**
+             * Tolerance Pct
+             * @description Sobre el presupuesto calculado, antes de escalar
+             */
+            tolerance_pct: string;
+        };
+        /** ApprovalStepOut */
+        ApprovalStepOut: {
+            /**
+             * Approver Id
+             * @description None en gerencia: decide cualquier usuario de gerencia
+             */
+            approver_id: string | null;
+            /** Approver Name */
+            approver_name: string | null;
+            /** Decided At */
+            decided_at: string | null;
+            /** Decided By */
+            decided_by: string | null;
+            level: components["schemas"]["ApprovalLevel"];
+            /** Note */
+            note: string | null;
+            status: components["schemas"]["StepStatus"];
         };
         /** AuditOut */
         AuditOut: {
@@ -2026,6 +2145,12 @@ export interface components {
         CompanyOut: {
             /** Active */
             active: boolean;
+            /** Approval Thresholds */
+            approval_thresholds: {
+                [key: string]: string;
+            };
+            /** Approval Tolerance Pct */
+            approval_tolerance_pct: string;
             /** Cash International Cap */
             cash_international_cap: {
                 [key: string]: string;
@@ -2332,6 +2457,13 @@ export interface components {
             phone?: string | null;
             role?: components["schemas"]["Role"] | null;
             staff_type?: components["schemas"]["StaffType"] | null;
+        };
+        /** EscalationReasonOut */
+        EscalationReasonOut: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
         };
         /** ExampleHistoryOut */
         ExampleHistoryOut: {
@@ -2889,6 +3021,11 @@ export interface components {
             /** Instructions */
             instructions: string;
         };
+        /** ListOut[AdvanceListItemOut] */
+        ListOut_AdvanceListItemOut_: {
+            /** Data */
+            data: components["schemas"]["AdvanceListItemOut"][];
+        };
         /** ListOut[BlockedConceptOut] */
         ListOut_BlockedConceptOut_: {
             /** Data */
@@ -3298,7 +3435,7 @@ export interface components {
          * Role
          * @enum {string}
          */
-        Role: "employee" | "approver" | "accountant" | "treasury" | "admin" | "superadmin";
+        Role: "employee" | "approver" | "accountant" | "treasury" | "management" | "admin" | "superadmin";
         /** SettingOut */
         SettingOut: {
             /** Constraints */
@@ -3374,6 +3511,11 @@ export interface components {
          * @enum {string}
          */
         StaffType: "administrative" | "operational";
+        /**
+         * StepStatus
+         * @enum {string}
+         */
+        StepStatus: "pending" | "approved" | "rejected" | "skipped";
         /** SyncOut */
         SyncOut: {
             /** Stored */
@@ -3711,6 +3853,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pending_approval_api_v1_advances_pending_approval_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListOut_AdvanceListItemOut_"];
                 };
             };
         };
@@ -4706,6 +4868,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccuracyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approval_rules_api_v1_companies__company_id__approval_rules_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                company_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalRulesIO-Output"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_approval_rules_api_v1_companies__company_id__approval_rules_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                company_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalRulesIO-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalRulesIO-Output"];
                 };
             };
             /** @description Validation Error */
