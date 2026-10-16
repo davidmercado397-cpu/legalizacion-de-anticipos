@@ -20,6 +20,7 @@ export function InsigniaGasto({ estado }: { estado: EstadoGasto }) {
 
 export interface Hallazgo {
   rule?: string;
+  code?: string;
   action?: string;
   message?: string;
 }

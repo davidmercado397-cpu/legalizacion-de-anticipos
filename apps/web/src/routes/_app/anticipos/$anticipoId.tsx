@@ -8,7 +8,7 @@ import { ListaGastos } from '../../../features/gastos/componentes';
 import { SubirFactura } from '../../../features/gastos/subir-factura';
 import { etiqueta } from '../../../i18n';
 import { mensajeDeError } from '../../../lib/errores';
-import { formatoDinero, formatoMomento, rangoFechas } from '../../../lib/formato';
+import { formatoDinero, formatoFechaCalendario, formatoMomento, rangoFechas } from '../../../lib/formato';
 import { puede } from '../../../lib/roles';
 import { Boton } from '../../../ui/boton';
 import { Alerta, Cargando, Tarjeta } from '../../../ui/superficies';
@@ -64,6 +64,15 @@ function DetalleAnticipo() {
             Desembolsado el {formatoMomento(anticipo.disbursed_at)} por {etiqueta('desembolso', anticipo.disbursement_method)}
             {anticipo.disbursement_ref && ` (${anticipo.disbursement_ref})`}.
           </p>
+        )}
+        {anticipo.legalization_due && anticipo.status === 'approved' && (
+          anticipo.overdue ? (
+            <Alerta tono="peligro" titulo="Legalización vencida">
+              El plazo para enviarla era el {formatoFechaCalendario(anticipo.legalization_due)}.
+            </Alerta>
+          ) : (
+            <p className="text-sm text-slate-600">Envíe la legalización a más tardar el {formatoFechaCalendario(anticipo.legalization_due)}.</p>
+          )
         )}
         {anticipo.settlement_status && (
           <p className="text-sm font-medium text-slate-700">{etiqueta('liquidacion', anticipo.settlement_status)}</p>

@@ -77,6 +77,7 @@ export function ListaAnticipos({
             </div>
             <div className="flex items-center gap-3">
               <span className="font-semibold">{formatoDinero(a.amount, a.currency)}</span>
+              {a.overdue && <Insignia tono="peligro">Vencida</Insignia>}
               <InsigniaAnticipo estado={a.status} />
             </div>
           </Link>

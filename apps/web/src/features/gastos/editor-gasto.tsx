@@ -108,6 +108,8 @@ function Foto({ gasto }: { gasto: GastoDetalle }) {
   );
 }
 
+const TONO_ACCION: Record<string, 'peligro' | 'aviso' | 'info'> = { block: 'peligro', require_justification: 'aviso', review: 'aviso' };
+
 function Hallazgos({ gasto }: { gasto: GastoDetalle }) {
   const lista = hallazgos(gasto);
   if (lista.length === 0) return null;
@@ -115,7 +117,7 @@ function Hallazgos({ gasto }: { gasto: GastoDetalle }) {
     <ul className="space-y-2">
       {lista.map((h, i) => (
         <li key={`${h.rule}-${i}`}>
-          <Alerta tono={h.action === 'block' ? 'peligro' : h.action === 'require_justification' ? 'aviso' : 'info'} titulo={etiqueta('regla', h.rule)}>
+          <Alerta tono={TONO_ACCION[h.action ?? ''] ?? 'info'} titulo={etiqueta('regla', h.rule)}>
             {h.message ?? etiqueta('accion', h.action)}
           </Alerta>
         </li>
@@ -137,6 +139,7 @@ function Resumen({ gasto }: { gasto: GastoDetalle }) {
     ['Total', formatoDinero(gasto.total, gasto.currency)],
     ['Justificación', gasto.justification ?? '—'],
   ];
+  if (gasto.document_type === 'cash_receipt') filas.splice(1, 0, ['Firmado por quien vende', gasto.receipt_signed ? 'Sí' : 'No']);
   if (gasto.non_reimbursable_amount) filas.push(['No reembolsable', formatoDinero(gasto.non_reimbursable_amount, null)]);
   return (
     <Tarjeta>
@@ -158,10 +161,13 @@ function Formulario({ anticipo, gasto }: { anticipo: AnticipoDetalle; gasto: Gas
   const confirmar = useConfirmarGasto();
   const descartar = useDescartarGasto();
   const original = aFormulario(gasto);
-  const { register, handleSubmit, formState, reset } = useForm<Datos>({ resolver: zodResolver(esquema), values: original });
+  const { register, handleSubmit, formState, reset, watch } = useForm<Datos>({ resolver: zodResolver(esquema), values: original });
+  const [firmado, setFirmado] = useState(gasto.receipt_signed);
+  const esRecibo = watch('document_type') === 'cash_receipt';
   const [justificacion, setJustificacion] = useState(gasto.justification ?? '');
   const [convertido, setConvertido] = useState('');
-  const pideJustificacion = hallazgos(gasto).some((h) => h.action === 'require_justification');
+  // Si declara la firma, ese hallazgo desaparece al confirmar y no pide justificación.
+  const pideJustificacion = hallazgos(gasto).some((h) => h.action === 'require_justification' && !(firmado && h.code === 'receipt_not_signed'));
   const otraMoneda = !!gasto.currency && gasto.currency !== anticipo.currency;
   const pideConvertido = otraMoneda && !gasto.exchange_rate;
   const error = corregir.error ?? confirmar.error ?? descartar.error;
@@ -174,6 +180,7 @@ function Formulario({ anticipo, gasto }: { anticipo: AnticipoDetalle; gasto: Gas
       datos: {
         advance_id: anticipo.id,
         justification: justificacion.trim() || null,
+        receipt_signed: datos.document_type === 'cash_receipt' ? firmado : null,
         amount_applied: convertido ? convertido.replace(',', '.') : null,
       },
     });
@@ -242,6 +249,14 @@ function Formulario({ anticipo, gasto }: { anticipo: AnticipoDetalle; gasto: Gas
           >
             {(p) => <Entrada {...p} value={convertido} onChange={(ev) => setConvertido(ev.target.value)} inputMode="decimal" required={pideConvertido} />}
           </Campo>
+        )}
+        {esRecibo && (
+          <label className="flex items-start gap-2 text-sm sm:col-span-2">
+            <input type="checkbox" className="mt-1" checked={firmado} onChange={(ev) => setFirmado(ev.target.checked)} />
+            <span>
+              El recibo está firmado por quien me vendió <span className="text-slate-500">(sin firma, la política pide justificación)</span>
+            </span>
+          </label>
         )}
         {(pideJustificacion || gasto.justification) && (
           <Campo etiqueta="Justificación" className="sm:col-span-2" ayuda="La política de gastos la pide para este gasto.">

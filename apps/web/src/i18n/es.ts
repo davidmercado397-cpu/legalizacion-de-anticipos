@@ -72,6 +72,7 @@ export const es: Record<string, string> = {
 
   'accion.warn': 'Alerta',
   'accion.require_justification': 'Exige justificación',
+  'accion.review': 'La revisa contabilidad',
   'accion.block': 'Bloquea',
 
   'regla.duplicate': 'Factura duplicada',
@@ -82,4 +83,19 @@ export const es: Record<string, string> = {
   'regla.buyer_not_company': 'Factura a nombre de otro',
   'regla.itemized_required': 'Factura sin detalle',
   'regla.low_confidence': 'Lectura con baja confianza',
+  'regla.missing_fiscal_id': 'Factura electrónica sin CUFE',
+  'regla.excessive_tip': 'Propina mayor a la sugerida',
+
+  'parametro.min_confidence': 'Confianza mínima (0 a 1)',
+  'parametro.days_before': 'Días aceptados antes de la salida',
+  'parametro.days_after': 'Días aceptados después del regreso',
+  'parametro.tolerance_days': 'Días de tolerancia',
+  'parametro.required_fields': 'Datos obligatorios',
+  'parametro.max_per_receipt': 'Tope por recibo',
+  'parametro.max_monthly': 'Tope mensual',
+  'parametro.max_yearly': 'Tope anual',
+  'parametro.countries': 'Países (código ISO)',
+  'parametro.suggested_pct': 'Propina sugerida (%)',
+  'parametro.above_amount': 'Desde el valor',
+  'parametro.threshold': 'Confianza mínima (0 a 1)',
 };

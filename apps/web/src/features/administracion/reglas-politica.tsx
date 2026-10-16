@@ -7,7 +7,7 @@ import { Boton } from '../../ui/boton';
 import { Entrada, Seleccion } from '../../ui/campos';
 import { Alerta, Cargando, Insignia } from '../../ui/superficies';
 
-const ACCIONES = ['warn', 'require_justification', 'block'] as const;
+const ACCIONES = ['warn', 'require_justification', 'review', 'block'] as const;
 
 /** Parámetros simples (números y textos); las listas se muestran separadas por comas. */
 const aTexto = (valor: unknown) => (Array.isArray(valor) ? valor.join(', ') : String(valor ?? ''));
@@ -63,7 +63,7 @@ export function ReglasPolitica({ companiaId }: { companiaId: string }) {
               <div className="grid gap-2 sm:grid-cols-3">
                 {Object.entries(regla.params).map(([clave, valor]) => (
                   <label key={clave} className="text-sm">
-                    <span className="text-slate-500">{clave}</span>
+                    <span className="text-slate-500">{etiqueta('parametro', clave)}</span>
                     <Entrada
                       value={aTexto(valor)}
                       onChange={(e) => cambiar(i, { params: { ...regla.params, [clave]: desdeTexto(valor, e.target.value) } })}

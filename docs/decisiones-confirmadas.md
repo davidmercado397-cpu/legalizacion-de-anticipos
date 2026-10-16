@@ -4,11 +4,15 @@ Respuestas al documento «Decisiones por confirmar» (16 de octubre de 2026). Ca
 
 Este documento manda cuando difiere de lo que hacía el backend base (`apps/api`).
 
+**Estado en la API Python** (actualizado el 16/10): listas las secciones 2.1, 2.5, 3, 4 (salvo 4.8), 5 y 8.3 a 8.9.
+Pendientes, en este orden: multidestino con tarifas por cargo y país (2.4 y 4.8), integración con Siesa (8.1 y 8.2)
+y, al final, la conciliación bancaria (sección 7, en la rama `wip/conciliacion-bancaria`).
+
 ## 1. Tasas de cambio
 
 | # | Decisión | En el sistema |
 |---|----------|---------------|
-| 1.1 | TRM certificada por la Superintendencia Financiera | `FuenteTrmDatosGov` (ADR-0008) |
+| 1.1 | TRM certificada por la Superintendencia Financiera | `TrmProvider` (datos.gov.co) |
 | 1.2 | Todo se calcula vía dólar | Tasas cruzadas vía USD |
 | 1.3 | Se viaja a Brasil y Estados Unidos | BRL por el BCE; USD directo |
 | 1.4 | Presupuesto con la TRM del día del cálculo | Sin cambios |
@@ -21,11 +25,11 @@ Este documento manda cuando difiere de lo que hacía el backend base (`apps/api`
 
 | # | Decisión | En el sistema |
 |---|----------|---------------|
-| 2.1 | Facturas desde el día de salida hasta 1 día después del regreso | Fuera de ese rango: alerta que contabilidad decide |
+| 2.1 | Facturas desde el día de salida hasta 1 día después del regreso | Regla `outside_trip_dates` (0 días antes, 1 después): fuera de ese rango la revisa contabilidad |
 | 2.2 | Facturas con fecha futura se rechazan | Sin cambios |
 | 2.3 | El día de regreso se paga completo, sin hotel | Sin cambios (días = noches + 1) |
-| 2.4 | El día de traslado se paga con la tarifa de la ciudad de llegada | Cambia `calcularUnidades` |
-| 2.5 | Plazo para legalizar: 1 mes después del regreso | Fecha límite visible y alerta de vencida |
+| 2.4 | El día de traslado se paga con la tarifa de la ciudad de llegada | Pendiente (con multidestino) |
+| 2.5 | Plazo para legalizar: 1 mes después del regreso | `legalization_due` al aprobarse (`legalization.deadline_months`) y alerta de vencida |
 
 ## 3. Exclusiones
 
@@ -34,7 +38,7 @@ Este documento manda cuando difiere de lo que hacía el backend base (`apps/api`
 | 3.0 | Excluir cualquier licor; minibar y tabaco como están | Lista de licores ampliada |
 | 3.1 | Lavandería sí; películas, cine y spa no | Nuevas exclusiones: entretenimiento y spa |
 | 3.2 | Valor aceptado = total menos líneas excluidas | Sin cambios |
-| 3.3 | Propinas aceptadas hasta la sugerida en la factura | El exceso sobre la propina sugerida se excluye |
+| 3.3 | Propinas aceptadas hasta la sugerida en la factura | Regla `excessive_tip`: hasta el 10 % del consumo (configurable); el exceso se sugiere como no reembolsable. La IA no lee la propina sugerida impresa, por eso es un porcentaje |
 | 3.4 | El impuesto de una línea excluida también se excluye | Se excluye la parte proporcional del impuesto |
 | 3.5 | Palabras ambiguas: alerta para verificación humana | Línea «por verificar»; contabilidad decide |
 
@@ -46,21 +50,21 @@ Este documento manda cuando difiere de lo que hacía el backend base (`apps/api`
 | 4.2 | Umbral por monto total configurable por contabilidad | Pantalla de configuración |
 | 4.3 | Justificación obligatoria al escalar | Sin cambios |
 | 4.4 | El directivo puede aprobar sin esperar al jefe inmediato | Su aprobación completa la ruta |
-| 4.5 | Los viajes de directivos los aprueba la gerencia | Rol `GERENCIA` |
+| 4.5 | Los viajes de directivos los aprueba la gerencia | Rol `management` |
 | 4.6 | Conceptos y tarifas administrables desde la aplicación | CRUD de conceptos y tarifas |
 | 4.7 | Los tiquetes aéreos no hacen parte del anticipo | Sin cambios |
-| 4.8 | La moneda del anticipo depende del país de destino | Moneda de la tarifa del país; destinos mixtos → USD |
+| 4.8 | La moneda del anticipo depende del país de destino | Pendiente (con multidestino) |
 
 ## 5. Facturas y recibos 222
 
 | # | Decisión | En el sistema |
 |---|----------|---------------|
 | 5.1 | NIT configurable; holding con varias empresas | Empresas administrables; cada empleado pertenece a una |
-| 5.2 | Factura a nombre de otro: contabilidad decide | Sin cambios |
-| 5.3 | Sin CUFE / chave de acesso: exige decisión de contabilidad | Alerta de revisión |
+| 5.2 | Factura a nombre de otro: contabilidad decide | Regla `buyer_not_company` con acción «la revisa contabilidad» |
+| 5.3 | Sin CUFE / chave de acesso: exige decisión de contabilidad | Regla `missing_fiscal_id` con acción «la revisa contabilidad» |
 | 5.4 | Suma de líneas distinta del total: informativa | Sin cambios |
 | 5.5 | Tope del recibo 222 configurable por contabilidad | Sin cambios |
-| 5.6 | Foto del recibo 222 obligatoria y firmada | Foto obligatoria y declaración de firma |
+| 5.6 | Foto del recibo 222 obligatoria y firmada | Foto obligatoria y declaración de firma al confirmar; sin ella pide justificación |
 | 5.7 | Se aceptan tiquetes POS para todos | Sin cambios |
 
 ## 6. Duplicados
@@ -75,9 +79,9 @@ Este documento manda cuando difiere de lo que hacía el backend base (`apps/api`
 
 | # | Decisión | En el sistema |
 |---|----------|---------------|
-| 7.1 | Tesorería carga el extracto después de la legalización | Rol `TESORERIA` carga, con la legalización enviada |
+| 7.1 | Tesorería carga el extracto después de la legalización | Rol `treasury` carga, con la legalización enviada |
 | 7.2 | Se acepta lo cobrado por el banco | Ver 7.8 |
-| 7.3 | Mismo día, máximo 1 día de diferencia | `diasMaximos = 1` |
+| 7.3 | Mismo día, máximo 1 día de diferencia | Máximo 1 día de diferencia |
 | 7.4 | Ponderación propuesta aceptada | Sin cambios |
 | 7.5 | Se acepta la diferencia (p. ej. propina en el datáfono) | Ver 7.8 |
 | 7.6 | Cargos sin factura: contabilidad decide si se descuentan | Decisión por cargo; suma al saldo del viajero |
@@ -96,5 +100,5 @@ Este documento manda cuando difiere de lo que hacía el backend base (`apps/api`
 | 8.5 | Saldo a favor del viajero: siempre se reembolsa | Registro de reembolso por tesorería |
 | 8.6 | Lectura con IA activa | OpenRouter con modelos configurables; solo el superadmin de NextByte los cambia (ajuste del 16/10) |
 | 8.7 | Sesión de 7 días aceptada | Sin cambios |
-| 8.8 | Usuarios gestionados por un administrador | Rol `ADMIN` y pantalla de usuarios |
+| 8.8 | Usuarios gestionados por un administrador | Rol `admin` y pantalla de usuarios |
 | 8.9 | Facturas en otros idiomas | La IA las lee en español, inglés y portugués, sin traducirlas (ajuste del 16/10) |
