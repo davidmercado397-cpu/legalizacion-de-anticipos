@@ -27,8 +27,9 @@ from app.domain.enums import (
     Role,
 )
 from app.domain.errors import JustificationRequiredError, PolicyBlockedError
-from app.domain.policies import PolicyContext, PolicyEngine, effective_rules
+from app.domain.policies import PolicyContext, PolicyEngine, effective_rules, trip_margins
 from app.domain.text import normalize_line_text
+from app.domain.time import add_months
 from tests.fakes import invoice
 from tests.seed import setting_value
 
@@ -132,9 +133,17 @@ def test_duplicate_missing_tax_id_and_dates() -> None:
 def test_trip_date_tolerance_is_configurable() -> None:
     company, *_, advance, expense = _setup(invoice_date=date(2026, 10, 16))
     assert _codes(_evaluate(PolicyContext(expense, [], company, advance), [])) == set()
-    strict = PolicyRuleConfig(company.id, "outside_trip_dates", PolicyAction.BLOCK, {"tolerance_days": 0})
+    strict = PolicyRuleConfig(company.id, "outside_trip_dates", PolicyAction.BLOCK, {"days_after": 0})
     result = _evaluate(PolicyContext(expense, [], company, advance), [strict])
     assert result.findings[0].action == PolicyAction.BLOCK
+
+
+def test_trip_dates_accept_one_day_after_but_none_before() -> None:
+    company, *_, advance, expense = _setup(invoice_date=date(2026, 10, 11))
+    result = _evaluate(PolicyContext(expense, [], company, advance), [])
+    assert result.findings[0].code == "outside_trip_dates" and result.findings[0].action == PolicyAction.REVIEW
+    legacy = PolicyRuleConfig(company.id, "outside_trip_dates", PolicyAction.WARN, {"tolerance_days": 1})
+    assert trip_margins(legacy.params) == (1, 1)
 
 
 def test_wrong_nit_check_digit_goes_to_generic_third_party() -> None:
@@ -153,6 +162,8 @@ def test_cash_receipt_caps() -> None:
         )
     ]
     ctx = PolicyContext(expense, [], company, advance, non_fiscal_month_total=Decimal("60000"))
+    assert _codes(_evaluate(ctx, rules)) == {"receipt_cap_exceeded", "monthly_cap_exceeded", "receipt_not_signed"}
+    expense.receipt_signed = True
     assert _codes(_evaluate(ctx, rules)) == {"receipt_cap_exceeded", "monthly_cap_exceeded"}
 
 
@@ -165,11 +176,51 @@ def test_inactive_rule_and_itemized_rule() -> None:
     assert _codes(_evaluate(PolicyContext(expense, [], company, advance), rules)) == {"not_itemized"}
 
 
+def test_tip_above_the_suggested_one_is_flagged_and_not_reimbursable() -> None:
+    company, *_, advance, expense = _setup(subtotal=Decimal("100000"), tax_amount=Decimal("8000"), total=Decimal("123000"))
+    expense.tip_amount = Decimal("15000")
+    result = _evaluate(PolicyContext(expense, [], company, advance), [])
+    tip = next(f for f in result.findings if f.code == "excessive_tip")
+    assert tip.action == PolicyAction.REVIEW and tip.detail == {
+        "tip": "15000",
+        "suggested": "10000.00",
+        "excess": "5000.00",
+        "pct": "10",
+    }
+    assert result.suggested_non_reimbursable == Decimal("5000.00")
+    expense.tip_amount = Decimal("10000")
+    assert "excessive_tip" not in _codes(_evaluate(PolicyContext(expense, [], company, advance), []))
+    # Sin subtotal, la base es el total menos la propina y los impuestos.
+    expense.subtotal, expense.tip_amount = None, Decimal("12000")
+    base_from_total = next(f for f in _evaluate(PolicyContext(expense, [], company, advance), []).findings)
+    assert base_from_total.detail["suggested"] == "10300.00"
+
+
+def test_electronic_invoice_without_fiscal_id_goes_to_accounting() -> None:
+    company, *_, advance, expense = _setup(document_type=DocumentType.ELECTRONIC_INVOICE)
+    result = _evaluate(PolicyContext(expense, [], company, advance), [])
+    assert _codes(result) == {"missing_fiscal_id"} and result.findings[0].action == PolicyAction.REVIEW
+    expense.fiscal_id = "a" * 96
+    assert _codes(_evaluate(PolicyContext(expense, [], company, advance), [])) == set()
+    expense.fiscal_id, expense.country = None, "US"
+    assert _codes(_evaluate(PolicyContext(expense, [], company, advance), [])) == set()
+
+
+def test_legalization_due_one_month_after_the_return() -> None:
+    company, approver, employee, advance, _ = _setup()
+    assert advance.legalization_due is None and not advance.is_overdue(date(2027, 1, 1))
+    advance.legalization_due = add_months(date(2026, 1, 31), 1)
+    assert advance.legalization_due == date(2026, 2, 28) and add_months(date(2026, 11, 15), 2) == date(2027, 1, 15)
+    assert not advance.is_overdue(date(2026, 2, 28)) and advance.is_overdue(date(2026, 3, 1))
+
+
 def test_effective_rules_merge_defaults_and_overrides() -> None:
     company = Company("Forsa", "CO", "COP")
     rules = {r.rule_type: r for r in effective_rules([PolicyRuleConfig(company.id, "duplicate", PolicyAction.BLOCK)], DEFAULTS)}
     assert rules["duplicate"].action == PolicyAction.BLOCK and rules["duplicate"].customized
-    assert rules["outside_trip_dates"].params == {"tolerance_days": 1} and not rules["outside_trip_dates"].customized
+    assert (
+        rules["outside_trip_dates"].params == {"days_before": 0, "days_after": 1} and not rules["outside_trip_dates"].customized
+    )
 
 
 def test_confirmation_needs_justification_or_review_when_blocked() -> None:

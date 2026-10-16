@@ -106,21 +106,27 @@ aplica código determinístico**: cada hallazgo guarda la regla, la acción y lo
 dispararon (auditable y repetible). Sin RAG para aplicar políticas.
 
 Contabilidad configura por compañía (`PUT /api/v1/companies/{id}/policy-rules`) la **acción** de
-cada regla (`warn`, `require_justification`, `block`), sus **parámetros** y si está activa:
+cada regla (`warn`, `require_justification`, `review`, `block`), sus **parámetros** y si está activa.
+`review` no frena al viajero: el gasto queda marcado para que contabilidad lo decida al cerrar.
 
 | Regla | Detecta | Parámetros | Acción por defecto |
 |---|---|---|---|
 | `duplicate` | Misma factura en toda la compañía (CUFE, NIT + número, proveedor + fecha + total, o el mismo archivo). Al usuario no se le dice de quién | — | justificar |
 | `blocked_concept` | Líneas con conceptos bloqueados (licor, minibar, tabaco…). Con confianza baja solo alerta | `min_confidence` | justificar |
-| `outside_trip_dates` | Fecha fuera del viaje | `tolerance_days` | justificar |
+| `outside_trip_dates` | Fecha fuera del viaje | `days_before` (0), `days_after` (1) | revisión de contabilidad |
 | `missing_tax_id` | Sin NIT o con dígito de verificación inválido → tercero genérico de la compañía | — | alerta |
-| `non_fiscal_document` | Recibos de caja / notas: datos mínimos y topes por recibo, mensual y anual por empleado | `required_fields`, `max_per_receipt`, `max_monthly`, `max_yearly` | justificar |
-| `buyer_not_company` | Factura electrónica que no está a nombre de la compañía del anticipo (consumidor final, cédula, otra empresa) o a nombre de otra compañía del grupo. No aplica a facturas del exterior | — | alerta |
+| `non_fiscal_document` | Recibos de caja / notas: datos mínimos, firma de quien vende y topes por recibo, mensual y anual por empleado | `required_fields`, `max_per_receipt`, `max_monthly`, `max_yearly` | justificar |
+| `buyer_not_company` | Factura electrónica que no está a nombre de la compañía del anticipo (consumidor final, cédula, otra empresa) o a nombre de otra compañía del grupo. No aplica a facturas del exterior | — | revisión de contabilidad |
+| `missing_fiscal_id` | Factura electrónica sin CUFE / UUID / chave en los países que lo exigen | `countries` | revisión de contabilidad |
+| `excessive_tip` | Propina por encima de la sugerida; el exceso se sugiere como no reembolsable | `suggested_pct` (10) | revisión de contabilidad |
 | `itemized_required` | Facturas sin detalle por encima de un valor | `above_amount` | alerta |
 | `low_confidence` | La IA no está segura | `threshold` | alerta |
 
 - **Conceptos bloqueados** por compañía (`/companies/{id}/blocked-concepts`): código, nombre,
-  descripción y ejemplos. Toda compañía nueva arranca con alcohol, minibar y tabaco.
+  descripción y ejemplos. Toda compañía nueva arranca con licores, minibar, tabaco, entretenimiento
+  (películas, cine) y spa.
+- **Plazo de legalización:** al aprobarse, el anticipo recibe `legalization_due` (regreso +
+  `legalization.deadline_months`, 1 mes por defecto); después, `overdue` es verdadero.
 - **Concepto bloqueado dentro de una factura** (hotel + minibar): se sugiere como no reembolsable la
   línea más su parte proporcional de impuestos; el **aprobador decide** (`POST /expenses/{id}/review`):
   aceptar sin la línea, aceptar completo (con nota) o rechazar. Nadie revisa lo propio.

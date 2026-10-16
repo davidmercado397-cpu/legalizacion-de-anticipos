@@ -393,7 +393,7 @@ class WhatsAppLinkCode:
         return self.used_at is None and self.expires_at > now and self.attempts < max_attempts
 
 
-def advance_for_date(advances: list[Advance], day: date | None, tolerance_days: int) -> Advance | None:
+def advance_for_date(advances: list[Advance], day: date | None, days_before: int, days_after: int) -> Advance | None:
     """El anticipo al que corresponde una factura por su fecha: con uno solo abierto, ese; con varios,
     el único cuyo viaje cubre la fecha (primero exacta, luego con la tolerancia). Si hay empate, ninguno."""
     if len(advances) == 1:
@@ -401,8 +401,8 @@ def advance_for_date(advances: list[Advance], day: date | None, tolerance_days: 
     if day is None:
         return None
     dated = [a for a in advances if a.start_date and a.end_date]
-    for margin in sorted({0, tolerance_days}):
-        matches = [a for a in dated if a.covers(day, margin)]
+    for before, after in sorted({(0, 0), (days_before, days_after)}):
+        matches = [a for a in dated if a.covers(day, before, after)]
         if matches:
             return matches[0] if len(matches) == 1 else None
     return None
@@ -511,6 +511,7 @@ class Advance:
     settlement_method: SettlementMethod | None = None
     settlement_ref: str | None = None
     reminders_sent: list[int] = field(default_factory=list)  # días tras el viaje ya recordados
+    legalization_due: date | None = None  # plazo para legalizar: se fija al aprobarse (decisión 2.5)
     id: uuid.UUID = field(default_factory=uuid.uuid4)
     created_at: datetime = field(default_factory=utcnow)
 
@@ -520,6 +521,10 @@ class Advance:
         if self.start_date and self.end_date and self.end_date < self.start_date:
             raise InvalidOperationError("End date before start date", code="end_before_start")
         self.currency = self.currency.upper()
+
+    def is_overdue(self, today: date) -> bool:
+        """Aprobado y sin enviar la legalización después del plazo."""
+        return self.status == AdvanceStatus.APPROVED and self.legalization_due is not None and today > self.legalization_due
 
     @property
     def accepts_expenses(self) -> bool:
@@ -531,11 +536,11 @@ class Advance:
             return f"{self.destination} {self.start_date:%d/%m}–{self.end_date:%d/%m}"
         return self.destination or self.purpose
 
-    def covers(self, day: date | None, tolerance_days: int = 0) -> bool:
+    def covers(self, day: date | None, days_before: int = 0, days_after: int = 0) -> bool:
+        """Decisión 2.1: las facturas van desde el día de salida hasta 1 día después del regreso."""
         if day is None or self.start_date is None or self.end_date is None:
             return True
-        margin = timedelta(days=tolerance_days)
-        return self.start_date - margin <= day <= self.end_date + margin
+        return self.start_date - timedelta(days=days_before) <= day <= self.end_date + timedelta(days=days_after)
 
     def approve(self, approver: Employee, requester: Employee, delegated_from: frozenset[uuid.UUID] = frozenset()) -> bool:
         """Aprueba el paso que le toca; devuelve True si con eso la solicitud quedó aprobada. Si aprueba un
@@ -810,6 +815,7 @@ class Expense:
     notified_at: datetime | None = None
     notification_batch_id: uuid.UUID | None = None
     duplicate_of_id: uuid.UUID | None = None  # el mismo empleado ya la había registrado: se descarta sola
+    receipt_signed: bool = False  # recibo de caja: el empleado declara que lo firmó quien vendió (decisión 5.6)
     id: uuid.UUID = field(default_factory=uuid.uuid4)
     created_at: datetime = field(default_factory=utcnow)
     updated_at: datetime = field(default_factory=utcnow)

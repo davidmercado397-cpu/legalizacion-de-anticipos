@@ -90,13 +90,19 @@ class MissingTaxIdRule(PolicyRule):
         return [Finding(self.rule_type, action, code, {"generic_tax_id": ctx.company.generic_tax_id})]
 
 
+def trip_margins(params: dict[str, Any]) -> tuple[int, int]:
+    """Días aceptados antes de la salida y después del regreso (antes era una sola tolerancia simétrica)."""
+    legacy = int(params.get("tolerance_days", 0))
+    return int(params.get("days_before", legacy)), int(params.get("days_after", legacy))
+
+
 class OutsideTripDatesRule(PolicyRule):
     rule_type = "outside_trip_dates"
 
     def evaluate(self, ctx: PolicyContext, params: dict[str, Any], action: PolicyAction) -> list[Finding]:
         if ctx.advance is None or ctx.expense.invoice_date is None:
             return []
-        if ctx.advance.covers(ctx.expense.invoice_date, int(params["tolerance_days"])):
+        if ctx.advance.covers(ctx.expense.invoice_date, *trip_margins(params)):
             return []
         detail = {
             "invoice_date": str(ctx.expense.invoice_date),
@@ -176,6 +182,8 @@ class NonFiscalDocumentRule(PolicyRule):
         ]
         if missing:
             findings.append(Finding(self.rule_type, action, "receipt_missing_data", {"fields": missing}))
+        if not e.receipt_signed:
+            findings.append(Finding(self.rule_type, action, "receipt_not_signed"))
         if e.total is None or e.currency != ctx.company.currency:
             return findings
         checks = (
@@ -212,6 +220,42 @@ class BuyerNotCompanyRule(PolicyRule):
         return [Finding(self.rule_type, action, "invoice_not_to_company", detail)]
 
 
+class MissingFiscalIdRule(PolicyRule):
+    """Factura electrónica sin CUFE (Colombia), UUID (México) o chave de acesso (Brasil): la decide contabilidad
+    (decisión 5.3). Los tiquetes POS no lo traen y se aceptan (5.7). Solo aplica en los países de `countries`,
+    donde la factura electrónica siempre lo trae."""
+
+    rule_type = "missing_fiscal_id"
+
+    def evaluate(self, ctx: PolicyContext, params: dict[str, Any], action: PolicyAction) -> list[Finding]:
+        e = ctx.expense
+        if e.document_type != DocumentType.ELECTRONIC_INVOICE or (e.fiscal_id or "").strip():
+            return []
+        if e.country not in (params.get("countries") or ()):
+            return []
+        return [Finding(self.rule_type, action, "missing_fiscal_id")]
+
+
+class ExcessiveTipRule(PolicyRule):
+    """La propina se acepta hasta la sugerida (decisión 3.3, en Colombia el 10 % del consumo); el exceso
+    queda como no reembolsable si contabilidad acepta el gasto sin lo no permitido."""
+
+    rule_type = "excessive_tip"
+
+    def evaluate(self, ctx: PolicyContext, params: dict[str, Any], action: PolicyAction) -> list[Finding]:
+        e = ctx.expense
+        pct = _dec(params.get("suggested_pct"))
+        if pct is None or not e.tip_amount or e.tip_amount <= 0 or e.total is None:
+            return []
+        base = e.subtotal if e.subtotal is not None else e.total - e.tip_amount - (e.tax_amount or Decimal(0))
+        suggested = (base * pct / 100).quantize(Decimal("0.01"))
+        if base <= 0 or e.tip_amount <= suggested:
+            return []
+        excess = e.tip_amount - suggested
+        detail = {"tip": str(e.tip_amount), "suggested": str(suggested), "excess": str(excess), "pct": str(pct)}
+        return [Finding(self.rule_type, action, "excessive_tip", detail)]
+
+
 class ItemizedRequiredRule(PolicyRule):
     rule_type = "itemized_required"
 
@@ -242,6 +286,8 @@ RULES: dict[str, PolicyRule] = {
         BlockedConceptRule(),
         NonFiscalDocumentRule(),
         BuyerNotCompanyRule(),
+        MissingFiscalIdRule(),
+        ExcessiveTipRule(),
         ItemizedRequiredRule(),
         LowConfidenceRule(),
     )
@@ -289,19 +335,24 @@ class PolicyEngine:
 
     @staticmethod
     def _suggested_non_reimbursable(ctx: PolicyContext, findings: list[Finding]) -> Decimal | None:
-        """Líneas bloqueadas más su parte de impuestos y propina: total × (líneas bloqueadas / todas las líneas)."""
+        """Líneas bloqueadas más su parte de impuestos y propina (total × líneas bloqueadas / todas las líneas),
+        más la propina que pasa de la sugerida."""
+        total = ctx.expense.total
+        if not total:
+            return None
+        tip_excess = sum((Decimal(f.detail["excess"]) for f in findings if f.code == "excessive_tip"), Decimal(0))
         blocked_positions = {
             item["position"] for f in findings if f.code == "blocked_concept" for item in f.detail.get("lines", [])
         }
-        total = ctx.expense.total
         amounts = [line.amount for line in ctx.lines if line.amount is not None]
-        if not blocked_positions or not total or not amounts:
-            return None
         lines_sum = sum(amounts, Decimal(0))
-        blocked_sum = sum((line.amount or Decimal(0) for line in ctx.lines if line.position in blocked_positions), Decimal(0))
-        if lines_sum <= 0:
+        blocked = Decimal(0)
+        if blocked_positions and lines_sum > 0:
+            blocked_sum = sum((line.amount or Decimal(0) for line in ctx.lines if line.position in blocked_positions), Decimal(0))
+            blocked = (total * blocked_sum / lines_sum).quantize(Decimal("0.01"))
+        if not blocked and not tip_excess:
             return None
-        return min(total, (total * blocked_sum / lines_sum).quantize(Decimal("0.01")))
+        return min(total, blocked + tip_excess)
 
 
 def suggest_deductibility(ctx: PolicyContext, findings: list[Finding]) -> Deductibility:

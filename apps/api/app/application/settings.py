@@ -69,6 +69,7 @@ class RuntimeSettings:
     usage_price_currency: str = _key("usage.price_currency")
     learning_similarity: float = _key("learning.similarity")
     learning_prompt_examples: int = _key("learning.prompt_examples")
+    legalization_deadline_months: int = _key("legalization.deadline_months")
 
     @classmethod
     def setting_keys(cls) -> list[str]:

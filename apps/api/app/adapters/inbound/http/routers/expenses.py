@@ -101,7 +101,12 @@ async def correct_expense(
 @router.post("/{expense_id}/confirm", response_model=ExpenseOut)
 async def confirm_expense(expense_id: uuid.UUID, body: ConfirmIn, actor: CurrentEmployee, container: ContainerDep) -> ExpenseOut:
     expense = await container.expenses.confirm(
-        actor, expense_id, body.advance_id, body.amount_applied, justification=body.justification
+        actor,
+        expense_id,
+        body.advance_id,
+        body.amount_applied,
+        justification=body.justification,
+        receipt_signed=body.receipt_signed,
     )
     return expense_out(expense)
 

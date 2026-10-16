@@ -6,6 +6,7 @@ from decimal import Decimal
 from typing import Any
 
 from app.domain.ports import FlowMessage
+from app.domain.values import InvoiceLine
 from tests.conftest import Harness, wa_message
 from tests.fakes import invoice
 from tests.integration.test_whatsapp_menu import PHONE, Chat, _scenario
@@ -52,14 +53,19 @@ async def test_correct_button_opens_the_flow_prefilled_and_its_reply_corrects_an
 async def test_justification_flow_confirms_with_the_reason(harness: Harness) -> None:
     juan, _, emp_h, _ = await _scenario(harness)
     await _configure_flows(harness)
-    # Fuera de las fechas del viaje (12 al 15 de octubre): la política pide justificación.
-    harness.extractor.respond = lambda _r, _n: [invoice(invoice_date=date(2026, 9, 1))]
+    # Fuera de las fechas del viaje (12 al 15 de octubre) solo lo revisa contabilidad; el licor pide justificación.
+    harness.extractor.respond = lambda _r, _n: [
+        invoice(
+            invoice_date=date(2026, 9, 1),
+            lines=(InvoiceLine("Cerveza", Decimal("45000"), concept_code="alcohol", concept_confidence=0.9),),
+        )
+    ]
     await juan.photo(1)
     detail = juan.last("buttons")
     assert detail.extra[0].title == "✍️ Justificar"
     await juan.tap(detail.extra[0].id)
     flow = _flow(juan)
-    assert flow.screen == "JUSTIFY" and "fuera de las fechas del viaje" in flow.data["reason"]
+    assert flow.screen == "JUSTIFY" and "Incluye" in flow.data["reason"]
 
     await flow_reply(harness, juan, {"flow_token": flow.token, "justification": "Compra del viaje anterior"})
     assert juan.last("text").text.startswith("✅ Gasto confirmado.")

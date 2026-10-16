@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Callable
-from datetime import date, datetime, time
+from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -390,6 +390,8 @@ class AdvanceOut(Model):
     budget_breakdown: list[dict[str, Any]]
     budget_justification: str | None
     approval_steps: list[ApprovalStepOut] = Field(description="Ruta de aprobación; vacía en solicitudes anteriores")
+    legalization_due: date | None = Field(description="Plazo para enviar la legalización")
+    overdue: bool = Field(description="Aprobado y sin enviar la legalización después del plazo")
     escalation_reasons: list[EscalationReasonOut] = Field(description="Por qué necesita al jefe directivo")
     decided_by: uuid.UUID | None
     decided_at: datetime | None
@@ -484,6 +486,7 @@ class ExpenseOut(Model):
     duplicate_of_id: uuid.UUID | None = Field(
         description="El empleado ya había registrado esta factura: se descartó sola y este es el gasto original"
     )
+    receipt_signed: bool = Field(description="Recibo de caja: el empleado declaró que lo firmó quien vendió")
     file: FileOut | None = Field(default=None, description="URLs firmadas de corta duración del original y la miniatura")
 
 
@@ -590,6 +593,7 @@ class ExpensePatch(BaseModel):
 
 
 class ConfirmIn(BaseModel):
+    receipt_signed: bool | None = Field(default=None, description="Recibo de caja: lo firmó quien vendió")
     advance_id: uuid.UUID | None = None
     amount_applied: Decimal | None = Field(default=None, gt=0, max_digits=16, decimal_places=2)
     justification: str | None = Field(default=None, max_length=1000)
@@ -723,8 +727,9 @@ def company_out(c: Company) -> CompanyOut:
 
 def advance_out(a: Advance) -> AdvanceOut:
     reasons = [EscalationReasonOut(code=r["code"], message=escalation_text(r, a.currency)) for r in a.escalation_reasons]
-    data = {f: getattr(a, f) for f in AdvanceOut.model_fields if f != "escalation_reasons"}
-    return AdvanceOut.model_validate({**data, "escalation_reasons": reasons})
+    data = {f: getattr(a, f) for f in AdvanceOut.model_fields if f not in ("escalation_reasons", "overdue")}
+    overdue = a.is_overdue(datetime.now(UTC).date())
+    return AdvanceOut.model_validate({**data, "escalation_reasons": reasons, "overdue": overdue})
 
 
 def expense_out(e: Expense) -> ExpenseOut:

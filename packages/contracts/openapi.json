@@ -312,6 +312,24 @@
           "kind": {
             "$ref": "#/components/schemas/AdvanceKind"
           },
+          "legalization_due": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Plazo para enviar la legalización",
+            "title": "Legalization Due"
+          },
+          "overdue": {
+            "description": "Aprobado y sin enviar la legalización después del plazo",
+            "title": "Overdue",
+            "type": "boolean"
+          },
           "purpose": {
             "title": "Purpose",
             "type": "string"
@@ -428,6 +446,8 @@
           "budget_breakdown",
           "budget_justification",
           "approval_steps",
+          "legalization_due",
+          "overdue",
           "escalation_reasons",
           "decided_by",
           "decided_at",
@@ -824,6 +844,24 @@
           "kind": {
             "$ref": "#/components/schemas/AdvanceKind"
           },
+          "legalization_due": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Plazo para enviar la legalización",
+            "title": "Legalization Due"
+          },
+          "overdue": {
+            "description": "Aprobado y sin enviar la legalización después del plazo",
+            "title": "Overdue",
+            "type": "boolean"
+          },
           "purpose": {
             "title": "Purpose",
             "type": "string"
@@ -940,6 +978,8 @@
           "budget_breakdown",
           "budget_justification",
           "approval_steps",
+          "legalization_due",
+          "overdue",
           "escalation_reasons",
           "decided_by",
           "decided_at",
@@ -1209,6 +1249,24 @@
           "kind": {
             "$ref": "#/components/schemas/AdvanceKind"
           },
+          "legalization_due": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Plazo para enviar la legalización",
+            "title": "Legalization Due"
+          },
+          "overdue": {
+            "description": "Aprobado y sin enviar la legalización después del plazo",
+            "title": "Overdue",
+            "type": "boolean"
+          },
           "purpose": {
             "title": "Purpose",
             "type": "string"
@@ -1325,6 +1383,8 @@
           "budget_breakdown",
           "budget_justification",
           "approval_steps",
+          "legalization_due",
+          "overdue",
           "escalation_reasons",
           "decided_by",
           "decided_at",
@@ -2802,6 +2862,18 @@
               }
             ],
             "title": "Justification"
+          },
+          "receipt_signed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Recibo de caja: lo firmó quien vendió",
+            "title": "Receipt Signed"
           }
         },
         "title": "ConfirmIn",
@@ -4149,6 +4221,11 @@
             ],
             "title": "Processed At"
           },
+          "receipt_signed": {
+            "description": "Recibo de caja: el empleado declaró que lo firmó quien vendió",
+            "title": "Receipt Signed",
+            "type": "boolean"
+          },
           "reported_at": {
             "description": "Cuándo lo envió el usuario (hora del mensaje de WhatsApp o de la app)",
             "format": "date-time",
@@ -4405,6 +4482,7 @@
           "return_note",
           "return_resolved_at",
           "duplicate_of_id",
+          "receipt_signed",
           "lines"
         ],
         "title": "ExpenseDetailOut",
@@ -4932,6 +5010,11 @@
             ],
             "title": "Processed At"
           },
+          "receipt_signed": {
+            "description": "Recibo de caja: el empleado declaró que lo firmó quien vendió",
+            "title": "Receipt Signed",
+            "type": "boolean"
+          },
           "reported_at": {
             "description": "Cuándo lo envió el usuario (hora del mensaje de WhatsApp o de la app)",
             "format": "date-time",
@@ -5187,7 +5270,8 @@
           "confirmed_by",
           "return_note",
           "return_resolved_at",
-          "duplicate_of_id"
+          "duplicate_of_id",
+          "receipt_signed"
         ],
         "title": "ExpenseOut",
         "type": "object"
@@ -6584,7 +6668,8 @@
         "enum": [
           "warn",
           "require_justification",
-          "block"
+          "block",
+          "review"
         ],
         "title": "PolicyAction",
         "type": "string"

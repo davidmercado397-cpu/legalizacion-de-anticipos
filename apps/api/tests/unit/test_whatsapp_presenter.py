@@ -152,11 +152,14 @@ def test_advance_for_date_prefers_the_exact_trip_and_avoids_ties() -> None:
     cali = _advance("Cali", date(2026, 10, 20), date(2026, 10, 22))
     undated = _advance("Bogotá", None, None)
     both = [medellin, cali, undated]
-    assert advance_for_date([undated], None, 0) is undated
-    assert advance_for_date(both, date(2026, 10, 21), 2) is cali
-    assert advance_for_date(both, date(2026, 10, 17), 2) is medellin  # con la tolerancia
-    assert advance_for_date(both, date(2026, 10, 18), 3) is None  # empate: el usuario elige
-    assert advance_for_date(both, None, 2) is None
+    assert advance_for_date([undated], None, 0, 0) is undated
+    assert advance_for_date(both, date(2026, 10, 21), 2, 2) is cali
+    assert advance_for_date(both, date(2026, 10, 17), 2, 2) is medellin  # con la tolerancia
+    assert advance_for_date(both, date(2026, 10, 18), 3, 3) is None  # empate: el usuario elige
+    assert advance_for_date(both, None, 2, 2) is None
+    # Márgenes asimétricos: ninguno antes de la salida y uno después del regreso.
+    assert advance_for_date(both, date(2026, 10, 11), 0, 1) is None
+    assert advance_for_date(both, date(2026, 10, 16), 0, 1) is medellin
 
 
 def test_menu_greeting_and_advances_list() -> None:

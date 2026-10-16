@@ -1490,6 +1490,16 @@ export interface components {
              */
             id: string;
             kind: components["schemas"]["AdvanceKind"];
+            /**
+             * Legalization Due
+             * @description Plazo para enviar la legalización
+             */
+            legalization_due: string | null;
+            /**
+             * Overdue
+             * @description Aprobado y sin enviar la legalización después del plazo
+             */
+            overdue: boolean;
             /** Purpose */
             purpose: string;
             /** Returned At */
@@ -1621,6 +1631,16 @@ export interface components {
              */
             id: string;
             kind: components["schemas"]["AdvanceKind"];
+            /**
+             * Legalization Due
+             * @description Plazo para enviar la legalización
+             */
+            legalization_due: string | null;
+            /**
+             * Overdue
+             * @description Aprobado y sin enviar la legalización después del plazo
+             */
+            overdue: boolean;
             /** Purpose */
             purpose: string;
             /** Returned At */
@@ -1711,6 +1731,16 @@ export interface components {
              */
             id: string;
             kind: components["schemas"]["AdvanceKind"];
+            /**
+             * Legalization Due
+             * @description Plazo para enviar la legalización
+             */
+            legalization_due: string | null;
+            /**
+             * Overdue
+             * @description Aprobado y sin enviar la legalización después del plazo
+             */
+            overdue: boolean;
             /** Purpose */
             purpose: string;
             /** Returned At */
@@ -2219,6 +2249,11 @@ export interface components {
             amount_applied?: number | string | null;
             /** Justification */
             justification?: string | null;
+            /**
+             * Receipt Signed
+             * @description Recibo de caja: lo firmó quien vendió
+             */
+            receipt_signed?: boolean | null;
         };
         /** ConversionOut */
         ConversionOut: {
@@ -2654,6 +2689,11 @@ export interface components {
             /** Processed At */
             processed_at: string | null;
             /**
+             * Receipt Signed
+             * @description Recibo de caja: el empleado declaró que lo firmó quien vendió
+             */
+            receipt_signed: boolean;
+            /**
              * Reported At
              * Format: date-time
              * @description Cuándo lo envió el usuario (hora del mensaje de WhatsApp o de la app)
@@ -2832,6 +2872,11 @@ export interface components {
             }[];
             /** Processed At */
             processed_at: string | null;
+            /**
+             * Receipt Signed
+             * @description Recibo de caja: el empleado declaró que lo firmó quien vendió
+             */
+            receipt_signed: boolean;
             /**
              * Reported At
              * Format: date-time
@@ -3335,7 +3380,7 @@ export interface components {
          * PolicyAction
          * @enum {string}
          */
-        PolicyAction: "warn" | "require_justification" | "block";
+        PolicyAction: "warn" | "require_justification" | "block" | "review";
         /** PolicyRuleIn */
         PolicyRuleIn: {
             action: components["schemas"]["PolicyAction"];

@@ -99,6 +99,7 @@ class PolicyAction(StrEnum):
     WARN = "warn"  # se le muestra al usuario y al aprobador, nada más
     REQUIRE_JUSTIFICATION = "require_justification"  # el usuario debe justificar antes de confirmar
     BLOCK = "block"  # el usuario no puede confirmar; decide el aprobador en la revisión
+    REVIEW = "review"  # no frena al empleado, pero contabilidad debe decidir antes de cerrar la legalización
 
 
 class Deductibility(StrEnum):

@@ -208,9 +208,12 @@ class ExpenseService:
         justification: str | None = None,
         keep_current_advance: bool = True,
         channel: Channel = Channel.API,
+        receipt_signed: bool | None = None,
     ) -> Expense:
         async with self._uow() as uow:
             expense = await self._owned(uow, actor, expense_id)
+            if receipt_signed is not None:
+                expense.receipt_signed = receipt_signed  # el empleado declara la firma del recibo (decisión 5.6)
             target = advance_id if advance_id is not None else (expense.advance_id if keep_current_advance else None)
             advance = await self._own_open_advance(uow, actor, target) if target else None
             if advance is not None and advance.id != expense.advance_id:

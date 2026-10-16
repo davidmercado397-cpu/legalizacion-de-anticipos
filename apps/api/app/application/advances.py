@@ -23,7 +23,7 @@ from app.domain.enums import AdvanceKind, AdvanceStatus, ApprovalLevel, Channel,
 from app.domain.errors import InvalidOperationError, NotFoundError, PermissionDeniedError, ValidationError
 from app.domain.permissions import Permission
 from app.domain.ports import AdvanceFilter, Clock, EmployeeFilter, Page, Paged, ScopeFilter, UnitOfWork, UnitOfWorkFactory
-from app.domain.time import local_date
+from app.domain.time import add_months, local_date
 
 
 @dataclass(frozen=True)
@@ -411,6 +411,10 @@ class AdvanceService:
             match action:
                 case "approve":
                     completed = advance.approve(actor, owner, delegated)
+                    if completed:
+                        # Decisión 2.5: un mes después del regreso (o de la aprobación si el viaje no tiene fechas).
+                        months = (await self._settings.current()).legalization_deadline_months
+                        advance.legalization_due = add_months(advance.end_date or local_date(now, "UTC"), months)
                 case "reject":
                     advance.reject(actor, owner, note, delegated)
                 case "close":

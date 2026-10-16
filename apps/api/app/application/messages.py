@@ -252,6 +252,9 @@ FINDING_LABELS = {
     "invoice_not_to_company": "La factura no está a nombre de {legal_name}: pídela con el NIT {tax_id} para que sea deducible",
     "invoice_to_other_group_company": "La factura está a nombre de {company}, otra compañía del grupo",
     "receipt_missing_data": "Al recibo le falta: {fields}. Complétalo",
+    "receipt_not_signed": "El recibo de caja debe estar firmado por quien te vendió",
+    "missing_fiscal_id": "La factura electrónica no trae el CUFE (o código de validación): la revisará contabilidad",
+    "excessive_tip": "La propina ({tip}) supera la sugerida ({suggested}): el exceso no es reembolsable",
 }
 NEEDS_JUSTIFICATION_HINT = "✍️ Necesita una justificación: complétala en la app"
 BLOCKED_HINT = "⛔ Bloqueado: lo revisará tu aprobador"
@@ -600,6 +603,9 @@ RETURN_SUGGESTIONS = {
     "invoice_not_to_company": "La factura no está a nombre de la compañía: pide que la emitan con su NIT.",
     "invoice_to_other_group_company": "La factura está a nombre de otra compañía del grupo: confirma a cuál corresponde.",
     "receipt_missing_data": "Al recibo le faltan datos: complétalos.",
+    "receipt_not_signed": "El recibo debe estar firmado por quien te vendió.",
+    "missing_fiscal_id": "La factura electrónica no trae el CUFE: confirma que sea una factura válida.",
+    "excessive_tip": "La propina supera la sugerida: el exceso no se reembolsa.",
     "owner_concept_override": "Cambiaste el concepto de una línea marcada como no reembolsable: explica por qué.",
 }
 RECEIPT_FIELD_LABELS = {
@@ -681,7 +687,7 @@ BUDGET_IMPORT_ISSUES = {
 RULE_DESCRIPTIONS = {
     "duplicate": "Factura repetida en la compañía: mismo CUFE, mismo NIT y número, mismo proveedor, fecha y total, o la misma foto.",
     "missing_tax_id": "La factura no tiene NIT o el dígito de verificación no cuadra; se registra con el tercero genérico.",
-    "outside_trip_dates": "La fecha de la factura está fuera de las fechas del anticipo (con días de tolerancia).",
+    "outside_trip_dates": "La fecha de la factura está fuera del viaje: se aceptan desde la salida hasta 1 día después del regreso.",
     "blocked_concept": "Líneas con un concepto no reembolsable (licor, minibar…); si la IA no está segura, solo alerta.",
     "non_fiscal_document": "Topes para recibos de caja y notas a mano: por recibo y acumulado por empleado al mes y al año.",
     "itemized_required": "Facturas por encima de un valor deben detallar los productos.",
@@ -690,4 +696,6 @@ RULE_DESCRIPTIONS = {
         "se alerta para reclasificarla. No aplica a facturas del exterior."
     ),
     "low_confidence": "La IA no está segura del proveedor, la fecha o el total.",
+    "missing_fiscal_id": "Factura electrónica sin CUFE, UUID o chave de acesso: la decide contabilidad.",
+    "excessive_tip": "Propina por encima de la sugerida (porcentaje del consumo); el exceso no es reembolsable.",
 }

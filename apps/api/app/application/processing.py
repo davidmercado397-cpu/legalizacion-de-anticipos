@@ -20,7 +20,7 @@ from app.application.settings import SettingsService
 from app.domain.entities import Expense, ExpenseLine, ExtractionAttempt, advance_for_date
 from app.domain.enums import ExpenseSource, ExpenseStatus, ExpenseWarning, UnreadableReason
 from app.domain.errors import ServiceNotConfiguredError
-from app.domain.policies import effective_rules
+from app.domain.policies import effective_rules, trip_margins
 from app.domain.ports import Clock, ExtractionContext, FileStorage, MediaSource, UnitOfWork, UnitOfWorkFactory
 from app.domain.text import normalize_line_text
 from app.domain.time import local_date
@@ -201,10 +201,10 @@ class ExpenseProcessor:
         """Con un solo anticipo abierto, o con varios si la fecha de la factura cae en uno solo, se asigna
         solo (el usuario lo puede cambiar); si no, el aviso le pide que elija."""
         open_advances = await uow.advances.list_open_for(employee_id)
-        tolerance = await self._date_tolerance(uow, expenses[0].company_id) if expenses and len(open_advances) > 1 else 0
+        margins = await self._date_margins(uow, expenses[0].company_id) if expenses and len(open_advances) > 1 else (0, 0)
         for expense in expenses:
             if expense.advance_id is None:
-                target = advance_for_date(open_advances, expense.invoice_date, tolerance)
+                target = advance_for_date(open_advances, expense.invoice_date, *margins)
                 if target is not None:
                     expense.assign_to(target)
             target = next((a for a in open_advances if a.id == expense.advance_id), None)
@@ -212,15 +212,15 @@ class ExpenseProcessor:
             if target and expense.currency and expense.currency != target.currency:
                 expense.warnings = sorted({*expense.warnings, ExpenseWarning.CURRENCY_MISMATCH.value})
 
-    async def _date_tolerance(self, uow: UnitOfWork, company_id: uuid.UUID | None) -> int:
-        """La misma tolerancia de días que usa la regla de fechas fuera del viaje de la compañía."""
+    async def _date_margins(self, uow: UnitOfWork, company_id: uuid.UUID | None) -> tuple[int, int]:
+        """Los mismos días antes y después del viaje que usa la regla de fechas fuera del viaje."""
         if company_id is None:
-            return 0
+            return 0, 0
         defaults = (await self._settings.current()).policy_rule_defaults
         for rule in effective_rules(await uow.policy_rules.list_for_company(company_id), defaults):
             if rule.rule_type == "outside_trip_dates" and rule.active:
-                return int(rule.params.get("tolerance_days", 0))
-        return 0
+                return trip_margins(rule.params)
+        return 0, 0
 
 
 def _lines_for(expense: Expense, doc: InvoiceData, valid_codes: set[str]) -> list[ExpenseLine]:

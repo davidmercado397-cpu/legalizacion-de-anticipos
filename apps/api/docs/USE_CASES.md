@@ -21,7 +21,7 @@ Canales: **App** (frontend), **WA** (WhatsApp) y **Sistema** (tareas automática
 | E9 | Ver el estado de lectura de sus facturas | App | `GET /expenses?updated_since=…` |
 | E10 | Corregir lo que leyó la IA (datos, impuestos, categoría; por WA: proveedor, NIT, número, fecha, total y categoría) | App / WA (Flow) | `PATCH /expenses/{id}` |
 | E11 | Corregir el concepto de una línea | App | `GET /expenses/{id}/lines`, `PATCH /expenses/{id}/lines/{line_id}` |
-| E12 | Confirmar un gasto (con justificación si la política la pide; tasa automática o valor propio si es otra moneda) | App / WA (botón; justificación con Flow) | `POST /expenses/{id}/confirm` |
+| E12 | Confirmar un gasto (con justificación si la política la pide; firma del recibo de caja; tasa automática o valor propio si es otra moneda) | App / WA (botón; justificación con Flow) | `POST /expenses/{id}/confirm` |
 | E13 | Descartar un gasto | App / WA (🧾 Mis gastos) | `POST /expenses/{id}/discard` |
 | E14 | Ver la foto original | App | `GET /expenses/{id}/file` (redirige a URL firmada) o `file.url` del gasto |
 | E15 | Ver el detalle de su legalización con fotos, líneas y fechas | App | `GET /advances/{id}` |

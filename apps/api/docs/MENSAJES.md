@@ -152,6 +152,9 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `invoice_not_to_company` | La factura no está a nombre de {legal_name}: pídela con el NIT {tax_id} para que sea deducible |
 | `invoice_to_other_group_company` | La factura está a nombre de {company}, otra compañía del grupo |
 | `receipt_missing_data` | Al recibo le falta: {fields}. Complétalo |
+| `receipt_not_signed` | El recibo de caja debe estar firmado por quien te vendió |
+| `missing_fiscal_id` | La factura electrónica no trae el CUFE (o código de validación): la revisará contabilidad |
+| `excessive_tip` | La propina ({tip}) supera la sugerida ({suggested}): el exceso no es reembolsable |
 
 ## Advertencias de lectura
 

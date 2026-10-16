@@ -99,7 +99,14 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
   guarda sus pasos; escala al jefe directivo (el jefe del jefe) si supera el presupuesto más la
   tolerancia o el monto de `companies.approval_*` (lo configura contabilidad); el nivel superior aprueba
   sin esperar; sin jefe, gerencia. Las solicitudes anteriores (sin pasos) conservan la regla anterior.
-- **Pendiente:** aplicar `docs/decisiones-confirmadas.md` (conciliación bancaria, reglas de propina/CUFE/fechas/plazo/firma, multidestino
+- Reglas confirmadas (migración 0016): acción `review` (no frena al viajero; la decide contabilidad al
+  cerrar), fechas con `days_before`/`days_after` (0 y 1; `tolerance_days` sigue como respaldo, también para
+  elegir el anticipo por fecha), `missing_fiscal_id` (factura electrónica sin CUFE/UUID en `countries`),
+  `excessive_tip` (propina sobre `suggested_pct` del consumo; el exceso suma a lo no reembolsable),
+  `receipt_not_signed` dentro de `non_fiscal_document` (`expenses.receipt_signed`, se declara al confirmar),
+  plazo de legalización (`advances.legalization_due` = regreso + `legalization.deadline_months`, al aprobarse;
+  `overdue` se calcula en la respuesta) y conceptos excluidos nuevos (entretenimiento, spa, más licores).
+- **Pendiente:** aplicar `docs/decisiones-confirmadas.md` (conciliación bancaria, multidestino
   con tarifas por cargo y país, integración con Siesa). Preguntas abiertas a Forsa: el tercero genérico de Panamá
   (`fiscal.generic_buyer_ids.PA` está vacío) y si los recibos de caja deben traer nombre e
   identificación de quien vende (`required_fields`). Plantillas que Forsa aprueba en Meta:

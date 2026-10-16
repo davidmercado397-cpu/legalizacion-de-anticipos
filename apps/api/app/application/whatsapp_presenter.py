@@ -285,6 +285,8 @@ def finding_text(finding: dict[str, Any], fmt: NumberFormat) -> str | None:
         "tax_id": detail.get("tax_id") or "",
         "company": detail.get("company") or "",
         "fields": ", ".join(msg.RECEIPT_FIELD_LABELS.get(f, f) for f in detail.get("fields") or []),
+        "tip": msg.money(_decimal(detail.get("tip")), None, fmt) if detail.get("tip") else "—",
+        "suggested": msg.money(_decimal(detail.get("suggested")), None, fmt) if detail.get("suggested") else "—",
     }
     return template.format(**values)
 

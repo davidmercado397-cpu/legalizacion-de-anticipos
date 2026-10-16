@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+from datetime import date
 from decimal import Decimal
 
 from openpyxl import load_workbook
@@ -17,6 +18,7 @@ HOTEL = dict(
     document_type=DocumentType.ELECTRONIC_INVOICE,
     vendor_name="Hotel Dann",
     invoice_number="FE-4521",
+    fiscal_id="a" * 96,
     category="lodging",
     subtotal=Decimal("564000"),
     tax_amount=Decimal("107160"),
@@ -73,7 +75,13 @@ async def test_minibar_needs_justification_then_accounting_reviews(harness: Harn
     lines = (await harness.client.get(f"/api/v1/expenses/{expense['id']}/lines", headers=emp_h)).json()["data"]
     assert [line["final_concept_code"] for line in lines] == [None, "minibar"]
     # La IA recibió los conceptos de la compañía en el contexto apto para caché.
-    assert {c.code for c in harness.extractor.calls[0].context.blocked_concepts} == {"alcohol", "minibar", "tobacco"}
+    assert {c.code for c in harness.extractor.calls[0].context.blocked_concepts} == {
+        "alcohol",
+        "minibar",
+        "tobacco",
+        "entertainment",
+        "spa",
+    }
 
     missing = await harness.client.post(f"/api/v1/expenses/{expense['id']}/confirm", headers=emp_h, json={})
     assert missing.status_code == 409 and missing.json()["error"]["code"] == "justification_required"
@@ -161,11 +169,11 @@ async def test_accounting_configures_rules_and_concepts(harness: Harness) -> Non
 
     concepts_url = f"/api/v1/companies/{company.id}/blocked-concepts"
     created = await harness.client.post(
-        concepts_url, headers=acc_h, json={"code": "spa", "name": "Spa y masajes", "examples": ["masaje", "spa"]}
+        concepts_url, headers=acc_h, json={"code": "golf", "name": "Golf", "examples": ["green fee", "golf"]}
     )
     assert created.status_code == 201
-    assert (await harness.client.post(concepts_url, headers=acc_h, json={"code": "spa", "name": "Otro"})).status_code == 409
-    assert len((await harness.client.get(concepts_url, headers=emp_h)).json()["data"]) == 4
+    assert (await harness.client.post(concepts_url, headers=acc_h, json={"code": "golf", "name": "Otro"})).status_code == 409
+    assert len((await harness.client.get(concepts_url, headers=emp_h)).json()["data"]) == 6
 
     harness.extractor.respond = lambda _r, _n: [invoice(**HOTEL)]
     expense = await _upload(harness, emp_h)
@@ -215,7 +223,8 @@ async def test_cash_receipt_deductibility_and_override(harness: Harness) -> None
         )
     ]
     expense = await _upload(harness, emp_h)
-    assert expense["deductibility"] == "requires_support_document" and expense["policy_findings"] == []
+    assert expense["deductibility"] == "requires_support_document"
+    assert [f["code"] for f in expense["policy_findings"]] == ["receipt_not_signed"]
     url = f"/api/v1/expenses/{expense['id']}/deductibility"
     assert (await harness.client.post(url, headers=emp_h, json={"deductibility": "deductible"})).status_code == 403
     changed = await harness.client.post(url, headers=acc_h, json={"deductibility": "non_deductible"})
@@ -223,6 +232,13 @@ async def test_cash_receipt_deductibility_and_override(harness: Harness) -> None
 
     pending_submit = await harness.client.post(f"/api/v1/advances/{advance_id}/submit", headers=emp_h)
     assert pending_submit.status_code == 409  # el gasto extraído se debe confirmar o descartar primero
+    unsigned = await harness.client.post(f"/api/v1/expenses/{expense['id']}/confirm", headers=emp_h, json={})
+    assert unsigned.status_code == 409 and unsigned.json()["error"]["code"] == "justification_required"  # sin firma
+    signed = await harness.client.post(f"/api/v1/expenses/{expense['id']}/confirm", headers=emp_h, json={"receipt_signed": True})
+    assert signed.status_code == 200 and signed.json()["receipt_signed"] is True and signed.json()["policy_findings"] == []
+
+    advance = (await harness.client.get(f"/api/v1/advances/{advance_id}", headers=emp_h)).json()
+    assert advance["legalization_due"] == "2026-11-15" and advance["overdue"] is (date.today() > date(2026, 11, 15))
 
     admin = await harness.add_employee(company, "admin@forsa.com", Role.ADMIN)
     admin_h = await harness.login(admin)
