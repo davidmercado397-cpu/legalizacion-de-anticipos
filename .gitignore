@@ -10,3 +10,6 @@ coverage/
 
 # Archivos de soportes en desarrollo local
 apps/api/almacen/
+
+# Volcado de Redis local
+dump.rdb
