@@ -231,6 +231,7 @@ advances = sa.Table(
     sa.Column("budget_amount", MONEY),
     sa.Column("budget_breakdown", pg.JSONB, nullable=False, server_default="[]"),
     sa.Column("budget_justification", sa.String(1000)),
+    sa.Column("legs", pg.JSONB, nullable=False, server_default="[]"),
     sa.Column("approval_steps", pg.JSONB, nullable=False, server_default="[]"),
     sa.Column("legalization_due", sa.Date),
     sa.Column("escalation_reasons", pg.JSONB, nullable=False, server_default="[]"),

@@ -106,8 +106,12 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
   `receipt_not_signed` dentro de `non_fiscal_document` (`expenses.receipt_signed`, se declara al confirmar),
   plazo de legalización (`advances.legalization_due` = regreso + `legalization.deadline_months`, al aprobarse;
   `overdue` se calcula en la respuesta) y conceptos excluidos nuevos (entretenimiento, spa, más licores).
-- **Pendiente:** aplicar `docs/decisiones-confirmadas.md` (conciliación bancaria, multidestino
-  con tarifas por cargo y país, integración con Siesa). Preguntas abiertas a Forsa: el tercero genérico de Panamá
+- Varios destinos (migración 0017): `advances.legs` guarda los tramos y destination/fechas resumen el
+  viaje. `domain/budgets.calculate_legs`: el día de traslado lo paga el tramo de llegada, cada tramo usa
+  la zona de su destino (una zona puede ser un país) y si las tarifas se mezclan en monedas el
+  anticipo va en USD con la tasa del día del cálculo. Las tarifas siguen siendo zona × tipo de personal.
+- **Pendiente:** aplicar `docs/decisiones-confirmadas.md` (integración con Siesa y, al final, la conciliación
+  bancaria). Preguntas abiertas a Forsa: el tercero genérico de Panamá
   (`fiscal.generic_buyer_ids.PA` está vacío) y si los recibos de caja deben traer nombre e
   identificación de quien vende (`required_fields`). Plantillas que Forsa aprueba en Meta:
   bienvenida (`{{1}}` nombre, `{{2}}` asistente), aprobación y aviso.

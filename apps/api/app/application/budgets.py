@@ -13,13 +13,15 @@ from typing import Any
 
 from app.application import messages as msg
 from app.application.access import AccessPolicy
+from app.application.exchange import ExchangeRateService
 from app.application.settings import SettingsService
-from app.domain.budgets import TravelBudget, calculate, zone_for
+from app.domain.budgets import LegRates, TravelBudget, TripLeg, advance_currency, calculate_legs, ordered_legs, zone_for
 from app.domain.entities import AuditEntry, Employee, TravelBudgetRate, TravelZone
 from app.domain.enums import BudgetUnit, StaffType
 from app.domain.errors import NotFoundError, ValidationError
 from app.domain.permissions import Permission
-from app.domain.ports import UnitOfWork, UnitOfWorkFactory
+from app.domain.ports import Clock, UnitOfWork, UnitOfWorkFactory
+from app.domain.time import local_date
 
 
 @dataclass(frozen=True)
@@ -41,13 +43,31 @@ class TripQuery:
     start_date: date | None
     end_date: date | None
     zone_id: uuid.UUID | None = None
+    legs: tuple[TripLeg, ...] = ()
+
+    def trip_legs(self) -> list[TripLeg]:
+        """Los tramos ordenados; un viaje de un solo destino es un tramo."""
+        if self.legs:
+            return ordered_legs(list(self.legs))
+        if self.start_date is None or self.end_date is None:
+            return []
+        return ordered_legs([TripLeg(self.destination or "", self.start_date, self.end_date)])
 
 
 class TravelBudgetService:
-    def __init__(self, uow: UnitOfWorkFactory, access: AccessPolicy, settings: SettingsService) -> None:
+    def __init__(
+        self,
+        uow: UnitOfWorkFactory,
+        access: AccessPolicy,
+        settings: SettingsService,
+        exchange: ExchangeRateService,
+        clock: Clock,
+    ) -> None:
         self._uow = uow
         self._access = access
         self._settings = settings
+        self._exchange = exchange
+        self._clock = clock
 
     def _check(self, actor: Employee, company_id: uuid.UUID, manage: bool) -> None:
         if manage:
@@ -184,21 +204,43 @@ class TravelBudgetService:
     # --- Cálculo -------------------------------------------------------------------------------
 
     async def for_trip(self, uow: UnitOfWork, staff_type: StaffType | None, query: TripQuery) -> TravelBudget | None:
-        """Presupuesto del viaje, o None si no aplica (sin fechas, sin zona o la compañía no usa tarifas)."""
-        if query.start_date is None or query.end_date is None or staff_type is None:
+        """Presupuesto del viaje, o None si no aplica (sin fechas, algún tramo sin zona o la compañía no usa
+        tarifas). Las tarifas de cada tramo son las vigentes en la fecha de salida del viaje."""
+        legs = query.trip_legs()
+        if not legs or staff_type is None:
             return None
-        if query.zone_id is not None:
+        departure = legs[0].start
+        if query.zone_id is not None and len(legs) == 1:
             zone = await uow.travel_zones.get(query.zone_id)
             if zone is None or zone.company_id != query.company_id or not zone.active:
                 raise NotFoundError("travel zone")
+            zones = [zone]
         else:
-            zone = zone_for(query.destination, await uow.travel_zones.list_for_company(query.company_id))
-            if zone is None:
+            available = await uow.travel_zones.list_for_company(query.company_id)
+            found = [zone_for(leg.destination, available) for leg in legs]
+            if any(z is None for z in found):
                 return None
-        rates = await uow.budget_rates.applicable(query.company_id, zone.id, staff_type, query.start_date)
-        if not rates:
-            return None
-        return calculate(zone.id, rates, query.start_date, query.end_date)
+            zones = [z for z in found if z is not None]
+        priced: list[LegRates] = []
+        for leg, zone in zip(legs, zones, strict=True):
+            rates = await uow.budget_rates.applicable(query.company_id, zone.id, staff_type, departure)
+            if not rates:
+                return None
+            priced.append(LegRates(leg, zone.id, rates))
+        return calculate_legs(priced, await self._factors(uow, priced))
+
+    async def _factors(self, uow: UnitOfWork, legs: list[LegRates]) -> dict[str, Decimal]:
+        """Tasas del día del cálculo (decisión 1.4) para pasar cada tarifa a la moneda del anticipo."""
+        target = advance_currency(legs)
+        company = await uow.companies.get(legs[0].rates[0].company_id)
+        assert company is not None
+        today = local_date(self._clock.now(), company.timezone)
+        factors: dict[str, Decimal] = {}
+        for currency in {r.currency for leg in legs for r in leg.rates} - {target}:
+            conversion = await self._exchange.conversion(uow, currency, target, today)
+            if conversion is not None:
+                factors[currency] = conversion.rate
+        return factors
 
     async def preview(self, actor: Employee, query: TripQuery) -> TravelBudget:
         self._access.require(actor, Permission.ADVANCES_REQUEST)

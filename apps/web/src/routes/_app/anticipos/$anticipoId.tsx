@@ -51,6 +51,18 @@ function DetalleAnticipo() {
 
       <Tarjeta className="space-y-4">
         <p className="text-sm text-slate-700">{anticipo.purpose}</p>
+        {anticipo.legs.length > 1 && (
+          <ol className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
+            {anticipo.legs.map((tramo, i) => (
+              <li key={`${tramo.destination}-${tramo.start_date}`}>
+                <span className="font-medium text-slate-800">
+                  {i + 1}. {tramo.destination}
+                </span>{' '}
+                {rangoFechas(tramo.start_date, tramo.end_date)}
+              </li>
+            ))}
+          </ol>
+        )}
         <ResumenSaldo saldo={anticipo.balance} />
         <RutaAprobacion anticipo={anticipo} />
         {anticipo.budget_amount && anticipo.budget_amount !== anticipo.amount && anticipo.escalation_reasons.length === 0 && (

@@ -13,8 +13,8 @@ Canales: **App** (frontend), **WA** (WhatsApp) y **Sistema** (tareas automática
 | E1 | Iniciar sesión (y segundo factor si su rol lo exige) | App | `POST /auth/login`, `POST /auth/mfa`, `POST /auth/refresh`, `POST /auth/logout` |
 | E2 | Cambiar la contraseña temporal | App | `POST /me/password` |
 | E3 | Vincular su WhatsApp con código | App + WA | `POST /me/whatsapp-link-code`; por WA: `VINCULAR 123456` |
-| E4 | Ver el presupuesto sugerido de un viaje | App | `POST /advances/budget-preview` |
-| E5 | Solicitar un anticipo (valor calculado o propio con justificación) | App / WA (Flow) | `POST /advances` |
+| E4 | Ver el presupuesto sugerido de un viaje (uno o varios destinos) | App | `POST /advances/budget-preview` |
+| E5 | Solicitar un anticipo (valor calculado o propio con justificación; varios destinos solo en la App) | App / WA (Flow) | `POST /advances` |
 | E6 | Cancelar una solicitud aún sin aprobar | App | `DELETE /advances/{id}` |
 | E7 | Ver sus anticipos y el saldo (también en pesos si es en otra moneda) | App / WA (menú o "saldo") | `GET /advances`, `GET /me/balances` |
 | E8 | Registrar una factura con foto o PDF | App / WA (foto) | `POST /expenses` (multipart); por WA: enviar la foto |

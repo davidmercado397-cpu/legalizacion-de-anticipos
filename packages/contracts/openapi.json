@@ -325,6 +325,14 @@
             "description": "Plazo para enviar la legalización",
             "title": "Legalization Due"
           },
+          "legs": {
+            "description": "Tramos del viaje; vacío si tuvo un solo destino",
+            "items": {
+              "$ref": "#/components/schemas/TripLegOut"
+            },
+            "title": "Legs",
+            "type": "array"
+          },
           "overdue": {
             "description": "Aprobado y sin enviar la legalización después del plazo",
             "title": "Overdue",
@@ -445,6 +453,7 @@
           "budget_amount",
           "budget_breakdown",
           "budget_justification",
+          "legs",
           "approval_steps",
           "legalization_due",
           "overdue",
@@ -545,6 +554,15 @@
           },
           "kind": {
             "$ref": "#/components/schemas/AdvanceKind"
+          },
+          "legs": {
+            "description": "Viaje con varios destinos; si viene, reemplaza destination, start_date y end_date",
+            "items": {
+              "$ref": "#/components/schemas/TripLegIn"
+            },
+            "maxItems": 10,
+            "title": "Legs",
+            "type": "array"
           },
           "purpose": {
             "maxLength": 500,
@@ -857,6 +875,14 @@
             "description": "Plazo para enviar la legalización",
             "title": "Legalization Due"
           },
+          "legs": {
+            "description": "Tramos del viaje; vacío si tuvo un solo destino",
+            "items": {
+              "$ref": "#/components/schemas/TripLegOut"
+            },
+            "title": "Legs",
+            "type": "array"
+          },
           "overdue": {
             "description": "Aprobado y sin enviar la legalización después del plazo",
             "title": "Overdue",
@@ -977,6 +1003,7 @@
           "budget_amount",
           "budget_breakdown",
           "budget_justification",
+          "legs",
           "approval_steps",
           "legalization_due",
           "overdue",
@@ -1262,6 +1289,14 @@
             "description": "Plazo para enviar la legalización",
             "title": "Legalization Due"
           },
+          "legs": {
+            "description": "Tramos del viaje; vacío si tuvo un solo destino",
+            "items": {
+              "$ref": "#/components/schemas/TripLegOut"
+            },
+            "title": "Legs",
+            "type": "array"
+          },
           "overdue": {
             "description": "Aprobado y sin enviar la legalización después del plazo",
             "title": "Overdue",
@@ -1382,6 +1417,7 @@
           "budget_amount",
           "budget_breakdown",
           "budget_justification",
+          "legs",
           "approval_steps",
           "legalization_due",
           "overdue",
@@ -2190,6 +2226,18 @@
           "category": {
             "title": "Category",
             "type": "string"
+          },
+          "destination": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Tramo al que pertenece, si el viaje tiene varios",
+            "title": "Destination"
           },
           "rate": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
@@ -7557,14 +7605,37 @@
             "title": "Destination"
           },
           "end_date": {
-            "format": "date",
-            "title": "End Date",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          },
+          "legs": {
+            "description": "Varios destinos, en lugar de uno",
+            "items": {
+              "$ref": "#/components/schemas/TripLegIn"
+            },
+            "maxItems": 10,
+            "title": "Legs",
+            "type": "array"
           },
           "start_date": {
-            "format": "date",
-            "title": "Start Date",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
           },
           "travel_zone_id": {
             "anyOf": [
@@ -7580,11 +7651,61 @@
           }
         },
         "required": [
-          "company_id",
+          "company_id"
+        ],
+        "title": "TripIn",
+        "type": "object"
+      },
+      "TripLegIn": {
+        "properties": {
+          "destination": {
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Destination",
+            "type": "string"
+          },
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "destination",
           "start_date",
           "end_date"
         ],
-        "title": "TripIn",
+        "title": "TripLegIn",
+        "type": "object"
+      },
+      "TripLegOut": {
+        "properties": {
+          "destination": {
+            "title": "Destination",
+            "type": "string"
+          },
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "destination",
+          "start_date",
+          "end_date"
+        ],
+        "title": "TripLegOut",
         "type": "object"
       },
       "UnreadableReason": {

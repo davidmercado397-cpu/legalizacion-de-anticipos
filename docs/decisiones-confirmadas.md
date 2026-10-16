@@ -4,9 +4,9 @@ Respuestas al documento «Decisiones por confirmar» (16 de octubre de 2026). Ca
 
 Este documento manda cuando difiere de lo que hacía el backend base (`apps/api`).
 
-**Estado en la API Python** (actualizado el 16/10): listas las secciones 2.1, 2.5, 3, 4 (salvo 4.8), 5 y 8.3 a 8.9.
-Pendientes, en este orden: multidestino con tarifas por cargo y país (2.4 y 4.8), integración con Siesa (8.1 y 8.2)
-y, al final, la conciliación bancaria (sección 7, en la rama `wip/conciliacion-bancaria`).
+**Estado en la API Python** (actualizado el 16/10): listas las secciones 1 a 6 y 8.3 a 8.9.
+Pendientes, en este orden: integración con Siesa (8.1 y 8.2) y, al final, la conciliación bancaria
+(sección 7, en la rama `wip/conciliacion-bancaria`).
 
 ## 1. Tasas de cambio
 
@@ -28,7 +28,7 @@ y, al final, la conciliación bancaria (sección 7, en la rama `wip/conciliacion
 | 2.1 | Facturas desde el día de salida hasta 1 día después del regreso | Regla `outside_trip_dates` (0 días antes, 1 después): fuera de ese rango la revisa contabilidad |
 | 2.2 | Facturas con fecha futura se rechazan | Sin cambios |
 | 2.3 | El día de regreso se paga completo, sin hotel | Sin cambios (días = noches + 1) |
-| 2.4 | El día de traslado se paga con la tarifa de la ciudad de llegada | Pendiente (con multidestino) |
+| 2.4 | El día de traslado se paga con la tarifa de la ciudad de llegada | Viajes con varios destinos: el día de traslado se cuenta una vez, en el destino de llegada |
 | 2.5 | Plazo para legalizar: 1 mes después del regreso | `legalization_due` al aprobarse (`legalization.deadline_months`) y alerta de vencida |
 
 ## 3. Exclusiones
@@ -53,7 +53,7 @@ y, al final, la conciliación bancaria (sección 7, en la rama `wip/conciliacion
 | 4.5 | Los viajes de directivos los aprueba la gerencia | Rol `management` |
 | 4.6 | Conceptos y tarifas administrables desde la aplicación | CRUD de conceptos y tarifas |
 | 4.7 | Los tiquetes aéreos no hacen parte del anticipo | Sin cambios |
-| 4.8 | La moneda del anticipo depende del país de destino | Pendiente (con multidestino) |
+| 4.8 | La moneda del anticipo depende del país de destino | La moneda de las tarifas del destino; si los destinos mezclan monedas, USD |
 
 ## 5. Facturas y recibos 222
 

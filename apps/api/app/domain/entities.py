@@ -486,6 +486,9 @@ class Advance:
     budget_amount: Decimal | None = None
     budget_breakdown: list[dict[str, Any]] = field(default_factory=list)
     budget_justification: str | None = None  # por qué se pidió un valor distinto al calculado (o por qué escala)
+    # Tramos de un viaje con varios destinos (domain/budgets.TripLeg.as_dict). Vacío si tuvo uno solo;
+    # destination, start_date y end_date resumen el viaje completo.
+    legs: list[dict[str, Any]] = field(default_factory=list)
     # Ruta de aprobación (domain/approvals.py): pasos con nivel, aprobador y estado. Vacía en solicitudes
     # anteriores a la ruta, que conservan la regla de entonces (el aprobador del empleado).
     approval_steps: list[dict[str, Any]] = field(default_factory=list)

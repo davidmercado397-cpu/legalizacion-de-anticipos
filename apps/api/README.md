@@ -125,6 +125,9 @@ cada regla (`warn`, `require_justification`, `review`, `block`), sus **parámetr
 - **Conceptos bloqueados** por compañía (`/companies/{id}/blocked-concepts`): código, nombre,
   descripción y ejemplos. Toda compañía nueva arranca con licores, minibar, tabaco, entretenimiento
   (películas, cine) y spa.
+- **Varios destinos:** `legs` en la solicitud y en `budget-preview`. El día de traslado se paga una
+  vez, con la tarifa del destino de llegada; si las tarifas de los destinos están en monedas distintas,
+  el presupuesto y el anticipo van en dólares.
 - **Plazo de legalización:** al aprobarse, el anticipo recibe `legalization_due` (regreso +
   `legalization.deadline_months`, 1 mes por defecto); después, `overdue` es verdadero.
 - **Concepto bloqueado dentro de una factura** (hotel + minibar): se sugiere como no reembolsable la

@@ -89,7 +89,8 @@ async def import_rates(
 
 @router.post("/advances/budget-preview", response_model=BudgetOut, summary="Suggested advance for a trip")
 async def budget_preview(body: TripIn, actor: CurrentEmployee, container: ContainerDep) -> BudgetOut:
-    query = TripQuery(body.company_id, body.destination, body.start_date, body.end_date, body.travel_zone_id)
+    legs = tuple(leg.to_domain() for leg in body.legs)
+    query = TripQuery(body.company_id, body.destination, body.start_date, body.end_date, body.travel_zone_id, legs)
     budget = await container.budgets.preview(actor, query)
     lines = [BudgetLineOut(**line.as_dict()) for line in budget.lines]
     return BudgetOut(zone_id=budget.zone_id, currency=budget.currency, total=budget.total, lines=lines)

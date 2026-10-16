@@ -230,7 +230,7 @@ def build_container(settings: Settings, overrides: Overrides | None = None) -> C
     if o.rate_providers is not None:
         providers = o.rate_providers
     rates = ExchangeRateService(uow, providers, runtime, clock, access)
-    budgets = TravelBudgetService(uow, access, runtime)
+    budgets = TravelBudgetService(uow, access, runtime, rates, clock)
     evaluator = PolicyEvaluator(runtime)
     contexts = CompanyContextProvider(uow, versions, runtime)
     learning = LearningService(uow, access, clock, runtime, evaluator, contexts)

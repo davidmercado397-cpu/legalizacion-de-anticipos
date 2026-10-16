@@ -394,6 +394,9 @@ ERROR_MESSAGES: dict[str, ErrorText] = {
     "amount_not_positive": "El valor debe ser mayor que cero.",
     "negative_amount": "El valor del anticipo no puede ser negativo.",
     "end_before_start": "La fecha de regreso no puede ser anterior a la de salida.",
+    "legs_overlap": "Las fechas de {first} y {second} se cruzan. El destino siguiente puede empezar el día en que termina el anterior, no antes.",
+    "trip_without_legs": "Agrega al menos un destino con sus fechas.",
+    "budget_rate_unavailable": "No hay tasa de cambio reciente de {currency} para calcular el presupuesto en dólares. Escribe el valor a mano.",
     "invalid_advance_transition": lambda p: (
         f"No se puede {ADVANCE_ACTION_LABELS.get(p.get('action', ''), 'cambiar')} un anticipo que está "
         f"{ADVANCE_STATUS_LABELS.get(p.get('status', ''), p.get('status', ''))}."

@@ -1496,6 +1496,11 @@ export interface components {
              */
             legalization_due: string | null;
             /**
+             * Legs
+             * @description Tramos del viaje; vacío si tuvo un solo destino
+             */
+            legs: components["schemas"]["TripLegOut"][];
+            /**
              * Overdue
              * @description Aprobado y sin enviar la legalización después del plazo
              */
@@ -1542,6 +1547,11 @@ export interface components {
              */
             justification?: string | null;
             kind: components["schemas"]["AdvanceKind"];
+            /**
+             * Legs
+             * @description Viaje con varios destinos; si viene, reemplaza destination, start_date y end_date
+             */
+            legs?: components["schemas"]["TripLegIn"][];
             /** Purpose */
             purpose: string;
             /** Start Date */
@@ -1636,6 +1646,11 @@ export interface components {
              * @description Plazo para enviar la legalización
              */
             legalization_due: string | null;
+            /**
+             * Legs
+             * @description Tramos del viaje; vacío si tuvo un solo destino
+             */
+            legs: components["schemas"]["TripLegOut"][];
             /**
              * Overdue
              * @description Aprobado y sin enviar la legalización después del plazo
@@ -1736,6 +1751,11 @@ export interface components {
              * @description Plazo para enviar la legalización
              */
             legalization_due: string | null;
+            /**
+             * Legs
+             * @description Tramos del viaje; vacío si tuvo un solo destino
+             */
+            legs: components["schemas"]["TripLegOut"][];
             /**
              * Overdue
              * @description Aprobado y sin enviar la legalización después del plazo
@@ -2054,6 +2074,11 @@ export interface components {
             amount: string;
             /** Category */
             category: string;
+            /**
+             * Destination
+             * @description Tramo al que pertenece, si el viaje tiene varios
+             */
+            destination?: string | null;
             /** Rate */
             rate: string;
             unit: components["schemas"]["BudgetUnit"];
@@ -3715,6 +3740,22 @@ export interface components {
             company_id: string;
             /** Destination */
             destination?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /**
+             * Legs
+             * @description Varios destinos, en lugar de uno
+             */
+            legs?: components["schemas"]["TripLegIn"][];
+            /** Start Date */
+            start_date?: string | null;
+            /** Travel Zone Id */
+            travel_zone_id?: string | null;
+        };
+        /** TripLegIn */
+        TripLegIn: {
+            /** Destination */
+            destination: string;
             /**
              * End Date
              * Format: date
@@ -3725,8 +3766,21 @@ export interface components {
              * Format: date
              */
             start_date: string;
-            /** Travel Zone Id */
-            travel_zone_id?: string | null;
+        };
+        /** TripLegOut */
+        TripLegOut: {
+            /** Destination */
+            destination: string;
+            /**
+             * End Date
+             * Format: date
+             */
+            end_date: string;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
         };
         /**
          * UnreadableReason

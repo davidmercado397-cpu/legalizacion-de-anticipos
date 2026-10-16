@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.application.messages import COLOMBIAN, escalation_text
 from app.application.whatsapp_presenter import finding_text
+from app.domain.budgets import TripLeg
 from app.domain.entities import Advance, AdvanceBalance, ApproverDelegation, Company, Employee, Expense
 from app.domain.enums import (
     AdvanceKind,
@@ -216,6 +217,21 @@ class EmployeeCreatedOut(EmployeeOut):
     temporary_password: str
 
 
+class TripLegIn(BaseModel):
+    destination: str = Field(min_length=2, max_length=120)
+    start_date: date
+    end_date: date
+
+    def to_domain(self) -> TripLeg:
+        return TripLeg(self.destination.strip(), self.start_date, self.end_date)
+
+
+class TripLegOut(BaseModel):
+    destination: str
+    start_date: date
+    end_date: date
+
+
 class AdvanceIn(BaseModel):
     company_id: uuid.UUID
     kind: AdvanceKind
@@ -231,14 +247,20 @@ class AdvanceIn(BaseModel):
     justification: str | None = Field(
         default=None, max_length=1000, description="Obligatoria si el valor es distinto del presupuesto calculado"
     )
+    legs: list[TripLegIn] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Viaje con varios destinos; si viene, reemplaza destination, start_date y end_date",
+    )
 
 
 class TripIn(BaseModel):
     company_id: uuid.UUID
     destination: str | None = Field(default=None, max_length=200)
-    start_date: date
-    end_date: date
+    start_date: date | None = None
+    end_date: date | None = None
     travel_zone_id: uuid.UUID | None = None
+    legs: list[TripLegIn] = Field(default_factory=list, max_length=10, description="Varios destinos, en lugar de uno")
 
 
 class BudgetLineOut(BaseModel):
@@ -247,6 +269,7 @@ class BudgetLineOut(BaseModel):
     units: int
     rate: Decimal
     amount: Decimal
+    destination: str | None = Field(default=None, description="Tramo al que pertenece, si el viaje tiene varios")
 
 
 class BudgetOut(BaseModel):
@@ -389,6 +412,7 @@ class AdvanceOut(Model):
     budget_amount: Decimal | None
     budget_breakdown: list[dict[str, Any]]
     budget_justification: str | None
+    legs: list[TripLegOut] = Field(description="Tramos del viaje; vacío si tuvo un solo destino")
     approval_steps: list[ApprovalStepOut] = Field(description="Ruta de aprobación; vacía en solicitudes anteriores")
     legalization_due: date | None = Field(description="Plazo para enviar la legalización")
     overdue: bool = Field(description="Aprobado y sin enviar la legalización después del plazo")

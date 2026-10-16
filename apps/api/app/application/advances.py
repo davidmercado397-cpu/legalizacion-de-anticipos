@@ -18,6 +18,7 @@ from app.application.exchange import ExchangeRateService
 from app.application.learning import LearningService
 from app.application.settings import SettingsService, check_currency
 from app.domain.approvals import Approver, build_route, escalation_reasons
+from app.domain.budgets import TripLeg
 from app.domain.entities import Advance, AdvanceBalance, AuditEntry, Company, Employee, Expense
 from app.domain.enums import AdvanceKind, AdvanceStatus, ApprovalLevel, Channel, ExpenseStatus, ReviewStatus, Role, StepStatus
 from app.domain.errors import InvalidOperationError, NotFoundError, PermissionDeniedError, ValidationError
@@ -38,6 +39,7 @@ class AdvanceRequest:
     end_date: date | None = None
     travel_zone_id: uuid.UUID | None = None
     justification: str | None = None  # obligatoria si el valor difiere del presupuesto calculado
+    legs: tuple[TripLeg, ...] = ()  # varios destinos; reemplazan destination y las fechas
 
 
 @dataclass(frozen=True)
@@ -150,7 +152,12 @@ class AdvanceService:
         async with self._uow() as uow:
             company = await uow.companies.get(data.company_id)
             assert company is not None
-            query = TripQuery(data.company_id, data.destination, data.start_date, data.end_date, data.travel_zone_id)
+            query = TripQuery(data.company_id, data.destination, data.start_date, data.end_date, data.travel_zone_id, data.legs)
+            legs = query.trip_legs() if data.legs else []
+            destination, start_date, end_date = data.destination, data.start_date, data.end_date
+            if legs:
+                destination = " → ".join(leg.destination for leg in legs)[:200]
+                start_date, end_date = legs[0].start, max(leg.end for leg in legs)
             budget = await self._budgets.for_trip(uow, actor.staff_type, query)
             if budget is not None and budget.currency != currency:
                 raise ValidationError(
@@ -185,9 +192,10 @@ class AdvanceService:
                 currency=currency,
                 amount=amount,
                 purpose=data.purpose.strip(),
-                destination=data.destination,
-                start_date=data.start_date,
-                end_date=data.end_date,
+                destination=destination,
+                start_date=start_date,
+                end_date=end_date,
+                legs=[leg.as_dict() for leg in legs],
                 budget_zone_id=budget.zone_id if budget else None,
                 budget_amount=budget.total if budget else None,
                 budget_breakdown=[line.as_dict() for line in budget.lines] if budget else [],

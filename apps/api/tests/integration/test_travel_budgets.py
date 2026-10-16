@@ -184,3 +184,55 @@ async def test_staff_type_is_part_of_the_user(harness: Harness) -> None:
         f"/api/v1/employees/{created.json()['id']}", headers=headers, json={"staff_type": "administrative"}
     )
     assert patched.json()["staff_type"] == "administrative"
+
+
+async def test_a_trip_with_two_destinations_in_two_currencies_goes_in_dollars(harness: Harness) -> None:
+    company, acc_h, emp_h, appr_h, zone_id = await _setup(harness)
+    brazil = await harness.client.post(
+        f"/api/v1/companies/{company.id}/travel-zones", headers=acc_h, json={"name": "Brasil", "places": ["São Paulo", "BR"]}
+    )
+    rates = ((zone_id, "meals", "80000", "COP"), (brazil.json()["id"], "meals", "50", "USD"))
+    for zone, category, amount, currency in rates:
+        rate = {"zone_id": zone, "staff_type": "operational", "category_code": category, "amount": amount}
+        rate |= {"currency": currency, "unit": "per_day", "valid_from": "2026-01-01"}
+        assert (
+            await harness.client.post(f"/api/v1/companies/{company.id}/travel-rates", headers=acc_h, json=rate)
+        ).status_code == 201
+    today = harness.container.clock.now().date()
+    async with harness.container.uow() as uow:
+        await uow.exchange_rates.upsert([ExchangeRate(today, "USD", "COP", Decimal("4000"), ExchangeRateSource.TRM)])
+        await uow.commit()
+    legs = [
+        {"destination": "São Paulo", "start_date": "2026-10-13", "end_date": "2026-10-15"},
+        {"destination": "Medellín", "start_date": "2026-10-12", "end_date": "2026-10-13"},
+    ]
+    trip = {"company_id": str(company.id), "legs": legs}
+
+    preview = (await harness.client.post("/api/v1/advances/budget-preview", headers=emp_h, json=trip)).json()
+    # El 13 es día de traslado: se paga una sola vez, con la tarifa de São Paulo.
+    assert preview["currency"] == "USD" and Decimal(preview["total"]) == Decimal("170")
+    assert [(line["destination"], line["units"], Decimal(line["rate"])) for line in preview["lines"]] == [
+        ("Medellín", 1, Decimal("20")),
+        ("São Paulo", 3, Decimal("50")),
+    ]
+
+    base = {**trip, "kind": "reloadable_card", "purpose": "Visita a proveedores"}
+    pesos = await harness.client.post("/api/v1/advances", headers=emp_h, json={**base, "currency": "COP"})
+    assert pesos.json()["error"]["code"] == "budget_currency_mismatch"
+    created = await harness.client.post("/api/v1/advances", headers=emp_h, json={**base, "currency": "USD"})
+    assert created.status_code == 201, created.text
+    advance = created.json()
+    assert advance["destination"] == "Medellín → São Paulo" and Decimal(advance["amount"]) == Decimal("170")
+    assert (advance["start_date"], advance["end_date"]) == ("2026-10-12", "2026-10-15")
+    assert [leg["destination"] for leg in advance["legs"]] == ["Medellín", "São Paulo"]
+
+    overlap = [{**legs[1], "end_date": "2026-10-14"}, legs[0]]
+    crossed = await harness.client.post("/api/v1/advances", headers=emp_h, json={**base, "legs": overlap, "currency": "USD"})
+    assert crossed.status_code == 422 and crossed.json()["error"]["code"] == "legs_overlap"
+    assert "Medellín y São Paulo" in crossed.json()["error"]["message"]
+    # Un tramo sin zona: no hay presupuesto y el valor lo pone el empleado.
+    unknown = [legs[1], {**legs[0], "destination": "Lima"}]
+    manual = await harness.client.post(
+        "/api/v1/advances", headers=emp_h, json={**base, "legs": unknown, "currency": "USD", "amount": "300"}
+    )
+    assert manual.status_code == 201 and manual.json()["budget_amount"] is None

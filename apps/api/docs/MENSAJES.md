@@ -215,6 +215,9 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `amount_not_positive` | El valor debe ser mayor que cero. |
 | `negative_amount` | El valor del anticipo no puede ser negativo. |
 | `end_before_start` | La fecha de regreso no puede ser anterior a la de salida. |
+| `legs_overlap` | No se pudo completar la acción. |
+| `trip_without_legs` | Agrega al menos un destino con sus fechas. |
+| `budget_rate_unavailable` | No se pudo completar la acción. |
 | `invalid_advance_transition` | No se puede enviar a revisión un anticipo que está en revisión. |
 | `self_decision` | No puedes aprobar ni revisar tu propio anticipo. Lo debe hacer tu aprobador. |
 | `not_your_approver` | No eres el aprobador de este empleado. |

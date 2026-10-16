@@ -50,7 +50,12 @@ async def _out(container: Container, advance: Advance) -> AdvanceOut:
 
 @router.post("", response_model=AdvanceOut, status_code=status.HTTP_201_CREATED, summary="Request an advance")
 async def request_advance(body: AdvanceIn, actor: CurrentEmployee, container: ContainerDep) -> AdvanceOut:
-    return await _out(container, await container.advances.request(actor, AdvanceRequest(**body.model_dump())))
+    return await _out(
+        container,
+        await container.advances.request(
+            actor, AdvanceRequest(**body.model_dump(exclude={"legs"}), legs=tuple(leg.to_domain() for leg in body.legs))
+        ),
+    )
 
 
 @router.get("", response_model=PageOut[AdvanceListItemOut], summary="Advances visible to the user")
