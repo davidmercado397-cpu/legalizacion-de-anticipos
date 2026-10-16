@@ -21,9 +21,14 @@ function BandejaContabilidad() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Legalizaciones por revisar</h1>
-        <Link to="/contabilidad/politica" className="text-sm font-semibold text-marca-700 hover:underline">
-          Configuración (NIT, topes, exclusiones) →
-        </Link>
+        <div className="flex flex-wrap gap-4">
+          <Link to="/contabilidad/conciliaciones" className="text-sm font-semibold text-marca-700 hover:underline">
+            Conciliaciones bancarias →
+          </Link>
+          <Link to="/contabilidad/politica" className="text-sm font-semibold text-marca-700 hover:underline">
+            Configuración (NIT, topes, exclusiones) →
+          </Link>
+        </div>
       </div>
       {data.length === 0 ? (
         <EstadoVacio titulo="No hay legalizaciones pendientes" />

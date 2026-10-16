@@ -7,3 +7,4 @@ export * from './solicitudes/reglas-ui';
 export * from './anticipos/anticipos.queries';
 export * from './legalizaciones/legalizaciones.queries';
 export * from './tasas/tasas.queries';
+export * from './conciliacion/conciliacion.queries';

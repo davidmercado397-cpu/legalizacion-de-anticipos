@@ -1,11 +1,13 @@
+import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { useEliminarSoporte, useEnviarLegalizacion } from '@viaticos/client-app';
+import { extractosOptions, useApi, useEliminarSoporte, useEnviarLegalizacion } from '@viaticos/client-app';
 import type { LegalizacionResponse } from '@viaticos/contracts';
 import { useState } from 'react';
 import { mensajeDeError } from '../../lib/errores';
 import { formatoFechaCalendario } from '../../lib/formato';
 import { Boton } from '../../ui/boton';
 import { Alerta, EstadoVacio, Tarjeta } from '../../ui/superficies';
+import { ListaExtractos } from '../conciliacion/lista-extractos';
 import { HistorialLegalizacion, InsigniaEstadoLegalizacion, ResumenSaldo, TarjetaSoporte } from './componentes';
 import { CierreContable, DecisionSoporte } from './decision-contable';
 import { FormularioReciboCaja } from './formulario-recibo';
@@ -114,6 +116,8 @@ export function VistaLegalizacion({ legalizacion: l, modo }: { legalizacion: Leg
         </div>
       )}
 
+      <ExtractosTarjeta legalizacion={l} />
+
       {modo === 'contabilidad' && l.estado === 'EN_REVISION' && <CierreContable legalizacion={l} />}
 
       {l.historial.length > 0 && (
@@ -123,5 +127,31 @@ export function VistaLegalizacion({ legalizacion: l, modo }: { legalizacion: Leg
         </Tarjeta>
       )}
     </div>
+  );
+}
+
+/** Extractos de la tarjeta corporativa del viajero, para cruzar los pagos con tarjeta. */
+function ExtractosTarjeta({ legalizacion: l }: { legalizacion: LegalizacionResponse }) {
+  const api = useApi();
+  const extractos = useQuery(extractosOptions(api, l.id));
+  const conTarjeta = l.soportes.filter((s) => s.datos?.medioPago === 'TARJETA').length;
+  if (conTarjeta === 0 && !extractos.data?.length) return null;
+  return (
+    <section className="space-y-3" aria-label="Extractos de tarjeta">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-semibold">Extracto de la tarjeta</h2>
+          <p className="text-sm text-slate-600">{conTarjeta} factura(s) pagada(s) con tarjeta en esta legalización.</p>
+        </div>
+        <Link
+          to="/legalizaciones/$legalizacionId/extracto"
+          params={{ legalizacionId: l.id }}
+          className="inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-semibold text-marca-700 ring-1 ring-marca-600 hover:bg-marca-50"
+        >
+          Cargar extracto
+        </Link>
+      </div>
+      {extractos.data && extractos.data.length > 0 && <ListaExtractos extractos={extractos.data} />}
+    </section>
   );
 }

@@ -39,6 +39,8 @@ Contraseña de todos: **`Viaticos2026*`**
 | `tomas@empresa.co` | Tesorería | Registrar el desembolso del anticipo |
 | `laura@empresa.co` | Contabilidad | Revisar y aprobar legalizaciones; configurar NIT, topes y exclusiones |
 
+**Conciliación bancaria:** en una legalización con facturas pagadas con tarjeta, use *Cargar extracto* y suba un CSV o Excel del banco. El sistema propone las columnas, cruza los cargos con las facturas y contabilidad revisa el resultado en *Contabilidad → Conciliaciones bancarias*.
+
 **Caso de ejemplo:** con Ana, cree un viaje a Brasil y cambie el alojamiento a 50 USD por noche (la tarifa es 30). La solicitud pedirá justificación e irá primero a Carlos y luego a Diana.
 
 ### Lectura automática de facturas (opcional)
