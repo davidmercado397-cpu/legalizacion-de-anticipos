@@ -51,6 +51,15 @@ describe('Money', () => {
   });
 });
 
+describe('Money.prorratear', () => {
+  it('reparte en proporción exacta y redondea al centavo', () => {
+    const iva = Money.of('19000', 'COP');
+    expect(iva.prorratear(Money.of('20000', 'COP'), Money.of('100000', 'COP')).monto).toBe('3800.00');
+    expect(Money.of('10', 'USD').prorratear(Money.of('1', 'USD'), Money.of('3', 'USD')).monto).toBe('3.33');
+    expect(Money.of('10', 'USD').prorratear(Money.of('1', 'USD'), Money.cero('USD')).esCero()).toBe(true);
+  });
+});
+
 describe('FechaCalendario', () => {
   it('cuenta días sin problemas de zona horaria', () => {
     const inicio = FechaCalendario.of('2026-03-07');

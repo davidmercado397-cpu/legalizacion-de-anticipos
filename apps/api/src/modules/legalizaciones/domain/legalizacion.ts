@@ -6,7 +6,8 @@ import {
   normalizarIdentificacionTributaria,
 } from '@viaticos/shared-kernel';
 import { AgregadoRaiz, type EventoDominio } from '../../../shared/domain/agregado-raiz';
-import { evaluarExclusion, type ReglaExclusion } from './reglas-exclusion';
+import { clasificarLinea, liquidarLineas, type LineaLiquidada } from './lineas';
+import type { ReglaExclusion } from './reglas-exclusion';
 import type {
   Alerta,
   ArchivoSoporte,
@@ -14,7 +15,7 @@ import type {
   DatosExtraidos,
   DatosSoporte,
   DecisionContable,
-  LineaSoporte,
+  EntradaSoporte,
 } from './tipos';
 
 export type EstadoLegalizacion = 'ABIERTA' | 'EN_REVISION' | 'DEVUELTA' | 'APROBADA';
@@ -201,19 +202,19 @@ export class Legalizacion extends AgregadoRaiz {
    * El viajero confirma (o corrige) los datos. Aquí se aplican las exclusiones por
    * línea y se calculan las alertas para contabilidad.
    */
-  confirmarSoporte(soporteId: string, datos: DatosSoporte, contexto: ContextoConfirmacion, ahora: Date): Soporte {
+  confirmarSoporte(soporteId: string, entrada: EntradaSoporte, contexto: ContextoConfirmacion, ahora: Date): Soporte {
     this.exigirEditable();
     const s = this.soporte(soporteId);
     if (s.tipo !== 'FACTURA' || s.estado === 'PROCESANDO') {
       throw new DomainError('SOPORTE_NO_CONFIRMABLE', 'CONFLICTO', 'El soporte aún se está procesando');
     }
+    const datos: DatosSoporte = {
+      ...entrada,
+      lineas: entrada.lineas.map((l) => clasificarLinea(l, contexto.reglas, entrada.propinaSugerida !== null)),
+    };
     this.validarDatos(datos, ahora);
     invariante(datos.emisorNombre.trim().length > 0, 'EMISOR_REQUERIDO', 'Indique quién emitió la factura');
-
-    const lineas: LineaSoporte[] = datos.lineas.map((l) => {
-      const regla = evaluarExclusion(l.descripcion, contexto.reglas);
-      return { ...l, excluida: regla !== null, motivoExclusion: regla?.config.nombre ?? null };
-    });
+    const lineas = datos.lineas;
 
     const alertas: Alerta[] = [];
     const nitEmpresa = normalizarIdentificacionTributaria(contexto.nitEmpresa);
@@ -241,7 +242,7 @@ export class Legalizacion extends AgregadoRaiz {
         mensaje: datos.paisCodigo === 'CO' ? 'Factura colombiana sin CUFE/CUDE' : 'Nota brasileña sin chave de acesso',
       });
     }
-    alertas.push(...alertasDeLineas(lineas, datos.total));
+    alertas.push(...alertasDeLineas(liquidarLineas(lineas, datos.propinaSugerida), datos.total));
 
     s.datos = { ...datos, lineas };
     s.alertas = alertas;
@@ -292,6 +293,7 @@ export class Legalizacion extends AgregadoRaiz {
       paisCodigo: datos.paisCodigo,
       categoria: datos.categoria,
       lineas: [],
+      propinaSugerida: null,
       tasa: datos.tasa,
     };
     this.validarDatos(datosSoporte, datos.ahora);
@@ -362,10 +364,28 @@ export class Legalizacion extends AgregadoRaiz {
     this.tocar(ahora);
   }
 
+  /** Contabilidad decide una línea por verificar (palabra ambigua, propina sin valor sugerido) o corrige una exclusión. */
+  decidirLinea(soporteId: string, indice: number, excluir: boolean, contadorId: string, ahora: Date): void {
+    this.exigirEstado('EN_REVISION');
+    this.exigirNoEsViajero(contadorId);
+    const s = this.soporte(soporteId);
+    const linea = s.datos?.lineas[indice];
+    if (!s.datos || !linea) throw new DomainError('LINEA_NO_ENCONTRADA', 'NO_ENCONTRADO', 'La línea no existe');
+    const lineas = s.datos.lineas.map((l, i) => (i === indice ? { ...l, decisionContable: excluir ? ('EXCLUIR' as const) : ('ACEPTAR' as const) } : l));
+    s.datos = { ...s.datos, lineas };
+    // Las alertas de líneas se recalculan; las demás (NIT, fechas, duplicado…) se conservan.
+    s.alertas = [
+      ...s.alertas.filter((a) => a.codigo !== 'LINEAS_EXCLUIDAS' && a.codigo !== 'LINEAS_POR_VERIFICAR' && a.codigo !== 'TOTAL_NO_CUADRA'),
+      ...alertasDeLineas(liquidarLineas(lineas, s.datos.propinaSugerida), s.datos.total),
+    ];
+    s.actualizadoEn = ahora;
+    this.tocar(ahora);
+  }
+
   aprobar(contadorId: string, ahora: Date): void {
     this.exigirEstado('EN_REVISION');
     this.exigirNoEsViajero(contadorId);
-    const sinDecidir = this.props.soportes.filter((s) => requiereDecision(s) && !s.decision);
+    const sinDecidir = this.props.soportes.filter((s) => (requiereDecision(s) && !s.decision) || lineasSinVerificar(s) > 0);
     if (sinDecidir.length) {
       throw new DomainError('ALERTAS_SIN_DECIDIR', 'VALIDACION', 'Decida si aplican los soportes con alertas antes de aprobar', {
         pendientes: sinDecidir.map((s) => s.id),
@@ -487,7 +507,12 @@ export class Legalizacion extends AgregadoRaiz {
   }
 }
 
-export const requiereDecision = (s: Soporte) => s.alertas.some((a) => a.severidad === 'REVISION');
+export const requiereDecision = (s: Soporte) =>
+  s.alertas.some((a) => a.severidad === 'REVISION' && a.codigo !== 'LINEAS_POR_VERIFICAR');
+
+/** Líneas que contabilidad aún debe verificar (se deciden una por una, no con la decisión del soporte). */
+export const lineasSinVerificar = (s: Soporte) =>
+  s.datos?.lineas.filter((l) => l.porVerificar !== null && l.decisionContable === null).length ?? 0;
 
 /**
  * Montos de un soporte en la moneda del anticipo.
@@ -497,13 +522,13 @@ export const requiereDecision = (s: Soporte) => s.alertas.some((a) => a.severida
 export function montosDelSoporte(s: Soporte, monedaAnticipo: string): { aceptado: Money; excluido: Money } {
   const cero = { aceptado: Money.cero(monedaAnticipo), excluido: Money.cero(monedaAnticipo) };
   if (s.estado !== 'CONFIRMADO' || !s.datos) return cero;
-  const { total, lineas, tasa } = s.datos;
+  const { total, lineas, tasa, propinaSugerida } = s.datos;
   const aMonedaAnticipo = (m: Money) => (m.moneda === monedaAnticipo ? m : m.convertir(tasa!));
 
   if (s.decision && !s.decision.aplica) return { aceptado: cero.aceptado, excluido: aMonedaAnticipo(total) };
 
   const excluidoLineas = Money.sumarTodos(
-    lineas.filter((l) => l.excluida).map((l) => l.valor),
+    liquidarLineas(lineas, propinaSugerida).map((l) => l.valorExcluido),
     total.moneda,
   );
   const aceptado = total.restar(excluidoLineas);
@@ -513,15 +538,23 @@ export function montosDelSoporte(s: Soporte, monedaAnticipo: string): { aceptado
   };
 }
 
-function alertasDeLineas(lineas: readonly LineaSoporte[], total: Money): Alerta[] {
+function alertasDeLineas(lineas: readonly LineaLiquidada[], total: Money): Alerta[] {
   const alertas: Alerta[] = [];
-  const excluidas = lineas.filter((l) => l.excluida);
+  const excluidas = lineas.filter((l) => !l.valorExcluido.esCero());
   if (excluidas.length) {
-    const motivos = [...new Set(excluidas.map((l) => l.motivoExclusion))].join(', ');
+    const motivos = [...new Set(excluidas.map((l) => l.explicacion))].join(', ');
     alertas.push({
       codigo: 'LINEAS_EXCLUIDAS',
       severidad: 'INFO',
-      mensaje: `${excluidas.length} línea(s) excluida(s) por política: ${motivos}. Quedan a cargo del viajero`,
+      mensaje: `${excluidas.length} línea(s) excluida(s) total o parcialmente: ${motivos}. Quedan a cargo del viajero`,
+    });
+  }
+  const porVerificar = lineas.filter((l) => l.porVerificar !== null && l.decisionContable === null);
+  if (porVerificar.length) {
+    alertas.push({
+      codigo: 'LINEAS_POR_VERIFICAR',
+      severidad: 'REVISION',
+      mensaje: `${porVerificar.length} línea(s) por verificar: ${porVerificar.map((l) => `"${l.descripcion}" (${l.porVerificar})`).join(', ')}`,
     });
   }
   if (lineas.length) {

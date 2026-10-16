@@ -82,6 +82,7 @@ export function VistaLegalizacion({ legalizacion: l, modo }: { legalizacion: Leg
               key={s.id}
               legalizacion={l}
               soporte={s}
+              decidirLineas={modo === 'contabilidad' && l.estado === 'EN_REVISION'}
               acciones={
                 <>
                   {editable && s.tipo === 'FACTURA' && s.estado !== 'PROCESANDO' && (

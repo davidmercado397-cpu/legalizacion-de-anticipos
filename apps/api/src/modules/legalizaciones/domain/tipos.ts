@@ -1,4 +1,5 @@
 import type { FechaCalendario, Money, TasaCambio } from '@viaticos/shared-kernel';
+import type { LineaSoporte } from './lineas';
 
 export const CATEGORIAS_GASTO = ['ALOJAMIENTO', 'ALIMENTACION', 'VIVERES', 'TRANSPORTE', 'OTROS'] as const;
 export type CategoriaGasto = (typeof CATEGORIAS_GASTO)[number];
@@ -25,16 +26,13 @@ export interface DatosExtraidos {
   paisCodigo: string | null;
   categoriaSugerida: CategoriaGasto;
   lineas: Array<{ descripcion: string; valor: string }>;
+  /** Propina sugerida impresa en la factura (p. ej. "propina sugerida 10 %"), si la hay. */
+  propinaSugerida?: string | null;
   confianza: 'ALTA' | 'MEDIA' | 'BAJA';
   observaciones: string | null;
 }
 
-export interface LineaSoporte {
-  descripcion: string;
-  valor: Money;
-  excluida: boolean;
-  motivoExclusion: string | null;
-}
+export type { LineaSoporte } from './lineas';
 
 /** Datos del soporte confirmados por el viajero (fuente de verdad para la legalización). */
 export interface DatosSoporte {
@@ -50,9 +48,14 @@ export interface DatosSoporte {
   paisCodigo: string;
   categoria: CategoriaGasto;
   lineas: LineaSoporte[];
+  /** Propina sugerida en la factura: tope de la propina aceptada. */
+  propinaSugerida: Money | null;
   /** Tasa usada para llevar el total a la moneda del anticipo (null si es la misma moneda). */
   tasa: TasaCambio | null;
 }
+
+/** Lo que el viajero confirma: líneas tal cual; el dominio las clasifica. */
+export type EntradaSoporte = Omit<DatosSoporte, 'lineas'> & { lineas: Array<{ descripcion: string; valor: Money }> };
 
 export type CodigoAlerta =
   | 'NO_A_NOMBRE_EMPRESA'
@@ -60,6 +63,7 @@ export type CodigoAlerta =
   | 'FECHA_FUERA_DEL_VIAJE'
   | 'SIN_CLAVE_FISCAL'
   | 'LINEAS_EXCLUIDAS'
+  | 'LINEAS_POR_VERIFICAR'
   | 'TOTAL_NO_CUADRA'
   | 'LECTURA_NO_DISPONIBLE'
   | 'RECIBO_CAJA_222';

@@ -55,9 +55,10 @@ describe.runIf(URL_PRUEBAS)('Legalizaciones en PostgreSQL (integración)', () =>
         paisCodigo: 'BR',
         categoria: 'ALIMENTACION',
         lineas: [
-          { descripcion: 'Rodízio', valor: Money.of(270, 'BRL'), excluida: false, motivoExclusion: null },
-          { descripcion: 'Caipirinha', valor: Money.of(30, 'BRL'), excluida: false, motivoExclusion: null },
+          { descripcion: 'Rodízio', valor: Money.of(270, 'BRL') },
+          { descripcion: 'Caipirinha', valor: Money.of(30, 'BRL') },
         ],
+        propinaSugerida: null,
         tasa: new TasaCambio('BRL', 'USD', '0.2', f('2026-11-03'), 'PRUEBA'),
       },
       { nitEmpresa: '900123456', reglas: EXCLUSIONES_POR_DEFECTO.map((c) => new ReglaExclusion(c)), duplicidad: { veredicto: 'UNICO', detalle: null } },
@@ -72,7 +73,10 @@ describe.runIf(URL_PRUEBAS)('Legalizaciones en PostgreSQL (integración)', () =>
     expect(b.resumen().totalAceptado.toDto()).toEqual({ monto: '54.00', moneda: 'USD' }); // 270 × 0.2
     const s = b.soporte('50000000-0000-4000-8000-000000000001');
     expect(s.datos!.fecha.toString()).toBe('2026-11-03');
-    expect(s.datos!.lineas.map((x) => x.excluida)).toEqual([false, true]);
+    expect(s.datos!.lineas.map((x) => [x.tipo, x.motivoExclusion])).toEqual([
+      ['GASTO', null],
+      ['GASTO', 'Bebidas alcohólicas'],
+    ]);
     expect(s.decision).toMatchObject({ aplica: true, contadorId: 'u-contabilidad' });
     expect(s.decision!.decididoEn).toBeInstanceOf(Date);
     expect(b.historial[0]!.en).toBeInstanceOf(Date);

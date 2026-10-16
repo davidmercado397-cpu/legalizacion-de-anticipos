@@ -30,6 +30,7 @@ export interface LegalizacionesApi {
   archivo(id: string, soporteId: string): Promise<Blob>;
   enviar(id: string): Promise<LegalizacionResponse>;
   decidirSoporte(id: string, soporteId: string, datos: DecisionSoporteRequest): Promise<LegalizacionResponse>;
+  decidirLinea(id: string, soporteId: string, indice: number, excluir: boolean): Promise<LegalizacionResponse>;
   aprobar(id: string): Promise<LegalizacionResponse>;
   devolver(id: string, comentario: string): Promise<LegalizacionResponse>;
   politica(): Promise<PoliticaLegalizacionResponse>;
@@ -66,6 +67,7 @@ export const crearLegalizacionesApi = (http: AxiosInstance): LegalizacionesApi =
   archivo: async (id, soporteId) => (await http.get(`${s(id, soporteId)}/archivo`, { responseType: 'blob' })).data as Blob,
   enviar: async (id) => parse((await http.post(`${r(id)}/enviar`, {})).data),
   decidirSoporte: async (id, soporteId, datos) => parse((await http.post(`${s(id, soporteId)}/decision`, datos)).data),
+  decidirLinea: async (id, soporteId, indice, excluir) => parse((await http.post(`${s(id, soporteId)}/lineas/${indice}/decision`, { excluir })).data),
   aprobar: async (id) => parse((await http.post(`${r(id)}/aprobar`, {})).data),
   devolver: async (id, comentario) => parse((await http.post(`${r(id)}/devolver`, { comentario })).data),
   politica: async () => politicaLegalizacionResponseSchema.parse((await http.get('/politica-legalizacion')).data),

@@ -16,6 +16,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   confirmarSoporteRequestSchema,
+  decisionLineaRequestSchema,
   decisionSoporteRequestSchema,
   devolverLegalizacionRequestSchema,
   estadoLegalizacionSchema,
@@ -153,6 +154,20 @@ export class LegalizacionesController {
     @Body(new ZodValidationPipe(decisionSoporteRequestSchema)) body: { aplica: boolean; comentario?: string },
   ): Promise<LegalizacionResponse> {
     return this.presentar.una(await this.gestion.decidirSoporte({ legalizacionId: id, soporteId, contadorId: u, ...body }));
+  }
+
+  /** Contabilidad verifica una línea (palabra ambigua, propina sin valor sugerido) o corrige una exclusión. */
+  @Post('legalizaciones/:id/soportes/:soporteId/lineas/:indice/decision')
+  @Roles('CONTABILIDAD')
+  @HttpCode(200)
+  async decidirLinea(
+    @UsuarioActual() u: string,
+    @Param('id') id: string,
+    @Param('soporteId') soporteId: string,
+    @Param('indice', new ZodValidationPipe(z.coerce.number().int().min(0).max(59))) indice: number,
+    @Body(new ZodValidationPipe(decisionLineaRequestSchema)) body: { excluir: boolean },
+  ): Promise<LegalizacionResponse> {
+    return this.presentar.una(await this.gestion.decidirLinea({ legalizacionId: id, soporteId, indice, excluir: body.excluir, contadorId: u }));
   }
 
   @Post('legalizaciones/:id/aprobar')

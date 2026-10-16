@@ -26,6 +26,7 @@ function valoresIniciales(s: SoporteResponse, monedaAnticipo: string): Confirmar
       moneda: s.datos.total.moneda,
       total: s.datos.total.monto,
       lineas: s.datos.lineas.map((l) => ({ descripcion: l.descripcion, valor: l.valor.monto })),
+      propinaSugerida: s.datos.propinaSugerida?.monto ?? '',
     };
   }
   const e = s.extraccion;
@@ -43,6 +44,7 @@ function valoresIniciales(s: SoporteResponse, monedaAnticipo: string): Confirmar
     paisCodigo: e?.paisCodigo ?? '',
     categoria: e?.categoriaSugerida ?? 'OTROS',
     lineas: e?.lineas ?? [],
+    propinaSugerida: e?.propinaSugerida ?? '',
   };
 }
 
@@ -188,7 +190,10 @@ export function FormularioConfirmacion({
       <Tarjeta className="space-y-3">
         <div>
           <h3 className="font-semibold">Detalle (líneas)</h3>
-          <p className="text-sm text-slate-600">Las líneas de licor, minibar o tabaco se excluyen automáticamente y quedan a su cargo.</p>
+          <p className="text-sm text-slate-600">
+            Licor, minibar, tabaco, cine y spa se excluyen automáticamente y quedan a su cargo, junto con su parte del impuesto. Incluya las líneas de
+            impuesto (IVA, impoconsumo) y de propina tal como aparecen en la factura.
+          </p>
         </div>
         {lineas.fields.map((campo, i) => (
           <div key={campo.id} className="grid grid-cols-[1fr_8rem_auto] items-end gap-2">
@@ -206,6 +211,14 @@ export function FormularioConfirmacion({
         <Boton variante="secundario" onClick={() => lineas.append({ descripcion: '', valor: '' })}>
           + Agregar línea
         </Boton>
+        <Campo
+          etiqueta="Propina sugerida en la factura"
+          ayuda="Si la factura imprime una propina sugerida, escriba su valor: la propina se acepta hasta ese monto."
+          error={errores.propinaSugerida?.message}
+          className="max-w-xs"
+        >
+          {(a11y) => <Entrada {...a11y} inputMode="decimal" {...register('propinaSugerida')} />}
+        </Campo>
       </Tarjeta>
 
       {confirmar.isError && <Alerta tono="peligro">{mensajeDeError(confirmar.error)}</Alerta>}

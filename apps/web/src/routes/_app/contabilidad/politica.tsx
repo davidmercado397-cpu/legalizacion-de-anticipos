@@ -21,7 +21,7 @@ export const Route = createFileRoute('/_app/contabilidad/politica')({
 
 /** En el formulario las palabras se editan como texto (una por línea o separadas por coma). */
 type Formulario = Omit<PoliticaLegalizacionRequest, 'exclusiones'> & {
-  exclusiones: Array<{ codigo: string; nombre: string; palabras: string }>;
+  exclusiones: Array<{ codigo: string; nombre: string; palabras: string; palabrasAmbiguas: string }>;
 };
 
 function Politica() {
@@ -29,13 +29,17 @@ function Politica() {
   const { data } = useSuspenseQuery(politicaLegalizacionOptions(api));
   const guardar = useActualizarPolitica();
   const { register, control, handleSubmit, setError, formState } = useForm<Formulario>({
-    defaultValues: { ...data, exclusiones: data.exclusiones.map((e) => ({ ...e, palabras: e.palabras.join(', ') })) },
+    defaultValues: {
+      ...data,
+      exclusiones: data.exclusiones.map((e) => ({ ...e, palabras: e.palabras.join(', '), palabrasAmbiguas: e.palabrasAmbiguas.join(', ') })),
+    },
   });
   const topes = useFieldArray({ control, name: 'topesReciboCaja' });
   const exclusiones = useFieldArray({ control, name: 'exclusiones' });
 
   const enviar = handleSubmit((f) => {
-    const datos = { ...f, exclusiones: f.exclusiones.map((e) => ({ ...e, palabras: e.palabras.split(/[,\n]/).map((p) => p.trim()).filter(Boolean) })) };
+    const lista = (texto: string) => texto.split(/[,\n]/).map((p) => p.trim()).filter(Boolean);
+    const datos = { ...f, exclusiones: f.exclusiones.map((e) => ({ ...e, palabras: lista(e.palabras), palabrasAmbiguas: lista(e.palabrasAmbiguas) })) };
     const validado = politicaLegalizacionSchema.safeParse(datos);
     if (!validado.success) {
       for (const issue of validado.error.issues) setError(issue.path.join('.') as never, { message: issue.message });
@@ -96,10 +100,13 @@ function Politica() {
                 Quitar
               </Boton>
             </div>
-            <Campo etiqueta="Palabras (separadas por coma)">{(a11y) => <AreaTexto {...a11y} rows={2} {...register(`exclusiones.${i}.palabras`)} />}</Campo>
+            <Campo etiqueta="Palabras que excluyen (separadas por coma)">{(a11y) => <AreaTexto {...a11y} rows={2} {...register(`exclusiones.${i}.palabras`)} />}</Campo>
+            <Campo etiqueta="Palabras ambiguas: la línea queda por verificar" ayuda='Palabras con otro sentido, como "margarita" (pizza o coctel).'>
+              {(a11y) => <AreaTexto {...a11y} rows={2} {...register(`exclusiones.${i}.palabrasAmbiguas`)} />}
+            </Campo>
           </div>
         ))}
-        <Boton variante="secundario" onClick={() => exclusiones.append({ codigo: '', nombre: '', palabras: '' })}>
+        <Boton variante="secundario" onClick={() => exclusiones.append({ codigo: '', nombre: '', palabras: '', palabrasAmbiguas: '' })}>
           + Agregar exclusión
         </Boton>
       </Tarjeta>

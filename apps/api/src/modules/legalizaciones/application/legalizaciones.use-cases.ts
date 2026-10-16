@@ -4,7 +4,7 @@ import { Legalizacion, type EstadoLegalizacion } from '../domain/legalizacion';
 import type { PoliticaLegalizacion, PoliticaLegalizacionRepository } from '../domain/politica';
 import { ReglaExclusion, type ConfiguracionExclusion } from '../domain/reglas-exclusion';
 import type { LegalizacionRepository } from '../domain/repositorios';
-import type { CategoriaGasto, DatosSoporte, MedioPago, TipoClaveFiscal } from '../domain/tipos';
+import type { CategoriaGasto, EntradaSoporte, MedioPago, TipoClaveFiscal } from '../domain/tipos';
 import { inspeccionarArchivo } from './archivos';
 import type { AlmacenArchivos, ColaTrabajos, ControlDuplicadosPort, ExtractorComprobantes } from './puertos';
 
@@ -22,6 +22,7 @@ export interface DatosConfirmacion {
   paisCodigo: string;
   categoria: CategoriaGasto;
   lineas: Array<{ descripcion: string; valor: string }>;
+  propinaSugerida?: string | null | undefined;
 }
 
 export interface DatosReciboCaja {
@@ -170,7 +171,7 @@ export class GestionLegalizaciones {
     const fecha = FechaCalendario.of(d.fecha);
     const tasa = await this.tasaHacia(total.moneda, legalizacion.montoAnticipo.moneda, fecha);
 
-    const datosSoporte: DatosSoporte = {
+    const datosSoporte: EntradaSoporte = {
       emisorNombre: d.emisorNombre.trim(),
       emisorId: d.emisorId?.trim() || null,
       adquirienteId: d.adquirienteId?.trim() || null,
@@ -182,12 +183,8 @@ export class GestionLegalizaciones {
       ultimos4Tarjeta: d.medioPago === 'TARJETA' ? d.ultimos4Tarjeta?.trim() || null : null,
       paisCodigo: d.paisCodigo.toUpperCase(),
       categoria: d.categoria,
-      lineas: d.lineas.map((l) => ({
-        descripcion: l.descripcion.trim(),
-        valor: Money.of(l.valor, total.moneda),
-        excluida: false,
-        motivoExclusion: null,
-      })),
+      lineas: d.lineas.map((l) => ({ descripcion: l.descripcion.trim(), valor: Money.of(l.valor, total.moneda) })),
+      propinaSugerida: d.propinaSugerida ? Money.of(d.propinaSugerida, total.moneda) : null,
       tasa,
     };
 
@@ -290,6 +287,12 @@ export class GestionLegalizaciones {
 
   // ---------------- Contabilidad ----------------
 
+  async decidirLinea(datos: { legalizacionId: string; soporteId: string; indice: number; excluir: boolean; contadorId: string }): Promise<Legalizacion> {
+    return this.modificar(datos.legalizacionId, null, (l) =>
+      l.decidirLinea(datos.soporteId, datos.indice, datos.excluir, datos.contadorId, this.reloj.ahora()),
+    );
+  }
+
   async decidirSoporte(datos: {
     legalizacionId: string;
     soporteId: string;
@@ -333,7 +336,11 @@ export class GestionLegalizaciones {
     const politica: PoliticaLegalizacion = {
       nitEmpresa: datos.nitEmpresa.trim(),
       topesReciboCaja: datos.topesReciboCaja.map(Money.fromDto),
-      exclusiones: datos.exclusiones.map((e) => ({ ...e, palabras: [...new Set(e.palabras.map((p) => p.trim()).filter(Boolean))] })),
+      exclusiones: datos.exclusiones.map((e) => ({
+        ...e,
+        palabras: [...new Set(e.palabras.map((p) => p.trim()).filter(Boolean))],
+        palabrasAmbiguas: [...new Set((e.palabrasAmbiguas ?? []).map((p) => p.trim()).filter(Boolean))],
+      })),
       actualizadaPor: datos.contadorId,
       actualizadaEn: this.reloj.ahora(),
     };

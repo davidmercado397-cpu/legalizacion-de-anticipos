@@ -89,6 +89,10 @@ export const useDecidirSoporte = () =>
   useMutacionLegalizacion((api, v: { id: string; soporteId: string; datos: DecisionSoporteRequest }) =>
     api.legalizaciones.decidirSoporte(v.id, v.soporteId, v.datos),
   );
+export const useDecidirLinea = () =>
+  useMutacionLegalizacion((api, v: { id: string; soporteId: string; indice: number; excluir: boolean }) =>
+    api.legalizaciones.decidirLinea(v.id, v.soporteId, v.indice, v.excluir),
+  );
 export const useAprobarLegalizacion = () => useMutacionLegalizacion((api, id: string) => api.legalizaciones.aprobar(id));
 export const useDevolverLegalizacion = () =>
   useMutacionLegalizacion((api, v: { id: string; comentario: string }) => api.legalizaciones.devolver(v.id, v.comentario));

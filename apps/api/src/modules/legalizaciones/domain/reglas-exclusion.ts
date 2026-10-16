@@ -18,23 +18,39 @@ const normalizar = (texto: string) =>
     .replace(/\p{Diacritic}/gu, '')
     .toLowerCase();
 
+function compilar(lista: readonly string[] | undefined): RegExp | null {
+  const palabras = (lista ?? []).map((p) => normalizar(p).trim()).filter(Boolean);
+  const escapadas = palabras.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+'));
+  return escapadas.length ? new RegExp(`(^|[^\\p{L}\\p{N}])(${escapadas.join('|')})(?=$|[^\\p{L}\\p{N}])`, 'u') : null;
+}
+
 export class ReglaExclusion {
   private readonly patron: RegExp | null;
+  private readonly patronAmbiguo: RegExp | null;
 
   constructor(readonly config: ConfiguracionExclusion) {
-    const palabras = config.palabras.map((p) => normalizar(p).trim()).filter(Boolean);
-    const escapadas = palabras.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+'));
-    this.patron = escapadas.length ? new RegExp(`(^|[^\\p{L}\\p{N}])(${escapadas.join('|')})(?=$|[^\\p{L}\\p{N}])`, 'u') : null;
+    this.patron = compilar(config.palabras);
+    this.patronAmbiguo = compilar(config.palabrasAmbiguas);
   }
 
   aplicaA(descripcion: string): boolean {
     return this.patron?.test(normalizar(descripcion)) ?? false;
+  }
+
+  /** La descripción tiene una palabra que puede ser de esta exclusión o no ("pizza margarita"). */
+  podriaAplicarA(descripcion: string): boolean {
+    return this.patronAmbiguo?.test(normalizar(descripcion)) ?? false;
   }
 }
 
 /** Primera regla que excluye la descripción, o null. */
 export function evaluarExclusion(descripcion: string, reglas: readonly ReglaExclusion[]): ReglaExclusion | null {
   return reglas.find((r) => r.aplicaA(descripcion)) ?? null;
+}
+
+/** Primera regla con una palabra ambigua en la descripción, o null. */
+export function evaluarAmbiguedad(descripcion: string, reglas: readonly ReglaExclusion[]): ReglaExclusion | null {
+  return reglas.find((r) => r.podriaAplicarA(descripcion)) ?? null;
 }
 
 export const EXCLUSIONES_POR_DEFECTO: ConfiguracionExclusion[] = [

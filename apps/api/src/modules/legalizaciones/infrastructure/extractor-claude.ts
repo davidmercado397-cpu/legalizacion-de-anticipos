@@ -26,6 +26,7 @@ const esquemaExtraccion = z.object({
   paisCodigo: z.string().nullable().describe('País de emisión, ISO-3166 alfa-2'),
   categoriaSugerida: z.enum(CATEGORIAS_GASTO),
   lineas: z.array(z.object({ descripcion: z.string(), valor: decimal })),
+  propinaSugerida: decimal.nullable().describe('Propina sugerida impresa en la factura, si la hay'),
   confianza: z.enum(['ALTA', 'MEDIA', 'BAJA']),
   observaciones: z.string().nullable(),
 });
@@ -37,7 +38,8 @@ Reglas:
 - No inventes: si un dato no aparece o no es legible, usa null.
 - Montos como decimal con punto y sin separadores de miles. En Colombia "85.000" es 85000.00; en Brasil "1.234,56" es 1234.56.
 - "total" es el valor final pagado (incluye impuestos y propina si se cobraron).
-- "lineas": cada producto o servicio con su valor total por línea. Si no hay detalle, deja la lista vacía.
+- "lineas": cada producto o servicio con su valor total por línea. Incluye también, como líneas separadas, los impuestos (IVA, impoconsumo, ICMS…) y la propina o servicio si se cobraron. Si no hay detalle, deja la lista vacía.
+- "propinaSugerida": el valor de la propina sugerida o voluntaria que imprime la factura (p. ej. "Propina sugerida 10%: 8.500"); null si no aparece.
 - medioPago: TARJETA si hay marca de tarjeta, voucher o últimos dígitos; EFECTIVO si dice efectivo/dinheiro/cash; TRANSFERENCIA para transferencia o PIX; si no se sabe, DESCONOCIDO.
 - categoriaSugerida: ALOJAMIENTO (hotel), ALIMENTACION (restaurantes, comidas), VIVERES (supermercado, tiendas), TRANSPORTE (taxi, transporte, combustible, peajes) u OTROS. Usa también la descripción del viajero.
 - confianza: BAJA si la imagen está borrosa o incompleta.`;

@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { archivoSoporteOptions, useApi } from '@viaticos/client-app';
+import { archivoSoporteOptions, useApi, useDecidirLinea } from '@viaticos/client-app';
 import type { LegalizacionResponse, SoporteResponse } from '@viaticos/contracts';
 import { useEffect, useState, type ReactNode } from 'react';
 import { t } from '../../i18n';
 import { cx } from '../../lib/cx';
 import { formatoDinero, formatoFechaCalendario, formatoMomento } from '../../lib/formato';
+import { mensajeDeError } from '../../lib/errores';
+import { Boton } from '../../ui/boton';
 import { Alerta, Insignia, Tarjeta } from '../../ui/superficies';
 
 const TONO_LEG = { ABIERTA: 'info', EN_REVISION: 'aviso', DEVUELTA: 'peligro', APROBADA: 'exito' } as const;
@@ -103,12 +105,15 @@ export function TarjetaSoporte({
   legalizacion,
   soporte: s,
   acciones,
+  decidirLineas = false,
 }: {
   legalizacion: LegalizacionResponse;
   soporte: SoporteResponse;
   acciones?: ReactNode;
+  /** Contabilidad en revisión: puede excluir o aceptar líneas. */
+  decidirLineas?: boolean;
 }) {
-  const lineasExcluidas = s.datos?.lineas.filter((l) => l.excluida) ?? [];
+  const conDetalle = s.datos?.lineas.some((l) => l.excluida || l.porVerificar) ?? false;
   return (
     <Tarjeta className={cx('space-y-3', s.requiereDecision && !s.decision && 'ring-2 ring-amber-300')}>
       <div className="flex flex-wrap gap-3 sm:flex-nowrap">
@@ -139,10 +144,8 @@ export function TarjetaSoporte({
           </div>
         )}
       </div>
-      {lineasExcluidas.length > 0 && (
-        <p className="text-sm text-amber-900">
-          Excluido: {lineasExcluidas.map((l) => `${l.descripcion} (${formatoDinero(l.valor)})`).join(', ')}
-        </p>
+      {s.datos && (conDetalle || decidirLineas) && s.datos.lineas.length > 0 && (
+        <LineasSoporte legalizacionId={legalizacion.id} soporteId={s.id} lineas={s.datos.lineas} decidir={decidirLineas} />
       )}
       <ListaAlertas alertas={s.alertas} />
       {s.decision && (
@@ -179,5 +182,61 @@ export function EnlaceLegalizacion({ id, children }: { id: string; children: Rea
     >
       {children}
     </Link>
+  );
+}
+
+type Linea = NonNullable<SoporteResponse['datos']>['lineas'][number];
+
+/** Detalle de líneas: qué se excluyó (toda la línea o una parte) y qué queda por verificar. */
+function LineasSoporte({ legalizacionId, soporteId, lineas, decidir }: { legalizacionId: string; soporteId: string; lineas: Linea[]; decidir: boolean }) {
+  const decidirLinea = useDecidirLinea();
+  const ocupada = (i: number) => decidirLinea.isPending && decidirLinea.variables?.soporteId === soporteId && decidirLinea.variables.indice === i;
+  return (
+    <div className="space-y-1">
+      <ul className="divide-y divide-slate-100 rounded-lg bg-slate-50 text-sm">
+        {lineas.map((l, i) => (
+          <li key={i} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+            <div className="min-w-0">
+              <span className={cx(l.excluida && Number(l.valorExcluido.monto) === Number(l.valor.monto) && 'line-through decoration-amber-700')}>{l.descripcion}</span>
+              {l.tipo !== 'GASTO' && <span className="ml-2 text-xs text-slate-500">{l.tipo === 'IMPUESTO' ? 'impuesto' : 'propina'}</span>}
+              {l.excluida && (
+                <p className="text-xs text-amber-800">
+                  Excluido {formatoDinero(l.valorExcluido)}
+                  {l.motivoExclusion && ` · ${l.motivoExclusion}`}
+                </p>
+              )}
+              {l.porVerificar && !l.decisionContable && <p className="text-xs font-semibold text-amber-800">Por verificar: {l.porVerificar}</p>}
+              {l.decisionContable && l.porVerificar && (
+                <p className="text-xs text-slate-500">Contabilidad: {l.decisionContable === 'EXCLUIR' ? 'excluida' : 'aceptada'}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium whitespace-nowrap">{formatoDinero(l.valor)}</span>
+              {decidir && l.porVerificar && (
+                <>
+                  <Boton
+                    variante={l.decisionContable === 'EXCLUIR' ? 'primario' : 'secundario'}
+                    className="min-h-9 px-3 text-xs"
+                    cargando={ocupada(i) && decidirLinea.variables?.excluir === true}
+                    onClick={() => decidirLinea.mutate({ id: legalizacionId, soporteId, indice: i, excluir: true })}
+                  >
+                    Excluir
+                  </Boton>
+                  <Boton
+                    variante={l.decisionContable === 'ACEPTAR' ? 'primario' : 'secundario'}
+                    className="min-h-9 px-3 text-xs"
+                    cargando={ocupada(i) && decidirLinea.variables?.excluir === false}
+                    onClick={() => decidirLinea.mutate({ id: legalizacionId, soporteId, indice: i, excluir: false })}
+                  >
+                    Aceptar
+                  </Boton>
+                </>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+      {decidirLinea.error && <Alerta tono="peligro">{mensajeDeError(decidirLinea.error)}</Alerta>}
+    </div>
   );
 }

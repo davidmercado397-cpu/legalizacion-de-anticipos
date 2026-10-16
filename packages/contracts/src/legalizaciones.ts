@@ -43,6 +43,8 @@ export const confirmarSoporteRequestSchema = z.object({
     .array(z.object({ descripcion: z.string().trim().min(1, { error: 'validation.required' }).max(200), valor: decimalSchema }))
     .max(60)
     .default([]),
+  /** Propina sugerida impresa en la factura; la propina aceptada no la supera. */
+  propinaSugerida: decimalSchema.nullish().or(z.literal('')).transform((v) => v || null),
 });
 export type ConfirmarSoporteRequest = z.input<typeof confirmarSoporteRequestSchema>;
 
@@ -65,6 +67,9 @@ export const subirSoporteRequestSchema = z.object({
   descripcion: z.string().trim().min(5, { error: 'validation.minLength' }).max(300),
 });
 
+export const decisionLineaRequestSchema = z.object({ excluir: z.boolean() });
+export type DecisionLineaRequest = z.input<typeof decisionLineaRequestSchema>;
+
 export const decisionSoporteRequestSchema = z.object({
   aplica: z.boolean(),
   comentario: z.string().trim().max(500).optional(),
@@ -83,7 +88,9 @@ export const politicaLegalizacionSchema = z.object({
       z.object({
         codigo: z.string().trim().min(1).max(30),
         nombre: z.string().trim().min(1).max(80),
-        palabras: z.array(z.string().trim().min(1).max(60)).max(200),
+        palabras: z.array(z.string().trim().min(1).max(60)).max(300),
+        /** También tienen otro sentido ("pizza margarita"): la línea queda por verificar en vez de excluirse. */
+        palabrasAmbiguas: z.array(z.string().trim().min(1).max(60)).max(100).default([]),
       }),
     )
     .max(30),
@@ -120,6 +127,7 @@ export const extraccionSchema = z.object({
   paisCodigo: z.string().nullable(),
   categoriaSugerida: categoriaGastoSchema,
   lineas: z.array(z.object({ descripcion: z.string(), valor: z.string() })),
+  propinaSugerida: z.string().nullish(),
   confianza: z.enum(['ALTA', 'MEDIA', 'BAJA']),
   observaciones: z.string().nullable(),
 });
@@ -145,7 +153,21 @@ export const soporteResponseSchema = z.object({
       ultimos4Tarjeta: z.string().nullable(),
       paisCodigo: z.string(),
       categoria: categoriaGastoSchema,
-      lineas: z.array(z.object({ descripcion: z.string(), valor: moneySchema, excluida: z.boolean(), motivoExclusion: z.string().nullable() })),
+      lineas: z.array(
+        z.object({
+          descripcion: z.string(),
+          valor: moneySchema,
+          tipo: z.enum(['GASTO', 'IMPUESTO', 'PROPINA']),
+          excluida: z.boolean(),
+          /** Lo que se excluye de la línea: toda, una parte (impuesto, exceso de propina) o nada. */
+          valorExcluido: moneySchema,
+          motivoExclusion: z.string().nullable(),
+          /** Palabra ambigua o propina sin valor sugerido: contabilidad decide. */
+          porVerificar: z.string().nullable(),
+          decisionContable: z.enum(['EXCLUIR', 'ACEPTAR']).nullable(),
+        }),
+      ),
+      propinaSugerida: moneySchema.nullable(),
       tasa: tasaCambioSchema.nullable(),
     })
     .nullable(),

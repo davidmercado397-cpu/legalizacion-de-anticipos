@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { FechaCalendario, Money, TasaCambio } from '@viaticos/shared-kernel';
 import { Legalizacion, type ContextoConfirmacion } from './legalizacion';
 import { EXCLUSIONES_POR_DEFECTO, ReglaExclusion } from './reglas-exclusion';
-import type { DatosSoporte } from './tipos';
+import type { EntradaSoporte } from './tipos';
 
 const f = FechaCalendario.of;
 const ahora = new Date('2026-11-10T15:00:00Z');
@@ -26,7 +26,7 @@ function nueva(moneda = 'USD', monto = 475) {
   });
 }
 
-const datos = (cambios: Partial<DatosSoporte> = {}): DatosSoporte => ({
+const datos = (cambios: Partial<EntradaSoporte> = {}): EntradaSoporte => ({
   emisorNombre: 'Restaurante El Cielo',
   emisorId: '800111222',
   adquirienteId: '900123456',
@@ -39,6 +39,7 @@ const datos = (cambios: Partial<DatosSoporte> = {}): DatosSoporte => ({
   paisCodigo: 'US',
   categoria: 'ALIMENTACION',
   lineas: [],
+  propinaSugerida: null,
   tasa: null,
   ...cambios,
 });
@@ -50,7 +51,7 @@ function conFactura(l = nueva(), id = 's1') {
 }
 
 const lineas = (...items: Array<[string, number]>) =>
-  items.map(([descripcion, valor]) => ({ descripcion, valor: Money.of(valor, 'USD'), excluida: false, motivoExclusion: null }));
+  items.map(([descripcion, valor]) => ({ descripcion, valor: Money.of(valor, 'USD') }));
 
 describe('Legalizacion · facturas', () => {
   it('la factura pasa por PROCESANDO → POR_CONFIRMAR → CONFIRMADO', () => {
@@ -72,7 +73,7 @@ describe('Legalizacion · facturas', () => {
     const l = conFactura();
     l.confirmarSoporte('s1', datos({ total: Money.of(110, 'USD'), lineas: lineas(['Bandeja paisa', 80], ['2 Cerveza Club', 20]) }), contexto(), ahora);
     const s = l.soporte('s1');
-    expect(s.datos!.lineas.map((x) => x.excluida)).toEqual([false, true]);
+    expect(s.datos!.lineas.map((x) => x.motivoExclusion)).toEqual([null, 'Bebidas alcohólicas']);
     expect(s.alertas.map((a) => a.codigo)).toEqual(['LINEAS_EXCLUIDAS', 'TOTAL_NO_CUADRA']);
     // 110 − 20 = 90 (los 10 de diferencia son propina/impuesto y se reconocen)
     expect(l.resumen()).toMatchObject({
@@ -184,6 +185,26 @@ describe('Legalizacion · flujo de revisión', () => {
     l.enviarARevision('ana', ahora);
     l.aprobar('laura', ahora);
     expect(() => l.eliminarSoporte('s1', ahora)).toThrowError(/APROBADA/);
+  });
+
+  it('una línea por verificar bloquea la aprobación hasta que contabilidad la decida', () => {
+    const l = conFactura();
+    l.confirmarSoporte(
+      's1',
+      datos({ total: Money.of(40, 'USD'), lineas: lineas(['Pizza margarita', 25], ['Gin tonic', 15]) }),
+      contexto(),
+      ahora,
+    );
+    expect(l.soporte('s1').alertas.map((a) => a.codigo)).toEqual(['LINEAS_EXCLUIDAS', 'LINEAS_POR_VERIFICAR']);
+    l.enviarARevision('ana', ahora);
+    expect(() => l.aprobar('laura', ahora)).toThrowError(/Decida/);
+
+    l.decidirLinea('s1', 0, false, 'laura', ahora);
+    expect(l.soporte('s1').alertas.map((a) => a.codigo)).toEqual(['LINEAS_EXCLUIDAS']);
+    // La pizza se acepta; el gin tonic (inequívoco) sigue excluido.
+    expect(l.resumen()).toMatchObject({ totalAceptado: Money.of(25, 'USD'), totalExcluido: Money.of(15, 'USD') });
+    l.aprobar('laura', ahora);
+    expect(l.estado).toBe('APROBADA');
   });
 
   it('nadie revisa su propia legalización', () => {

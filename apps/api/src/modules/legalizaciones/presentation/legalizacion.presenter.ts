@@ -1,6 +1,7 @@
 import type { FechaCalendario } from '@viaticos/shared-kernel';
 import type { LegalizacionResponse, PoliticaLegalizacionResponse, SoporteResponse } from '@viaticos/contracts';
-import { Legalizacion, montosDelSoporte, requiereDecision, type Soporte } from '../domain/legalizacion';
+import { Legalizacion, lineasSinVerificar, montosDelSoporte, requiereDecision, type Soporte } from '../domain/legalizacion';
+import { liquidarLineas } from '../domain/lineas';
 import type { PoliticaLegalizacion } from '../domain/politica';
 import { datosAJson } from '../infrastructure/persistencia/serializacion';
 
@@ -62,10 +63,23 @@ function presentarSoporte(s: Soporte, monedaAnticipo: string, nombre: (id: strin
     // La clave interna de almacenamiento no se expone.
     archivo: s.archivo && { nombre: s.archivo.nombre, mime: s.archivo.mime, tamano: s.archivo.tamano },
     extraccion: s.extraccion,
-    datos: s.datos && datosAJson(s.datos),
+    datos: s.datos && {
+      ...datosAJson(s.datos),
+      lineas: liquidarLineas(s.datos.lineas, s.datos.propinaSugerida).map((l) => ({
+        descripcion: l.descripcion,
+        valor: l.valor.toDto(),
+        tipo: l.tipo,
+        excluida: !l.valorExcluido.esCero(),
+        valorExcluido: l.valorExcluido.toDto(),
+        motivoExclusion: l.explicacion,
+        porVerificar: l.porVerificar,
+        decisionContable: l.decisionContable,
+      })),
+      propinaSugerida: s.datos.propinaSugerida?.toDto() ?? null,
+    },
     montos: { aceptado: montos.aceptado.toDto(), excluido: montos.excluido.toDto() },
     alertas: s.alertas,
-    requiereDecision: requiereDecision(s),
+    requiereDecision: requiereDecision(s) || lineasSinVerificar(s) > 0,
     decision: s.decision && {
       aplica: s.decision.aplica,
       comentario: s.decision.comentario,
@@ -80,7 +94,7 @@ function presentarSoporte(s: Soporte, monedaAnticipo: string, nombre: (id: strin
 export const presentarPolitica = (p: PoliticaLegalizacion): PoliticaLegalizacionResponse => ({
   nitEmpresa: p.nitEmpresa,
   topesReciboCaja: p.topesReciboCaja.map((t) => t.toDto()),
-  exclusiones: p.exclusiones,
+  exclusiones: p.exclusiones.map((e) => ({ ...e, palabrasAmbiguas: e.palabrasAmbiguas ?? [] })),
   actualizadaPor: p.actualizadaPor,
   actualizadaEn: p.actualizadaEn?.toISOString() ?? null,
 });
