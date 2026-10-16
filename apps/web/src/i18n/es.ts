@@ -64,6 +64,13 @@ export const es: Record<string, string> = {
   'documento.cash_receipt': 'Recibo de caja',
   'documento.other': 'Otro',
 
+  'personal.administrative': 'Administrativo',
+  'personal.operational': 'Operativo',
+
+  'unidad.per_day': 'por día',
+  'unidad.per_night': 'por noche',
+  'unidad.per_trip': 'por viaje',
+
   'medio.card': 'Tarjeta',
   'medio.cash': 'Efectivo',
   'medio.transfer': 'Transferencia',

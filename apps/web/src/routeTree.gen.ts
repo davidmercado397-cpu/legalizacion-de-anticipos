@@ -13,12 +13,15 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAprobacionesRouteImport } from './routes/_app/aprobaciones'
+import { Route as AppContabilidadRouteRouteImport } from './routes/_app/contabilidad/route'
 import { Route as AppTesoreriaRouteImport } from './routes/_app/tesoreria'
 import { Route as AppAdministracionIndexRouteImport } from './routes/_app/administracion/index'
 import { Route as AppAnticiposIndexRouteImport } from './routes/_app/anticipos/index'
 import { Route as AppAnticiposAnticipoIdRouteImport } from './routes/_app/anticipos/$anticipoId'
 import { Route as AppAnticiposNuevoRouteImport } from './routes/_app/anticipos/nuevo'
 import { Route as AppContabilidadIndexRouteImport } from './routes/_app/contabilidad/index'
+import { Route as AppContabilidadPoliticaRouteImport } from './routes/_app/contabilidad/politica'
+import { Route as AppContabilidadTarifasRouteImport } from './routes/_app/contabilidad/tarifas'
 import { Route as AppCuentaClaveRouteImport } from './routes/_app/cuenta/clave'
 import { Route as AppCuentaMfaRouteImport } from './routes/_app/cuenta/mfa'
 import { Route as AppAnticiposAnticipoIdGastosGastoIdRouteImport } from './routes/_app/anticipos/$anticipoId_.gastos.$gastoId'
@@ -40,6 +43,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppAprobacionesRoute = AppAprobacionesRouteImport.update({
   id: '/aprobaciones',
   path: '/aprobaciones',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppContabilidadRouteRoute = AppContabilidadRouteRouteImport.update({
+  id: '/contabilidad',
+  path: '/contabilidad',
   getParentRoute: () => AppRoute,
 } as any)
 const AppTesoreriaRoute = AppTesoreriaRouteImport.update({
@@ -68,9 +76,19 @@ const AppAnticiposNuevoRoute = AppAnticiposNuevoRouteImport.update({
   getParentRoute: () => AppRoute,
 } as any)
 const AppContabilidadIndexRoute = AppContabilidadIndexRouteImport.update({
-  id: '/contabilidad/',
-  path: '/contabilidad/',
-  getParentRoute: () => AppRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppContabilidadRouteRoute,
+} as any)
+const AppContabilidadPoliticaRoute = AppContabilidadPoliticaRouteImport.update({
+  id: '/politica',
+  path: '/politica',
+  getParentRoute: () => AppContabilidadRouteRoute,
+} as any)
+const AppContabilidadTarifasRoute = AppContabilidadTarifasRouteImport.update({
+  id: '/tarifas',
+  path: '/tarifas',
+  getParentRoute: () => AppContabilidadRouteRoute,
 } as any)
 const AppCuentaClaveRoute = AppCuentaClaveRouteImport.update({
   id: '/cuenta/clave',
@@ -92,10 +110,13 @@ const AppAnticiposAnticipoIdGastosGastoIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
+  '/contabilidad': typeof AppContabilidadRouteRouteWithChildren
   '/aprobaciones': typeof AppAprobacionesRoute
   '/tesoreria': typeof AppTesoreriaRoute
   '/anticipos/$anticipoId': typeof AppAnticiposAnticipoIdRoute
   '/anticipos/nuevo': typeof AppAnticiposNuevoRoute
+  '/contabilidad/politica': typeof AppContabilidadPoliticaRoute
+  '/contabilidad/tarifas': typeof AppContabilidadTarifasRoute
   '/cuenta/clave': typeof AppCuentaClaveRoute
   '/cuenta/mfa': typeof AppCuentaMfaRoute
   '/administracion/': typeof AppAdministracionIndexRoute
@@ -110,6 +131,8 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/anticipos/$anticipoId': typeof AppAnticiposAnticipoIdRoute
   '/anticipos/nuevo': typeof AppAnticiposNuevoRoute
+  '/contabilidad/politica': typeof AppContabilidadPoliticaRoute
+  '/contabilidad/tarifas': typeof AppContabilidadTarifasRoute
   '/cuenta/clave': typeof AppCuentaClaveRoute
   '/cuenta/mfa': typeof AppCuentaMfaRoute
   '/administracion': typeof AppAdministracionIndexRoute
@@ -121,11 +144,14 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/contabilidad': typeof AppContabilidadRouteRouteWithChildren
   '/_app/aprobaciones': typeof AppAprobacionesRoute
   '/_app/tesoreria': typeof AppTesoreriaRoute
   '/_app/': typeof AppIndexRoute
   '/_app/anticipos/$anticipoId': typeof AppAnticiposAnticipoIdRoute
   '/_app/anticipos/nuevo': typeof AppAnticiposNuevoRoute
+  '/_app/contabilidad/politica': typeof AppContabilidadPoliticaRoute
+  '/_app/contabilidad/tarifas': typeof AppContabilidadTarifasRoute
   '/_app/cuenta/clave': typeof AppCuentaClaveRoute
   '/_app/cuenta/mfa': typeof AppCuentaMfaRoute
   '/_app/administracion/': typeof AppAdministracionIndexRoute
@@ -138,10 +164,13 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/contabilidad'
     | '/aprobaciones'
     | '/tesoreria'
     | '/anticipos/$anticipoId'
     | '/anticipos/nuevo'
+    | '/contabilidad/politica'
+    | '/contabilidad/tarifas'
     | '/cuenta/clave'
     | '/cuenta/mfa'
     | '/administracion/'
@@ -156,6 +185,8 @@ export interface FileRouteTypes {
     | '/'
     | '/anticipos/$anticipoId'
     | '/anticipos/nuevo'
+    | '/contabilidad/politica'
+    | '/contabilidad/tarifas'
     | '/cuenta/clave'
     | '/cuenta/mfa'
     | '/administracion'
@@ -166,11 +197,14 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/login'
+    | '/_app/contabilidad'
     | '/_app/aprobaciones'
     | '/_app/tesoreria'
     | '/_app/'
     | '/_app/anticipos/$anticipoId'
     | '/_app/anticipos/nuevo'
+    | '/_app/contabilidad/politica'
+    | '/_app/contabilidad/tarifas'
     | '/_app/cuenta/clave'
     | '/_app/cuenta/mfa'
     | '/_app/administracion/'
@@ -214,6 +248,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAprobacionesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/contabilidad': {
+      id: '/_app/contabilidad'
+      path: '/contabilidad'
+      fullPath: '/contabilidad'
+      preLoaderRoute: typeof AppContabilidadRouteRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/tesoreria': {
       id: '/_app/tesoreria'
       path: '/tesoreria'
@@ -251,10 +292,24 @@ declare module '@tanstack/react-router' {
     }
     '/_app/contabilidad/': {
       id: '/_app/contabilidad/'
-      path: '/contabilidad'
+      path: '/'
       fullPath: '/contabilidad/'
       preLoaderRoute: typeof AppContabilidadIndexRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppContabilidadRouteRoute
+    }
+    '/_app/contabilidad/politica': {
+      id: '/_app/contabilidad/politica'
+      path: '/politica'
+      fullPath: '/contabilidad/politica'
+      preLoaderRoute: typeof AppContabilidadPoliticaRouteImport
+      parentRoute: typeof AppContabilidadRouteRoute
+    }
+    '/_app/contabilidad/tarifas': {
+      id: '/_app/contabilidad/tarifas'
+      path: '/tarifas'
+      fullPath: '/contabilidad/tarifas'
+      preLoaderRoute: typeof AppContabilidadTarifasRouteImport
+      parentRoute: typeof AppContabilidadRouteRoute
     }
     '/_app/cuenta/clave': {
       id: '/_app/cuenta/clave'
@@ -280,7 +335,23 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppContabilidadRouteRouteChildren {
+  AppContabilidadPoliticaRoute: typeof AppContabilidadPoliticaRoute
+  AppContabilidadTarifasRoute: typeof AppContabilidadTarifasRoute
+  AppContabilidadIndexRoute: typeof AppContabilidadIndexRoute
+}
+
+const AppContabilidadRouteRouteChildren: AppContabilidadRouteRouteChildren = {
+  AppContabilidadPoliticaRoute: AppContabilidadPoliticaRoute,
+  AppContabilidadTarifasRoute: AppContabilidadTarifasRoute,
+  AppContabilidadIndexRoute: AppContabilidadIndexRoute,
+}
+
+const AppContabilidadRouteRouteWithChildren =
+  AppContabilidadRouteRoute._addFileChildren(AppContabilidadRouteRouteChildren)
+
 interface AppRouteChildren {
+  AppContabilidadRouteRoute: typeof AppContabilidadRouteRouteWithChildren
   AppAprobacionesRoute: typeof AppAprobacionesRoute
   AppTesoreriaRoute: typeof AppTesoreriaRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -290,11 +361,11 @@ interface AppRouteChildren {
   AppCuentaMfaRoute: typeof AppCuentaMfaRoute
   AppAdministracionIndexRoute: typeof AppAdministracionIndexRoute
   AppAnticiposIndexRoute: typeof AppAnticiposIndexRoute
-  AppContabilidadIndexRoute: typeof AppContabilidadIndexRoute
   AppAnticiposAnticipoIdGastosGastoIdRoute: typeof AppAnticiposAnticipoIdGastosGastoIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppContabilidadRouteRoute: AppContabilidadRouteRouteWithChildren,
   AppAprobacionesRoute: AppAprobacionesRoute,
   AppTesoreriaRoute: AppTesoreriaRoute,
   AppIndexRoute: AppIndexRoute,
@@ -304,7 +375,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppCuentaMfaRoute: AppCuentaMfaRoute,
   AppAdministracionIndexRoute: AppAdministracionIndexRoute,
   AppAnticiposIndexRoute: AppAnticiposIndexRoute,
-  AppContabilidadIndexRoute: AppContabilidadIndexRoute,
   AppAnticiposAnticipoIdGastosGastoIdRoute:
     AppAnticiposAnticipoIdGastosGastoIdRoute,
 }

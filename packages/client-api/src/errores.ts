@@ -19,6 +19,8 @@ export class ApiError extends Error {
     readonly requestId: string | null = null,
     /** Segundos de espera en 423 y 429. */
     readonly reintentarEn: number | null = null,
+    /** El detalle tal cual (p. ej. la fila del Excel con cada problema). */
+    readonly detalles: Record<string, unknown>[] = [],
   ) {
     super(mensaje);
     this.name = 'ApiError';
@@ -37,7 +39,15 @@ export class ApiError extends Error {
             (campos[detalle.field] ??= []).push(detalle.issue);
           }
         }
-        return new ApiError(status, data.error.code, data.error.message, campos, data.error.request_id, Number.isFinite(espera) ? espera : null);
+        return new ApiError(
+          status,
+          data.error.code,
+          data.error.message,
+          campos,
+          data.error.request_id,
+          Number.isFinite(espera) ? espera : null,
+          data.error.details as Record<string, unknown>[],
+        );
       }
       // 502/503/504 sin el cuerpo de la API: lo responde un proxy (Vite, nginx) porque la API no está arriba.
       if ([502, 503, 504].includes(status)) return new ApiError(status, 'servidor_no_disponible', 'El servidor no está disponible.');

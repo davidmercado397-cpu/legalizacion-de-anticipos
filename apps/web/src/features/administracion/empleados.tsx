@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAccionEmpleado, useCompanias, useEmpleados, useGuardarEmpleado } from '@viaticos/client-app';
-import type { Empleado, Rol } from '@viaticos/contracts';
+import type { Empleado, Rol, TipoPersonal } from '@viaticos/contracts';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -21,6 +21,7 @@ const esquema = z.object({
   company_id: z.string().min(1, 'validation.required'),
   approver_id: z.string(),
   phone: z.string().trim(),
+  staff_type: z.string(),
 });
 type Datos = z.infer<typeof esquema>;
 
@@ -122,6 +123,7 @@ function FormularioEmpleado({
       company_id: empleado?.company_ids[0] ?? companias.data?.[0]?.id ?? '',
       approver_id: empleado?.approver_id ?? '',
       phone: empleado?.phone ?? '',
+      staff_type: empleado?.staff_type ?? '',
     },
   });
   const e = formState.errors;
@@ -138,6 +140,7 @@ function FormularioEmpleado({
             company_ids: [d.company_id],
             approver_id: d.approver_id || null,
             phone: d.phone || null,
+            staff_type: (d.staff_type || null) as TipoPersonal | null,
           };
           const { claveTemporal } = await guardar.mutateAsync(empleado ? { id: empleado.id, datos } : { datos });
           alTerminar(claveTemporal, d.email);
@@ -183,6 +186,18 @@ function FormularioEmpleado({
                     {a.full_name}
                   </option>
                 ))}
+            </Seleccion>
+          )}
+        </Campo>
+        <Campo etiqueta="Tipo de personal" ayuda="Define qué tarifa de viaje le aplica">
+          {(p) => (
+            <Seleccion {...p} {...register('staff_type')}>
+              <option value="">—</option>
+              {(['administrative', 'operational'] satisfies TipoPersonal[]).map((t) => (
+                <option key={t} value={t}>
+                  {etiqueta('personal', t)}
+                </option>
+              ))}
             </Seleccion>
           )}
         </Campo>

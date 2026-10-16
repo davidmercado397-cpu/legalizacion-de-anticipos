@@ -16,6 +16,11 @@ import type {
   ReglasAprobacion,
   ReglasAprobacionNuevas,
   Rol,
+  Tarifa,
+  TarifaNueva,
+  ZonaViaje,
+  ZonaViajeCambios,
+  ZonaViajeNueva,
 } from '@viaticos/contracts';
 
 export interface FiltrosEmpleados {
@@ -46,6 +51,14 @@ export interface OrganizacionApi {
   claveTemporal(id: string, clave?: string): Promise<string>;
   /** Para un celular perdido: el usuario vuelve a activar la verificación al entrar. */
   reiniciarMfa(id: string): Promise<void>;
+  zonas(companiaId: string): Promise<ZonaViaje[]>;
+  crearZona(companiaId: string, datos: ZonaViajeNueva): Promise<ZonaViaje>;
+  actualizarZona(companiaId: string, zonaId: string, cambios: ZonaViajeCambios): Promise<ZonaViaje>;
+  tarifas(companiaId: string): Promise<Tarifa[]>;
+  crearTarifa(companiaId: string, datos: TarifaNueva): Promise<Tarifa>;
+  desactivarTarifa(companiaId: string, tarifaId: string): Promise<void>;
+  /** Todo o nada: si una fila tiene problemas, la API responde 422 con el detalle por fila. */
+  importarTarifas(companiaId: string, archivo: Blob, nombre: string): Promise<number>;
 }
 
 export const crearOrganizacionApi = (http: AxiosInstance): OrganizacionApi => ({
@@ -70,5 +83,19 @@ export const crearOrganizacionApi = (http: AxiosInstance): OrganizacionApi => ({
     (await http.post<{ temporary_password: string }>(`/employees/${id}/password`, { password: clave ?? null })).data.temporary_password,
   reiniciarMfa: async (id) => {
     await http.post(`/employees/${id}/mfa/reset`);
+  },
+  zonas: async (companiaId) => (await http.get<Lista<ZonaViaje>>(`/companies/${companiaId}/travel-zones`)).data.data,
+  crearZona: async (companiaId, datos) => (await http.post<ZonaViaje>(`/companies/${companiaId}/travel-zones`, datos)).data,
+  actualizarZona: async (companiaId, zonaId, cambios) =>
+    (await http.patch<ZonaViaje>(`/companies/${companiaId}/travel-zones/${zonaId}`, cambios)).data,
+  tarifas: async (companiaId) => (await http.get<Lista<Tarifa>>(`/companies/${companiaId}/travel-rates`)).data.data,
+  crearTarifa: async (companiaId, datos) => (await http.post<Tarifa>(`/companies/${companiaId}/travel-rates`, datos)).data,
+  desactivarTarifa: async (companiaId, tarifaId) => {
+    await http.delete(`/companies/${companiaId}/travel-rates/${tarifaId}`);
+  },
+  importarTarifas: async (companiaId, archivo, nombre) => {
+    const datos = new FormData();
+    datos.append('file', archivo, nombre);
+    return (await http.post<{ imported: number }>(`/companies/${companiaId}/travel-rates/import`, datos)).data.imported;
   },
 });

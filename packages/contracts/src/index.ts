@@ -59,8 +59,6 @@ export type Categoria = S['CategoryOut'];
 export type ReglaPolitica = S['PolicyRuleOut'];
 export type ReglaPoliticaNueva = S['PolicyRuleIn'];
 export type ConceptoBloqueado = S['BlockedConceptOut'];
-export type ZonaViaje = S['TravelZoneOut'];
-export type TarifaViaje = S['TravelRateOut'];
 
 export type SaldoPendiente = S['PendingBalanceOut'];
 
@@ -94,3 +92,12 @@ export type VistaPreviaExtracto = S['StatementPreviewOut'];
 export type PerfilExtracto = S['StatementProfileIO'];
 export type DecisionCargo = S['ChargeDecision'];
 export type MedioDePago = S['PaymentMethod'];
+
+/** Presupuesto de viaje: zonas (lugares) y tarifas zona × tipo de personal × categoría. */
+export type ZonaViaje = S['TravelZoneOut'];
+export type ZonaViajeNueva = S['TravelZoneIn'];
+export type ZonaViajeCambios = S['TravelZonePatch'];
+export type Tarifa = S['TravelRateOut'];
+export type TarifaNueva = S['TravelRateIn'];
+export type TipoPersonal = S['StaffType'];
+export type UnidadTarifa = S['BudgetUnit'];

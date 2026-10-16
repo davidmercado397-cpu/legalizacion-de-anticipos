@@ -37,7 +37,9 @@ Contraseña de todos: **`Viaticos2026*`**
 | `laura@empresa.co` | Contabilidad | Revisar los cruces con el extracto, cerrar legalizaciones, crearlas en Siesa, política de gastos |
 | `andres@empresa.co` | Administrador | Usuarios y compañías |
 
-La solicitud la aprueba el jefe inmediato. Si supera en más del 10 % el presupuesto calculado, o el monto que fije contabilidad en *Contabilidad → Escalamiento al jefe directivo*, también la aprueba el jefe directivo, que puede hacerlo sin esperar. El jefe solo aprueba la solicitud. Cuando el viajero envía la legalización, la revisa y la cierra contabilidad, y tesorería registra el reintegro o el reembolso de la diferencia.
+La solicitud la aprueba el jefe inmediato. Si supera en más del 10 % el presupuesto calculado, o el monto que fije contabilidad en *Contabilidad → Política de gastos*, también la aprueba el jefe directivo, que puede hacerlo sin esperar. El jefe solo aprueba la solicitud. Cuando el viajero envía la legalización, la revisa y la cierra contabilidad, y tesorería registra el reintegro o el reembolso de la diferencia.
+
+El valor sugerido del anticipo sale de las tarifas que carga contabilidad en *Contabilidad → Tarifas de viaje* (zonas con sus ciudades y tarifas por tipo de personal, una por una o desde Excel). Cada usuario necesita su tipo de personal en *Administración*.
 
 ### Lectura de facturas con IA (opcional)
 
