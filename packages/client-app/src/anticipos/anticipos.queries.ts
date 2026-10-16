@@ -63,7 +63,7 @@ export function useSolicitarAnticipo() {
 }
 
 type Accion =
-  | { tipo: 'aprobar' | 'cancelar' | 'enviar' | 'cerrar' }
+  | { tipo: 'aprobar' | 'cancelar' | 'enviar' | 'cerrar' | 'siesa_anticipo' | 'siesa_legalizacion' }
   | { tipo: 'rechazar'; nota: string | null }
   | { tipo: 'anular' | 'reabrir'; nota: string }
   | { tipo: 'devolver'; datos: Devolucion }
@@ -98,6 +98,10 @@ export function useAccionAnticipo(id: string) {
           return a.desembolsar(id, accion.datos);
         case 'liquidar':
           return a.liquidar(id, accion.datos);
+        case 'siesa_anticipo':
+          return a.siesaAnticipo(id);
+        case 'siesa_legalizacion':
+          return a.siesaLegalizacion(id);
       }
     },
     onSuccess: alCambiar,

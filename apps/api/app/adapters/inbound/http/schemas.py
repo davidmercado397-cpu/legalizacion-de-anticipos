@@ -23,6 +23,7 @@ from app.domain.enums import (
     Deductibility,
     DisbursementMethod,
     DocumentType,
+    ErpStatus,
     ExampleKind,
     ExampleScope,
     ExampleStatus,
@@ -413,6 +414,11 @@ class AdvanceOut(Model):
     budget_breakdown: list[dict[str, Any]]
     budget_justification: str | None
     legs: list[TripLegOut] = Field(description="Tramos del viaje; vacío si tuvo un solo destino")
+    erp_advance_status: ErpStatus | None = Field(description="Siesa: el anticipo (se crea al aprobarse)")
+    erp_advance_ref: str | None
+    erp_legalization_status: ErpStatus | None = Field(description="Siesa: la legalización (la envía contabilidad)")
+    erp_legalization_ref: str | None
+    erp_error: str | None = Field(description="Último error al enviar a Siesa")
     approval_steps: list[ApprovalStepOut] = Field(description="Ruta de aprobación; vacía en solicitudes anteriores")
     legalization_due: date | None = Field(description="Plazo para enviar la legalización")
     overdue: bool = Field(description="Aprobado y sin enviar la legalización después del plazo")

@@ -46,6 +46,9 @@ export interface AnticiposApi {
   reabrir(id: string, nota: string): Promise<Anticipo>;
   desembolsar(id: string, datos: Desembolso): Promise<Anticipo>;
   liquidar(id: string, datos: Liquidacion): Promise<Anticipo>;
+  /** Siesa: reintenta crear el anticipo o crea la legalización (decisión 8.1). */
+  siesaAnticipo(id: string): Promise<Anticipo>;
+  siesaLegalizacion(id: string): Promise<Anticipo>;
   excel(id: string): Promise<{ archivo: Blob; nombre: string }>;
 }
 
@@ -74,6 +77,8 @@ export const crearAnticiposApi = (http: AxiosInstance): AnticiposApi => {
     reabrir: (id, nota) => accion(id, 'reopen', { note: nota }),
     desembolsar: (id, datos) => accion(id, 'disburse', datos),
     liquidar: (id, datos) => accion(id, 'settle', datos),
+    siesaAnticipo: (id) => accion(id, 'erp/advance'),
+    siesaLegalizacion: (id) => accion(id, 'erp/legalization'),
     excel: async (id) => {
       const respuesta = await http.get<Blob>(`/advances/${id}/legalization.xlsx`, { responseType: 'blob' });
       return { archivo: respuesta.data, nombre: nombreArchivo(respuesta.headers['content-disposition'], 'legalizacion.xlsx') };

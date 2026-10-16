@@ -4,9 +4,9 @@ Respuestas al documento «Decisiones por confirmar» (16 de octubre de 2026). Ca
 
 Este documento manda cuando difiere de lo que hacía el backend base (`apps/api`).
 
-**Estado en la API Python** (actualizado el 16/10): listas las secciones 1 a 6 y 8.3 a 8.9.
-Pendientes, en este orden: integración con Siesa (8.1 y 8.2) y, al final, la conciliación bancaria
-(sección 7, en la rama `wip/conciliacion-bancaria`).
+**Estado en la API Python** (actualizado el 16/10): listas las secciones 1 a 6 y 8. De Siesa (8.1 y 8.2)
+están el flujo, los estados y el botón; falta conectar su API (credenciales y formato del documento).
+Pendiente: la conciliación bancaria (sección 7, en la rama `wip/conciliacion-bancaria`).
 
 ## 1. Tasas de cambio
 
@@ -93,8 +93,8 @@ Pendientes, en este orden: integración con Siesa (8.1 y 8.2) y, al final, la co
 
 | # | Decisión | En el sistema |
 |---|----------|---------------|
-| 8.1 | El anticipo se crea en Siesa al aprobarse la solicitud. La legalización se envía cuando contabilidad termina y pulsa «Crear legalización en Siesa» | Botón y estado nuevo |
-| 8.2 | Un documento por legalización | Sin cambios |
+| 8.1 | El anticipo se crea en Siesa al aprobarse la solicitud. La legalización se envía cuando contabilidad termina y pulsa «Crear legalización en Siesa» | Se envía en segundo plano al aprobarse; botón «Crear legalización en Siesa» con la legalización cerrada; si Siesa falla, queda el error y contabilidad reintenta |
+| 8.2 | Un documento por legalización | Un documento con todas las facturas confirmadas, lo entregado, lo legalizado y el saldo |
 | 8.3 | Tesorería registra el desembolso | Sin cambios |
 | 8.4 | Saldo a favor de la empresa: consignación registrada por tesorería | Registro de reintegro |
 | 8.5 | Saldo a favor del viajero: siempre se reembolsa | Registro de reembolso por tesorería |

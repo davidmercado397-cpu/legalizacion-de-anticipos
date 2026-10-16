@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useAnticipo, useDescargarExcel, useSesion } from '@viaticos/client-app';
-import { InsigniaAnticipo, ResumenSaldo } from '../../../features/anticipos/componentes';
+import { EstadoSiesa, InsigniaAnticipo, ResumenSaldo } from '../../../features/anticipos/componentes';
 import { LineaDeTiempo } from '../../../features/anticipos/linea-tiempo';
 import { PanelAcciones } from '../../../features/anticipos/panel-acciones';
 import { RutaAprobacion } from '../../../features/anticipos/ruta-aprobacion';
@@ -86,6 +86,7 @@ function DetalleAnticipo() {
             <p className="text-sm text-slate-600">Envíe la legalización a más tardar el {formatoFechaCalendario(anticipo.legalization_due)}.</p>
           )
         )}
+        {(puede(usuario, 'contabilidad') || puede(usuario, 'tesoreria')) && <EstadoSiesa anticipo={anticipo} />}
         {anticipo.settlement_status && (
           <p className="text-sm font-medium text-slate-700">{etiqueta('liquidacion', anticipo.settlement_status)}</p>
         )}

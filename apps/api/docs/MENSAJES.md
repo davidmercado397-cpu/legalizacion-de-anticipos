@@ -215,6 +215,9 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `amount_not_positive` | El valor debe ser mayor que cero. |
 | `negative_amount` | El valor del anticipo no puede ser negativo. |
 | `end_before_start` | La fecha de regreso no puede ser anterior a la de salida. |
+| `erp_advance_not_approved` | El anticipo se crea en Siesa cuando termina su aprobación. |
+| `erp_legalization_not_closed` | Primero cierra la legalización; después se crea en Siesa. |
+| `erp_already_sent` | Esto ya está en Siesa. |
 | `legs_overlap` | No se pudo completar la acción. |
 | `trip_without_legs` | Agrega al menos un destino con sus fechas. |
 | `budget_rate_unavailable` | No se pudo completar la acción. |

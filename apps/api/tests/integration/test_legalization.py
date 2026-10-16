@@ -128,6 +128,9 @@ async def test_timeline_cancel_void_and_reopen(harness: Harness) -> None:
     assert reopened.json()["status"] == "in_review" and reopened.json()["closed_at"] is None
 
     timeline = (await harness.client.get(f"/api/v1/advances/{advance_id}/timeline", headers=emp_h)).json()["data"]
+    labels = [e["label"] for e in timeline]
+    assert "Creado en Siesa" in labels  # lo agrega el envío en segundo plano al aprobarse
+    timeline = [e for e in timeline if "Siesa" not in e["label"]]
     assert [e["label"] for e in timeline] == [
         "Solicitado",
         "Aprobado",

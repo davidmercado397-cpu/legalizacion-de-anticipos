@@ -56,6 +56,7 @@ El jefe solo aprueba la solicitud; la legalización la revisa y la cierra contab
 | C1 | Configurar reglas de política, conceptos bloqueados y categorías | App | `/companies/{id}/policy-rules`, `/blocked-concepts`, `/categories` |
 | C1b | Configurar cuándo una solicitud escala al jefe directivo (tolerancia sobre el presupuesto y monto total) | App | `GET/PUT /companies/{id}/approval-rules` |
 | C2 | Cargar zonas y tarifas de viaje (también desde Excel) | App | `/companies/{id}/travel-zones`, `/travel-rates`, `POST /travel-rates/import` |
+| C0e | Crear la legalización cerrada en Siesa, o reintentar el anticipo si Siesa falló | App | `POST /advances/{id}/erp/legalization`, `POST /advances/{id}/erp/advance` |
 | C5 | Anular un anticipo o reabrir una legalización cerrada | App | `POST /advances/{id}/void`, `POST /advances/{id}/reopen` |
 | C6 | Revisar la deducibilidad (desglose por línea, pendientes de revisión, cambiarla) | App | `GET /expenses/{id}/deductibility`, `GET /expenses?deductibility=requires_review`, `POST /expenses/{id}/deductibility` |
 | C7 | Nombrar aprobadores suplentes | App | `GET/POST /employees/{id}/delegations`, `DELETE …/delegations/{id}` |
@@ -106,3 +107,4 @@ El jefe solo aprueba la solicitud; la legalización la revisa y la cierra contab
 | S13 | Recordar la legalización días después del viaje (plantilla fuera de la ventana de 24 h) | Tarea periódica |
 | S14 | Cerrar la conversación de WhatsApp por inactividad, con un solo recordatorio si quedó algo pendiente | Tarea periódica |
 | S15 | Avisar al empleado cada cambio de su anticipo | Al cambiar de estado |
+| S16 | Crear el anticipo en Siesa (si falla, queda el error para reintentar) | Al aprobarse |

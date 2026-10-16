@@ -232,6 +232,13 @@ Prueba de punta a punta desde `/docs`: `POST /api/v1/auth/login` → *Authorize*
 
 ## Configuración de servicios externos
 
+### Siesa (ERP)
+El anticipo se crea en Siesa en segundo plano cuando termina su aprobación, y la legalización cuando
+contabilidad la cierra y pulsa «Crear legalización en Siesa» (`POST /advances/{id}/erp/legalization`).
+Cada anticipo guarda el estado (`erp_advance_status`, `erp_legalization_status`), la referencia en
+Siesa y el último error; si Siesa falla, contabilidad reintenta (`POST /advances/{id}/erp/advance`).
+El adaptador real aún no existe: sin él, todo queda «pendiente» con el aviso «Siesa no está configurado».
+
 ### WhatsApp (Meta Cloud API)
 1. App de Meta con el producto WhatsApp y un usuario del sistema con token permanente
    (`WHATSAPP_ACCESS_TOKEN`) y el `WHATSAPP_PHONE_NUMBER_ID` del número.

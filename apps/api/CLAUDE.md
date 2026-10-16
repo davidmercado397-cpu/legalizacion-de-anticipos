@@ -110,13 +110,17 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
   viaje. `domain/budgets.calculate_legs`: el día de traslado lo paga el tramo de llegada, cada tramo usa
   la zona de su destino (una zona puede ser un país) y si las tarifas se mezclan en monedas el
   anticipo va en USD con la tasa del día del cálculo. Las tarifas siguen siendo zona × tipo de personal.
-- **Pendiente:** aplicar `docs/decisiones-confirmadas.md` (integración con Siesa y, al final, la conciliación
-  bancaria). Preguntas abiertas a Forsa: el tercero genérico de Panamá
+- **Pendiente:** aplicar `docs/decisiones-confirmadas.md` (la conciliación bancaria, en la rama
+  `wip/conciliacion-bancaria`) y el adaptador real de Siesa. Preguntas abiertas a Forsa: el tercero genérico de Panamá
   (`fiscal.generic_buyer_ids.PA` está vacío) y si los recibos de caja deben traer nombre e
   identificación de quien vende (`required_fields`). Plantillas que Forsa aprueba en Meta:
   bienvenida (`{{1}}` nombre, `{{2}}` asistente), aprobación y aviso.
-- **Stubs intencionales (no son bugs ni código zombie):** ninguno todavía. Si se agrega un puerto sin
-  adaptador real (p. ej. Siesa), se lista aquí.
+- **Stubs intencionales (no son bugs ni código zombie):** `ErpGateway` (Siesa, `domain/erp.py` y
+  `application/erp.py`, migración 0018) no tiene adaptador real: el container usa
+  `UnconfiguredService("siesa")`, así que el anticipo queda «pendiente» con el aviso «Siesa no está
+  configurado» y contabilidad puede reintentar. Para el adaptador falta de Siesa: la API y sus
+  credenciales, el documento (cédula) del empleado como tercero y qué cuenta usa cada categoría
+  (`categories.accounting_account` ya existe).
 
 ## Arquitectura y decisiones (respétalas)
 

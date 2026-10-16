@@ -1,8 +1,8 @@
 import { Link } from '@tanstack/react-router';
-import type { AnticipoResumen, EstadoAnticipo, Saldo } from '@viaticos/contracts';
+import type { Anticipo, AnticipoResumen, EstadoAnticipo, Saldo } from '@viaticos/contracts';
 import { etiqueta } from '../../i18n';
 import { formatoDinero, rangoFechas } from '../../lib/formato';
-import { EstadoVacio, Insignia } from '../../ui/superficies';
+import { Alerta, EstadoVacio, Insignia } from '../../ui/superficies';
 
 const TONO: Record<EstadoAnticipo, 'neutro' | 'info' | 'exito' | 'aviso' | 'peligro'> = {
   requested: 'aviso',
@@ -84,5 +84,32 @@ export function ListaAnticipos({
         </li>
       ))}
     </ul>
+  );
+}
+
+const TEXTO_SIESA = { pending: 'pendiente', sent: 'creado', failed: 'con error' } as const;
+
+/** Estado del anticipo y de su legalización en Siesa, para contabilidad y tesorería. */
+export function EstadoSiesa({ anticipo }: { anticipo: Anticipo }) {
+  if (!anticipo.erp_advance_status) return null;
+  const parte = (nombre: string, estado: keyof typeof TEXTO_SIESA | null, ref: string | null) =>
+    estado && (
+      <span>
+        {nombre} {estado === 'sent' && ref ? <span className="font-medium text-slate-800">{ref}</span> : TEXTO_SIESA[estado]}
+      </span>
+    );
+  return (
+    <div className="space-y-2 text-sm text-slate-600">
+      <p className="flex flex-wrap gap-x-3">
+        <span className="font-medium text-slate-700">Siesa:</span>
+        {parte('anticipo', anticipo.erp_advance_status, anticipo.erp_advance_ref)}
+        {parte('· legalización', anticipo.erp_legalization_status, anticipo.erp_legalization_ref)}
+      </p>
+      {anticipo.erp_error && (anticipo.erp_advance_status !== 'sent' || anticipo.erp_legalization_status !== 'sent') && (
+        <Alerta tono={anticipo.erp_advance_status === 'failed' || anticipo.erp_legalization_status === 'failed' ? 'peligro' : 'aviso'}>
+          {anticipo.erp_error}
+        </Alerta>
+      )}
+    </div>
   );
 }

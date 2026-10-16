@@ -45,6 +45,7 @@ from app.domain.enums import (
     Role,
     StaffType,
 )
+from app.domain.erp import ErpAdvance, ErpLegalization
 from app.domain.settings import SystemSetting
 from app.domain.values import InvoiceData, WhatsAppAddress
 
@@ -692,3 +693,11 @@ class ReportTable:
 
 class SpreadsheetWriter(Protocol):
     def write(self, table: ReportTable) -> bytes: ...
+
+
+class ErpGateway(Protocol):
+    """Siesa. Cada método devuelve la referencia del documento creado en el ERP."""
+
+    async def create_advance(self, document: ErpAdvance) -> str: ...
+
+    async def create_legalization(self, document: ErpLegalization) -> str: ...

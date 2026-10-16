@@ -201,3 +201,11 @@ class StepStatus(StrEnum):
     APPROVED = "approved"
     REJECTED = "rejected"
     SKIPPED = "skipped"  # el nivel superior aprobó antes y este paso ya no hace falta
+
+
+class ErpStatus(StrEnum):
+    """Envío a Siesa del anticipo o de su legalización."""
+
+    PENDING = "pending"  # todavía no se envía, o Siesa aún no está conectado
+    SENT = "sent"
+    FAILED = "failed"  # Siesa respondió con error: contabilidad lo reintenta

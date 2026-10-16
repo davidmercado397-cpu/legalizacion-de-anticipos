@@ -33,6 +33,7 @@ from app.application.auth import AuthConfig, AuthService
 from app.application.budgets import TravelBudgetService
 from app.application.companies import CompanyService
 from app.application.employees import EmployeeService
+from app.application.erp import ErpService
 from app.application.exchange import ExchangeRateService
 from app.application.expenses import ExpenseService
 from app.application.exports import LegalizationExporter
@@ -64,6 +65,7 @@ from app.config import Settings
 from app.domain.ports import (
     Clock,
     DocumentPreparer,
+    ErpGateway,
     ExchangeRateProvider,
     FileStorage,
     InvoiceExtractor,
@@ -89,6 +91,7 @@ class Overrides:
     rate_limiter: RateLimiter | None = None
     redis: Redis | None = None
     rate_providers: list[ExchangeRateProvider] | None = None
+    erp: ErpGateway | None = None
 
 
 @dataclass
@@ -124,6 +127,7 @@ class Container:
     runtime: SettingsService
     mfa: MfaService
     audit: AuditService
+    erp: ErpService
     extras: dict[str, object] = field(default_factory=dict)
 
     async def close(self) -> None:
@@ -286,6 +290,9 @@ def build_container(settings: Settings, overrides: Overrides | None = None) -> C
     employees.on_created(lambda employee_id: _spawn(tasks, identity.send_welcome(employee_id)))
     notices = StatusNotices(uow, wa_notifier, runtime)
     events.on([AdvanceEventType.REQUESTED], lambda e: _spawn(tasks, approvals.advance_requested(e.advance_id)))
+    # Mientras no haya adaptador de Siesa, el envío queda pendiente con un aviso claro (ver CLAUDE.md, stubs).
+    erp = ErpService(uow, access, o.erp or cast(ErpGateway, UnconfiguredService("siesa")))
+    events.on([AdvanceEventType.APPROVED], lambda e: _spawn(tasks, erp.advance_approved(e.advance_id)))
     events.on(EMPLOYEE_EVENTS, lambda e: _spawn(tasks, notices.handle(e)))
 
     bot = WhatsAppBot(
@@ -350,6 +357,7 @@ def build_container(settings: Settings, overrides: Overrides | None = None) -> C
         runtime,
         mfa,
         AuditService(uow, access),
+        erp,
         {"storage": storage, "sender": sender, "reminders": reminders, "sessions": sessions, "tokens": tokens},
     )
 

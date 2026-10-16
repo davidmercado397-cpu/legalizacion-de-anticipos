@@ -289,6 +289,62 @@
             ],
             "title": "End Date"
           },
+          "erp_advance_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erp Advance Ref"
+          },
+          "erp_advance_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErpStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Siesa: el anticipo (se crea al aprobarse)"
+          },
+          "erp_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Último error al enviar a Siesa",
+            "title": "Erp Error"
+          },
+          "erp_legalization_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erp Legalization Ref"
+          },
+          "erp_legalization_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErpStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Siesa: la legalización (la envía contabilidad)"
+          },
           "escalation_reasons": {
             "description": "Por qué necesita al jefe directivo",
             "items": {
@@ -454,6 +510,11 @@
           "budget_breakdown",
           "budget_justification",
           "legs",
+          "erp_advance_status",
+          "erp_advance_ref",
+          "erp_legalization_status",
+          "erp_legalization_ref",
+          "erp_error",
           "approval_steps",
           "legalization_due",
           "overdue",
@@ -846,6 +907,62 @@
             ],
             "title": "End Date"
           },
+          "erp_advance_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erp Advance Ref"
+          },
+          "erp_advance_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErpStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Siesa: el anticipo (se crea al aprobarse)"
+          },
+          "erp_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Último error al enviar a Siesa",
+            "title": "Erp Error"
+          },
+          "erp_legalization_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erp Legalization Ref"
+          },
+          "erp_legalization_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErpStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Siesa: la legalización (la envía contabilidad)"
+          },
           "escalation_reasons": {
             "description": "Por qué necesita al jefe directivo",
             "items": {
@@ -1004,6 +1121,11 @@
           "budget_breakdown",
           "budget_justification",
           "legs",
+          "erp_advance_status",
+          "erp_advance_ref",
+          "erp_legalization_status",
+          "erp_legalization_ref",
+          "erp_error",
           "approval_steps",
           "legalization_due",
           "overdue",
@@ -1260,6 +1382,62 @@
             ],
             "title": "End Date"
           },
+          "erp_advance_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erp Advance Ref"
+          },
+          "erp_advance_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErpStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Siesa: el anticipo (se crea al aprobarse)"
+          },
+          "erp_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Último error al enviar a Siesa",
+            "title": "Erp Error"
+          },
+          "erp_legalization_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erp Legalization Ref"
+          },
+          "erp_legalization_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErpStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Siesa: la legalización (la envía contabilidad)"
+          },
           "escalation_reasons": {
             "description": "Por qué necesita al jefe directivo",
             "items": {
@@ -1418,6 +1596,11 @@
           "budget_breakdown",
           "budget_justification",
           "legs",
+          "erp_advance_status",
+          "erp_advance_ref",
+          "erp_legalization_status",
+          "erp_legalization_ref",
+          "erp_error",
           "approval_steps",
           "legalization_due",
           "overdue",
@@ -3627,6 +3810,16 @@
         },
         "title": "EmployeePatch",
         "type": "object"
+      },
+      "ErpStatus": {
+        "description": "Envío a Siesa del anticipo o de su legalización.",
+        "enum": [
+          "pending",
+          "sent",
+          "failed"
+        ],
+        "title": "ErpStatus",
+        "type": "string"
       },
       "EscalationReasonOut": {
         "properties": {
@@ -8361,6 +8554,102 @@
           }
         ],
         "summary": "Record that treasury delivered the money",
+        "tags": [
+          "advances"
+        ]
+      }
+    },
+    "/api/v1/advances/{advance_id}/erp/advance": {
+      "post": {
+        "operationId": "erp_advance_api_v1_advances__advance_id__erp_advance_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "advance_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Advance Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdvanceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Retry creating the advance in Siesa",
+        "tags": [
+          "advances"
+        ]
+      }
+    },
+    "/api/v1/advances/{advance_id}/erp/legalization": {
+      "post": {
+        "operationId": "erp_legalization_api_v1_advances__advance_id__erp_legalization_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "advance_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Advance Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdvanceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create the legalization in Siesa",
         "tags": [
           "advances"
         ]

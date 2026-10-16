@@ -148,6 +148,16 @@ async def close(advance_id: uuid.UUID, actor: CurrentEmployee, container: Contai
     return await _out(container, await container.advances.close(actor, advance_id))
 
 
+@router.post("/{advance_id}/erp/advance", response_model=AdvanceOut, summary="Retry creating the advance in Siesa")
+async def erp_advance(advance_id: uuid.UUID, actor: CurrentEmployee, container: ContainerDep) -> AdvanceOut:
+    return await _out(container, await container.erp.retry_advance(actor, advance_id))
+
+
+@router.post("/{advance_id}/erp/legalization", response_model=AdvanceOut, summary="Create the legalization in Siesa")
+async def erp_legalization(advance_id: uuid.UUID, actor: CurrentEmployee, container: ContainerDep) -> AdvanceOut:
+    return await _out(container, await container.erp.send_legalization(actor, advance_id))
+
+
 @router.post("/{advance_id}/return", response_model=AdvanceOut, summary="Return the legalization, optionally marking expenses")
 async def return_for_changes(
     advance_id: uuid.UUID, body: ReturnIn, actor: CurrentEmployee, container: ContainerDep

@@ -330,6 +330,7 @@ ADVANCE_ACTION_LABELS = {
 SERVICE_LABELS = {
     "r2": "El almacenamiento de archivos (R2)",
     "whatsapp": "WhatsApp",
+    "siesa": "Siesa",
     "openrouter": "El servicio de lectura con IA",
     "whatsapp_welcome_template": "La plantilla de bienvenida de WhatsApp",
     "whatsapp_approval_template": "La plantilla de aprobación de anticipos de WhatsApp",
@@ -394,6 +395,9 @@ ERROR_MESSAGES: dict[str, ErrorText] = {
     "amount_not_positive": "El valor debe ser mayor que cero.",
     "negative_amount": "El valor del anticipo no puede ser negativo.",
     "end_before_start": "La fecha de regreso no puede ser anterior a la de salida.",
+    "erp_advance_not_approved": "El anticipo se crea en Siesa cuando termina su aprobación.",
+    "erp_legalization_not_closed": "Primero cierra la legalización; después se crea en Siesa.",
+    "erp_already_sent": "Esto ya está en Siesa.",
     "legs_overlap": "Las fechas de {first} y {second} se cruzan. El destino siguiente puede empezar el día en que termina el anterior, no antes.",
     "trip_without_legs": "Agrega al menos un destino con sus fechas.",
     "budget_rate_unavailable": "No hay tasa de cambio reciente de {currency} para calcular el presupuesto en dólares. Escribe el valor a mano.",
@@ -585,6 +589,10 @@ TIMELINE_LABELS = {
     "advance_close": "Legalización aprobada",
     "advance_reopen": "Reabierto",
     "advance_settle": "Diferencia liquidada",
+    "erp_advance_created": "Creado en Siesa",
+    "erp_advance_failed": "Siesa no recibió el anticipo",
+    "erp_legalization_created": "Legalización creada en Siesa",
+    "erp_legalization_failed": "Siesa no recibió la legalización",
 }
 
 # Comentario sugerido al devolver una legalización, por hallazgo o advertencia del gasto.

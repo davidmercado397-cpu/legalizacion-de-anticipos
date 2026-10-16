@@ -15,7 +15,8 @@ from PIL import Image, ImageDraw
 
 from app.domain.entities import ExchangeRate
 from app.domain.enums import DocumentType, ExchangeRateSource, Legibility
-from app.domain.errors import ExternalServiceError, NotFoundError
+from app.domain.erp import ErpAdvance, ErpLegalization
+from app.domain.errors import ExternalServiceError, NotFoundError, ServiceNotConfiguredError
 from app.domain.ports import Button, ExtractionRequest, ExtractionResponse, FlowMessage, ListRow
 from app.domain.values import InvoiceData, InvoiceLine, WhatsAppAddress
 
@@ -188,3 +189,28 @@ class FakeRateProvider:
             for quote, rate in self.per_usd.items()
             if quote in quotes
         ]
+
+
+@dataclass
+class FakeErp:
+    """Siesa de mentiras: guarda los documentos. `mode` = "ok", "down" (falla) o "unconfigured"."""
+
+    mode: str = "ok"
+    advances: list[ErpAdvance] = field(default_factory=list)
+    legalizations: list[ErpLegalization] = field(default_factory=list)
+
+    def _check(self) -> None:
+        if self.mode == "unconfigured":
+            raise ServiceNotConfiguredError("siesa")
+        if self.mode == "down":
+            raise ExternalServiceError("Siesa is down")
+
+    async def create_advance(self, document: ErpAdvance) -> str:
+        self._check()
+        self.advances.append(document)
+        return f"ANT-{len(self.advances)}"
+
+    async def create_legalization(self, document: ErpLegalization) -> str:
+        self._check()
+        self.legalizations.append(document)
+        return f"LEG-{len(self.legalizations)}"

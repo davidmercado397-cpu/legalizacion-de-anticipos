@@ -82,6 +82,20 @@ export function PanelAcciones({ anticipo }: { anticipo: AnticipoDetalle }) {
       </Boton>,
     );
 
+  // Siesa (decisión 8.1): el anticipo se crea solo al aprobarse; si falló, contabilidad lo reintenta.
+  if (s === 'closed' && contable && anticipo.erp_legalization_status !== 'sent')
+    botones.unshift(
+      <Boton key="siesa-legalizacion" cargando={accion.isPending} onClick={() => accion.mutate({ tipo: 'siesa_legalizacion' })}>
+        Crear legalización en Siesa
+      </Boton>,
+    );
+  else if (['approved', 'in_review'].includes(s) && contable && anticipo.erp_advance_status !== 'sent')
+    botones.push(
+      <Boton key="siesa-anticipo" variante="secundario" cargando={accion.isPending} onClick={() => accion.mutate({ tipo: 'siesa_anticipo' })}>
+        Reintentar envío a Siesa
+      </Boton>,
+    );
+
   if (botones.length === 0 && !accion.isError) return null;
 
   return (

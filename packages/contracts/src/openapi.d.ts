@@ -125,6 +125,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/advances/{advance_id}/erp/advance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry creating the advance in Siesa */
+        post: operations["erp_advance_api_v1_advances__advance_id__erp_advance_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advances/{advance_id}/erp/legalization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create the legalization in Siesa */
+        post: operations["erp_legalization_api_v1_advances__advance_id__erp_legalization_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/advances/{advance_id}/legalization.xlsx": {
         parameters: {
             query?: never;
@@ -1477,6 +1511,19 @@ export interface components {
             employee_id: string;
             /** End Date */
             end_date: string | null;
+            /** Erp Advance Ref */
+            erp_advance_ref: string | null;
+            /** @description Siesa: el anticipo (se crea al aprobarse) */
+            erp_advance_status: components["schemas"]["ErpStatus"] | null;
+            /**
+             * Erp Error
+             * @description Último error al enviar a Siesa
+             */
+            erp_error: string | null;
+            /** Erp Legalization Ref */
+            erp_legalization_ref: string | null;
+            /** @description Siesa: la legalización (la envía contabilidad) */
+            erp_legalization_status: components["schemas"]["ErpStatus"] | null;
             /**
              * Escalation Reasons
              * @description Por qué necesita al jefe directivo
@@ -1630,6 +1677,19 @@ export interface components {
             employee_name: string;
             /** End Date */
             end_date: string | null;
+            /** Erp Advance Ref */
+            erp_advance_ref: string | null;
+            /** @description Siesa: el anticipo (se crea al aprobarse) */
+            erp_advance_status: components["schemas"]["ErpStatus"] | null;
+            /**
+             * Erp Error
+             * @description Último error al enviar a Siesa
+             */
+            erp_error: string | null;
+            /** Erp Legalization Ref */
+            erp_legalization_ref: string | null;
+            /** @description Siesa: la legalización (la envía contabilidad) */
+            erp_legalization_status: components["schemas"]["ErpStatus"] | null;
             /**
              * Escalation Reasons
              * @description Por qué necesita al jefe directivo
@@ -1735,6 +1795,19 @@ export interface components {
             employee_id: string;
             /** End Date */
             end_date: string | null;
+            /** Erp Advance Ref */
+            erp_advance_ref: string | null;
+            /** @description Siesa: el anticipo (se crea al aprobarse) */
+            erp_advance_status: components["schemas"]["ErpStatus"] | null;
+            /**
+             * Erp Error
+             * @description Último error al enviar a Siesa
+             */
+            erp_error: string | null;
+            /** Erp Legalization Ref */
+            erp_legalization_ref: string | null;
+            /** @description Siesa: la legalización (la envía contabilidad) */
+            erp_legalization_status: components["schemas"]["ErpStatus"] | null;
             /**
              * Escalation Reasons
              * @description Por qué necesita al jefe directivo
@@ -2518,6 +2591,12 @@ export interface components {
             role?: components["schemas"]["Role"] | null;
             staff_type?: components["schemas"]["StaffType"] | null;
         };
+        /**
+         * ErpStatus
+         * @description Envío a Siesa del anticipo o de su legalización.
+         * @enum {string}
+         */
+        ErpStatus: "pending" | "sent" | "failed";
         /** EscalationReasonOut */
         EscalationReasonOut: {
             /** Code */
@@ -4114,6 +4193,68 @@ export interface operations {
                 "application/json": components["schemas"]["DisburseIn"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdvanceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    erp_advance_api_v1_advances__advance_id__erp_advance_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                advance_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdvanceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    erp_legalization_api_v1_advances__advance_id__erp_legalization_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                advance_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

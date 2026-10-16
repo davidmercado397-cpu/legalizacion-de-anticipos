@@ -21,6 +21,7 @@ from app.domain.enums import (
     Deductibility,
     DisbursementMethod,
     DocumentType,
+    ErpStatus,
     ExampleKind,
     ExampleScope,
     ExampleStatus,
@@ -489,6 +490,12 @@ class Advance:
     # Tramos de un viaje con varios destinos (domain/budgets.TripLeg.as_dict). Vacío si tuvo uno solo;
     # destination, start_date y end_date resumen el viaje completo.
     legs: list[dict[str, Any]] = field(default_factory=list)
+    # Siesa (decisión 8.1): el anticipo se crea al aprobarse; la legalización, cuando contabilidad la envía.
+    erp_advance_status: ErpStatus | None = None
+    erp_advance_ref: str | None = None
+    erp_legalization_status: ErpStatus | None = None
+    erp_legalization_ref: str | None = None
+    erp_error: str | None = None  # el último error del envío, para mostrarlo y reintentar
     # Ruta de aprobación (domain/approvals.py): pasos con nivel, aprobador y estado. Vacía en solicitudes
     # anteriores a la ruta, que conservan la regla de entonces (el aprobador del empleado).
     approval_steps: list[dict[str, Any]] = field(default_factory=list)
