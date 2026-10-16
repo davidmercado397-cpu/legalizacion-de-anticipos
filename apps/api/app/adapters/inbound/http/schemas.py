@@ -19,7 +19,9 @@ from app.domain.enums import (
     AdvanceKind,
     AdvanceStatus,
     ApprovalLevel,
+    BankStatus,
     BudgetUnit,
+    ChargeDecision,
     Deductibility,
     DisbursementMethod,
     DocumentType,
@@ -32,6 +34,8 @@ from app.domain.enums import (
     ExpenseSource,
     ExpenseStatus,
     Legibility,
+    MatchStatus,
+    PaymentMethod,
     PolicyAction,
     ReviewDecision,
     ReviewStatus,
@@ -517,6 +521,13 @@ class ExpenseOut(Model):
         description="El empleado ya había registrado esta factura: se descartó sola y este es el gasto original"
     )
     receipt_signed: bool = Field(description="Recibo de caja: el empleado declaró que lo firmó quien vendió")
+    payment_method: PaymentMethod | None
+    bank_status: BankStatus | None = Field(
+        description="matched: se legaliza por lo que cobró el banco; no_charge: pagado con tarjeta y sin cargo en el extracto"
+    )
+    bank_amount: Decimal | None = Field(description="Valor cobrado por el banco, en `bank_currency`")
+    bank_currency: str | None
+    amount_before_bank: Decimal | None = Field(description="Valor por la factura antes del ajuste del banco")
     file: FileOut | None = Field(default=None, description="URLs firmadas de corta duración del original y la miniatura")
 
 
@@ -617,6 +628,7 @@ class ExpensePatch(BaseModel):
     country: str | None = Field(default=None, min_length=2, max_length=2)
     category: str | None = Field(default=None, max_length=40, description="Código de una categoría activa de la compañía")
     description: str | None = Field(default=None, max_length=1000)
+    payment_method: PaymentMethod | None = Field(default=None, description="Solo los pagos con tarjeta se cruzan con el extracto")
 
     def changes(self) -> dict[str, Any]:
         return self.model_dump(exclude_unset=True, mode="python")
@@ -978,3 +990,69 @@ class ExampleHistoryOut(Model):
     after: dict[str, Any] | None
     actor_id: uuid.UUID | None
     created_at: datetime
+
+
+class StatementProfileIO(BaseModel):
+    """Cómo leer el extracto: columnas desde 0 y la fila de títulos desde 1 (0 = sin títulos)."""
+
+    header_row: int = Field(ge=0, le=50)
+    date_col: int = Field(ge=0, le=100)
+    description_col: int = Field(ge=0, le=100)
+    currency: str = Field(min_length=3, max_length=3)
+    amount_col: int | None = Field(default=None, ge=0, le=100)
+    debit_col: int | None = Field(default=None, ge=0, le=100)
+    credit_col: int | None = Field(default=None, ge=0, le=100)
+    reference_col: int | None = Field(default=None, ge=0, le=100)
+    date_format: str = "DD/MM/YYYY"
+    decimal_separator: str = Field(default=",", pattern=r"^[,.]$")
+    charges_negative: bool = True
+
+
+class SkippedRowOut(BaseModel):
+    row: int
+    reason: str
+
+
+class StatementPreviewOut(BaseModel):
+    rows: list[list[str]] = Field(description="Primeras filas del archivo, tal cual")
+    total_rows: int
+    profile: StatementProfileIO
+    confident: bool = Field(description="False: revise el mapeo de columnas antes de cargar")
+    charges: int
+    credits: int
+    skipped: list[SkippedRowOut]
+
+
+class MovementOut(Model):
+    id: uuid.UUID
+    row: int
+    day: date
+    description: str
+    reference: str | None
+    amount: Decimal
+    is_charge: bool
+    in_trip: bool = Field(description="Dentro de las fechas del viaje (con margen); los demás no son de esta legalización")
+    expense_id: uuid.UUID | None
+    match_status: MatchStatus | None
+    match_score: Decimal | None
+    charge_decision: ChargeDecision | None
+    needs_decision: bool = Field(description="Contabilidad debe resolverlo antes de cerrar")
+
+
+class StatementOut(BaseModel):
+    id: uuid.UUID
+    advance_id: uuid.UUID
+    currency: str
+    card_last4: str | None
+    file_name: str
+    uploaded_at: datetime
+    profile: dict[str, Any]
+    movements: list[MovementOut]
+
+
+class LinkIn(BaseModel):
+    expense_id: uuid.UUID
+
+
+class ChargeDecisionIn(BaseModel):
+    decision: ChargeDecision

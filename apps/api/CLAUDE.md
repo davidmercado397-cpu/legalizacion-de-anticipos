@@ -110,8 +110,13 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
   viaje. `domain/budgets.calculate_legs`: el día de traslado lo paga el tramo de llegada, cada tramo usa
   la zona de su destino (una zona puede ser un país) y si las tarifas se mezclan en monedas el
   anticipo va en USD con la tasa del día del cálculo. Las tarifas siguen siendo zona × tipo de personal.
-- **Pendiente:** aplicar `docs/decisiones-confirmadas.md` (la conciliación bancaria, en la rama
-  `wip/conciliacion-bancaria`) y el adaptador real de Siesa. Preguntas abiertas a Forsa: el tercero genérico de Panamá
+- Conciliación bancaria (migración 0019, `domain/reconciliation.py`, `application/reconciliation.py`):
+  tesorería carga el extracto de la tarjeta (CSV/Excel con perfil de columnas sugerido, o PDF que lee la
+  IA y suma al costo de la IA) con la legalización enviada; el cruce pondera valor, fecha y comercio
+  (`reconciliation.match`). Un cruce confirmado legaliza el valor del banco (7.8); un cargo del viaje sin
+  factura lo decide contabilidad (lo asume la empresa o se descuenta, 7.6); una factura con tarjeta sin
+  cargo queda en alerta (7.7). Cerrar exige que no quede nada por decidir.
+- **Pendiente:** el adaptador real de Siesa. Preguntas abiertas a Forsa: el tercero genérico de Panamá
   (`fiscal.generic_buyer_ids.PA` está vacío) y si los recibos de caja deben traer nombre e
   identificación de quien vende (`required_fields`). Plantillas que Forsa aprueba en Meta:
   bienvenida (`{{1}}` nombre, `{{2}}` asistente), aprobación y aviso.

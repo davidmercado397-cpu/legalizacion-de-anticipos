@@ -16,6 +16,7 @@ from app.domain.entities import (
     Advance,
     ApproverDelegation,
     AuditEntry,
+    BankStatement,
     BlockedConcept,
     Category,
     ClassificationExample,
@@ -28,6 +29,7 @@ from app.domain.entities import (
     ExtractionAttempt,
     PolicyRuleConfig,
     RefreshToken,
+    StatementMovement,
     TravelBudgetRate,
     TravelZone,
     WhatsAppLinkCode,
@@ -630,6 +632,41 @@ class SqlDelegationRepository(_Repo):
             c.delegate_id == delegate_id, c.revoked_at.is_(None), c.starts_at <= now, c.ends_at > now
         )
         return list((await self._s.scalars(stmt)).all())
+
+
+class SqlStatementRepository(_Repo):
+    async def add(self, statement: BankStatement) -> None:
+        self._s.add(statement)
+
+    async def add_movement(self, movement: StatementMovement) -> None:
+        self._s.add(movement)
+
+    async def get(self, statement_id: uuid.UUID) -> BankStatement | None:
+        return await self._s.get(BankStatement, statement_id)
+
+    async def list_for_advance(self, advance_id: uuid.UUID) -> list[BankStatement]:
+        c = t.bank_statements.c
+        stmt = sa.select(BankStatement).where(c.advance_id == advance_id).order_by(c.uploaded_at)
+        return list((await self._s.scalars(stmt)).all())
+
+    async def movements_of(self, statement_ids: list[uuid.UUID]) -> list[StatementMovement]:
+        if not statement_ids:
+            return []
+        c = t.statement_movements.c
+        stmt = sa.select(StatementMovement).where(c.statement_id.in_(statement_ids)).order_by(c.statement_id, c.row)
+        return list((await self._s.scalars(stmt)).all())
+
+    async def file_exists(self, company_id: uuid.UUID, sha256: str) -> bool:
+        c = t.bank_statements.c
+        stmt = sa.select(sa.exists().where(c.company_id == company_id, c.file_sha256 == sha256))
+        return bool(await self._s.scalar(stmt))
+
+    async def matched_elsewhere(self, statement_id: uuid.UUID, expense_ids: list[uuid.UUID]) -> set[uuid.UUID]:
+        if not expense_ids:
+            return set()
+        c = t.statement_movements.c
+        stmt = sa.select(c.expense_id).where(c.statement_id != statement_id, c.expense_id.in_(expense_ids))
+        return {e for e in (await self._s.scalars(stmt)).all() if e is not None}
 
 
 class SqlExampleRepository(_Repo):

@@ -17,6 +17,7 @@ from app.domain.entities import (
     Advance,
     ApproverDelegation,
     AuditEntry,
+    BankStatement,
     BlockedConcept,
     Category,
     ClassificationExample,
@@ -29,6 +30,7 @@ from app.domain.entities import (
     ExtractionAttempt,
     PolicyRuleConfig,
     RefreshToken,
+    StatementMovement,
     TravelBudgetRate,
     TravelZone,
     WhatsAppLinkCode,
@@ -404,6 +406,18 @@ class InboundMessageRepository(Protocol):
         ...
 
 
+class StatementRepository(Protocol):
+    async def add(self, statement: BankStatement) -> None: ...
+    async def add_movement(self, movement: StatementMovement) -> None: ...
+    async def get(self, statement_id: uuid.UUID) -> BankStatement | None: ...
+    async def list_for_advance(self, advance_id: uuid.UUID) -> list[BankStatement]: ...
+    async def movements_of(self, statement_ids: list[uuid.UUID]) -> list[StatementMovement]: ...
+    async def file_exists(self, company_id: uuid.UUID, sha256: str) -> bool: ...
+    async def matched_elsewhere(self, statement_id: uuid.UUID, expense_ids: list[uuid.UUID]) -> set[uuid.UUID]:
+        """Gastos ya cruzados en otro extracto (un gasto se paga una sola vez)."""
+        ...
+
+
 class UnitOfWork(Protocol):
     companies: CompanyRepository
     employees: EmployeeRepository
@@ -426,6 +440,7 @@ class UnitOfWork(Protocol):
     whatsapp_sessions: WhatsAppSessionRepository
     reports: ReportRepository
     examples: ExampleRepository
+    statements: StatementRepository
 
     async def __aenter__(self) -> UnitOfWork: ...
     async def __aexit__(self, *exc: object) -> None: ...
@@ -549,6 +564,34 @@ class ExtractionResponse:
     cached_tokens: int | None = None
     cost_usd: Decimal | None = None
     latency_ms: int | None = None
+
+
+@dataclass(frozen=True)
+class StatementTable:
+    """Un extracto en PDF leído por la IA, ya como tabla con columnas fijas: fecha ISO, descripción,
+    referencia y valor con punto decimal, los cargos en negativo."""
+
+    rows: list[list[str]]
+    currency: str | None = None
+    card_last4: str | None = None
+    # Consumo de la lectura, para el reporte de costo de la IA.
+    model_used: str | None = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    cached_tokens: int | None = None
+    cost_usd: Decimal | None = None
+
+
+class TableReader(Protocol):
+    def read(self, content: bytes, file_name: str) -> list[list[str]]:
+        """Filas de un CSV o Excel como texto. Lanza ValidationError si el formato no se puede leer."""
+        ...
+
+
+class StatementExtractor(Protocol):
+    async def extract(self, content: bytes, model: str, options: ExtractionOptions) -> StatementTable:
+        """Lanza ExternalServiceError si el proveedor falla o responde algo inservible."""
+        ...
 
 
 class InvoiceExtractor(Protocol):

@@ -395,8 +395,8 @@ El catálogo completo por rol está en `docs/USE_CASES.md` y el detalle en `/doc
 ## Fuera del alcance (roadmap)
 
 Tras la aprobación de la propuesta: topes por concepto, día o país; Excel contable con centros de
-costo y proyectos; cajas menores; integración con Siesa; conciliación de extractos de tarjeta;
-aprobación multinivel por monto; notificaciones y aprobación por correo; consulta del CUFE ante la
+costo y proyectos; cajas menores; el adaptador real de Siesa (el flujo ya existe);
+notificaciones y aprobación por correo; consulta del CUFE ante la
 DIAN; SSO.
 
 **Decisiones:** sin viáticos fijos ni kilometraje: todo se legaliza con factura, porque la factura es

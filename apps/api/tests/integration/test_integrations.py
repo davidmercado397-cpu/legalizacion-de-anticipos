@@ -10,7 +10,7 @@ from app.adapters.outbound.infra import LimitsRateLimiter
 from app.container import Overrides
 from app.main import create_app
 from tests.conftest import Harness, make_settings
-from tests.fakes import FakeErp, FakeExtractor, FakeStorage, FakeWhatsApp, make_jpeg
+from tests.fakes import FakeErp, FakeExtractor, FakeStatementExtractor, FakeStorage, FakeWhatsApp, make_jpeg
 
 
 @pytest.fixture
@@ -25,7 +25,9 @@ async def bare_harness() -> AsyncIterator[Harness]:
     async with app.router.lifespan_context(app):
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-            yield Harness(client, app.state.container, FakeWhatsApp(), FakeStorage(), extractor, FakeErp())
+            yield Harness(
+                client, app.state.container, FakeWhatsApp(), FakeStorage(), extractor, FakeErp(), FakeStatementExtractor()
+            )
 
 
 async def test_missing_r2_answers_503_with_the_service_name(bare_harness: Harness) -> None:

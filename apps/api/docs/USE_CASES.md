@@ -57,6 +57,7 @@ El jefe solo aprueba la solicitud; la legalización la revisa y la cierra contab
 | C1b | Configurar cuándo una solicitud escala al jefe directivo (tolerancia sobre el presupuesto y monto total) | App | `GET/PUT /companies/{id}/approval-rules` |
 | C2 | Cargar zonas y tarifas de viaje (también desde Excel) | App | `/companies/{id}/travel-zones`, `/travel-rates`, `POST /travel-rates/import` |
 | C0e | Crear la legalización cerrada en Siesa, o reintentar el anticipo si Siesa falló | App | `POST /advances/{id}/erp/legalization`, `POST /advances/{id}/erp/advance` |
+| C0f | Conciliar con el extracto: confirmar o deshacer cruces, cruzar a mano y decidir los cargos sin factura (antes de cerrar) | App | `GET /advances/{id}/statements`, `POST /statements/{id}/movements/{id}/confirm\|reject\|link\|decision` |
 | C5 | Anular un anticipo o reabrir una legalización cerrada | App | `POST /advances/{id}/void`, `POST /advances/{id}/reopen` |
 | C6 | Revisar la deducibilidad (desglose por línea, pendientes de revisión, cambiarla) | App | `GET /expenses/{id}/deductibility`, `GET /expenses?deductibility=requires_review`, `POST /expenses/{id}/deductibility` |
 | C7 | Nombrar aprobadores suplentes | App | `GET/POST /employees/{id}/delegations`, `DELETE …/delegations/{id}` |
@@ -70,6 +71,7 @@ El jefe solo aprueba la solicitud; la legalización la revisa y la cierra contab
 | # | Caso | Canal | Endpoint |
 |---|---|---|---|
 | T1 | Registrar la entrega del anticipo y ver los pendientes de entregar | App | `POST /advances/{id}/disburse`, `GET /advances?status=approved&disbursed=false` |
+| T1b | Cargar el extracto de la tarjeta (CSV, Excel con vista previa de columnas, o PDF leído con IA) con la legalización enviada | App | `POST /advances/{id}/statements/preview`, `POST /advances/{id}/statements` |
 | T2 | Registrar el reintegro del empleado o el reembolso de la empresa | App | `POST /advances/{id}/settle`, `GET /advances?settlement=pending` |
 
 ## Administrador de Forsa

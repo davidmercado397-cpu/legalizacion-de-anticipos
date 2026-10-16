@@ -29,7 +29,7 @@ from app.container import Container, Overrides
 from app.domain.entities import Company, Employee, blocked_concepts_from, categories_from
 from app.domain.enums import Role, StaffType
 from app.main import create_app
-from tests.fakes import FakeErp, FakeExtractor, FakeRateProvider, FakeStorage, FakeWhatsApp
+from tests.fakes import FakeErp, FakeExtractor, FakeRateProvider, FakeStatementExtractor, FakeStorage, FakeWhatsApp
 from tests.seed import database_sql, extensions_sql, seed_settings, setting_value
 
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "postgresql+asyncpg://gastos:gastos@localhost:5432/gastos_test")
@@ -96,6 +96,7 @@ class Harness:
     storage: FakeStorage
     extractor: FakeExtractor
     erp: FakeErp
+    statement_reader: FakeStatementExtractor
 
     async def drain(self) -> None:
         await self.container.tasks.drain(max_wait=10)
@@ -186,6 +187,7 @@ async def harness(extractor: FakeExtractor, settings_overrides: dict[str, Any]) 
     wa = FakeWhatsApp()
     storage = FakeStorage()
     erp = FakeErp()
+    statement_reader = FakeStatementExtractor()
     app = create_app(
         make_settings(**settings_overrides),
         Overrides(
@@ -197,13 +199,14 @@ async def harness(extractor: FakeExtractor, settings_overrides: dict[str, Any]) 
             rate_limiter=LimitsRateLimiter("async+memory://"),
             redis=FakeRedis(),
             rate_providers=[FakeRateProvider({"COP": Decimal("4000")}), FakeRateProvider({"EUR": Decimal("0.9")}, "ecb")],
+            statement_extractor=statement_reader,
         ),
         run_jobs=False,
     )
     async with app.router.lifespan_context(app):
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-            yield Harness(client, app.state.container, wa, storage, extractor, erp)
+            yield Harness(client, app.state.container, wa, storage, extractor, erp, statement_reader)
 
 
 def wa_message(

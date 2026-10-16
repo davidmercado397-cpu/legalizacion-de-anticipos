@@ -287,6 +287,8 @@ ENTITY_LABELS = {
     "deductibility": "el desglose de deducibilidad (al gasto le falta el total)",
     "delegation": "esa suplencia",
     "example": "esa corrección aprendida",
+    "statement": "ese extracto",
+    "movement": "ese movimiento del extracto",
     "route": "esa ruta",
 }
 ADVANCE_STATUS_LABELS = {
@@ -456,6 +458,27 @@ ERROR_MESSAGES: dict[str, ErrorText] = {
     "cash_cap_unverifiable": "No tenemos la tasa de cambio de hoy para verificar el tope de efectivo. Intenta más tarde.",
     "invalid_cash_cap": "El tope de efectivo debe tener un valor mayor que cero y una moneda habilitada.",
     # Gastos
+    # Conciliación con el extracto bancario
+    "statement_pdf_no_preview": "Los extractos en PDF no tienen vista previa: se leen con IA al cargarlos.",
+    "statement_already_loaded": "Este archivo de extracto ya fue cargado.",
+    "statement_without_charges": "No encontramos cargos en el extracto. Revisa qué columna es la del valor y el formato de las fechas.",
+    "statement_profile_invalid": "Indica la columna de la fecha, la de la descripción y la del valor (o las de débito y crédito).",
+    "statement_unsupported_format": "El extracto debe ser CSV, Excel (.xlsx) o PDF.",
+    "statement_unreadable": "No pudimos abrir el archivo del extracto. Revisa que no esté dañado o protegido con clave.",
+    "invalid_card_last4": "Escribe los 4 últimos dígitos de la tarjeta.",
+    "statement_legalization_not_sent": "El extracto se carga cuando el empleado ya envió la legalización a revisión.",
+    "statement_legalization_closed": "La legalización ya no está en revisión: los cruces con el extracto no se pueden cambiar.",
+    "movement_not_matched": "Ese movimiento no está cruzado con ningún gasto.",
+    "movement_not_charge": "Solo los cargos del extracto se cruzan con gastos.",
+    "movement_already_matched": "Ese cargo ya está cruzado: deshaz el cruce primero.",
+    "movement_not_decidable": "Solo se decide sobre cargos del extracto que no tienen factura.",
+    "expense_already_matched": "Ese gasto ya está cruzado en otro extracto.",
+    "statement_rate_missing": "No hay tasa de cambio para convertir el cargo desde {currency}. Intenta más tarde.",
+    "unresolved_bank_items": lambda p: (
+        f"Antes de aprobar la legalización, resuelve {plural(int(p.get('count', 0)), 'movimiento', 'movimientos')} "
+        "del extracto: confirma o descarta las sugerencias y decide los cargos sin factura."
+    ),
+    "invalid_bank_status": "El estado bancario del gasto no es válido.",
     "file_too_large": "El archivo es muy pesado: el máximo es {max_mb} MB. Envía la foto con menor calidad o como PDF.",
     "unsupported_file_type": "No podemos leer ese tipo de archivo. Envía una foto (JPG, PNG o WebP) o un PDF.",
     "owner_only": "Solo quien registró el gasto puede cambiarlo.",

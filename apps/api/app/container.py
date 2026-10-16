@@ -17,11 +17,12 @@ from app.adapters.outbound.documents import PillowDocumentPreparer, ZxingQrDecod
 from app.adapters.outbound.excel import OpenpyxlWriter
 from app.adapters.outbound.exchange_rates import EcbProvider, TrmProvider
 from app.adapters.outbound.infra import AsyncTaskRunner, LimitsRateLimiter, RedisCacheVersions, RedisLock, SystemClock
-from app.adapters.outbound.openrouter import OpenRouterInvoiceExtractor
+from app.adapters.outbound.openrouter import OpenRouterInvoiceExtractor, OpenRouterStatementExtractor
 from app.adapters.outbound.persistence.uow import UnitOfWorkFactory, create_engine
 from app.adapters.outbound.security.mfa import FernetCipher, PyotpTotp
 from app.adapters.outbound.security.passwords import Argon2PasswordHasher
 from app.adapters.outbound.security.tokens import JwtTokenService
+from app.adapters.outbound.statement_files import SpreadsheetTableReader
 from app.adapters.outbound.storage import R2Storage
 from app.adapters.outbound.unconfigured import UnconfiguredService
 from app.adapters.outbound.whatsapp import GraphWhatsAppClient
@@ -45,6 +46,7 @@ from app.application.notifications import ExpenseNotifier
 from app.application.policies import CompanyContextProvider, PolicyConfigService, PolicyEvaluator
 from app.application.processing import ExpenseProcessor
 from app.application.reading import ConfigProvider, DocumentReader, ReadingConfig
+from app.application.reconciliation import ReconciliationService
 from app.application.reminders import LegalizationReminders
 from app.application.reports import ReportService
 from app.application.settings import SettingsService
@@ -73,10 +75,12 @@ from app.domain.ports import (
     MessageSender,
     QrDecoder,
     RateLimiter,
+    StatementExtractor,
 )
 from app.domain.verification import InvoiceVerifier
 
 PROMPT_DIR = Path(__file__).resolve().parent.parent / "prompts" / "invoice_extraction"
+STATEMENT_PROMPT_DIR = PROMPT_DIR.parent / "statement_extraction"
 
 
 @dataclass
@@ -92,6 +96,7 @@ class Overrides:
     redis: Redis | None = None
     rate_providers: list[ExchangeRateProvider] | None = None
     erp: ErpGateway | None = None
+    statement_extractor: StatementExtractor | None = None
 
 
 @dataclass
@@ -128,6 +133,7 @@ class Container:
     mfa: MfaService
     audit: AuditService
     erp: ErpService
+    reconciliation: ReconciliationService
     extras: dict[str, object] = field(default_factory=dict)
 
     async def close(self) -> None:
@@ -294,6 +300,22 @@ def build_container(settings: Settings, overrides: Overrides | None = None) -> C
     erp = ErpService(uow, access, o.erp or cast(ErpGateway, UnconfiguredService("siesa")))
     events.on([AdvanceEventType.APPROVED], lambda e: _spawn(tasks, erp.advance_approved(e.advance_id)))
     events.on(EMPLOYEE_EVENTS, lambda e: _spawn(tasks, notices.handle(e)))
+    statement_extractor = o.statement_extractor or (
+        OpenRouterStatementExtractor(
+            http,
+            settings.OPENROUTER_BASE_URL,
+            settings.OPENROUTER_API_KEY,
+            STATEMENT_PROMPT_DIR,
+            settings.OPENROUTER_TIMEOUT_SECONDS,
+        )
+        if settings.openrouter_configured
+        else cast(StatementExtractor, UnconfiguredService("openrouter"))
+    )
+    reconciliation = ReconciliationService(
+        uow, access, storage, SpreadsheetTableReader(), statement_extractor, runtime, rates, clock
+    )
+    # La legalización corregida y reenviada se vuelve a cruzar con los extractos ya cargados.
+    events.on([AdvanceEventType.SUBMITTED], lambda e: _spawn(tasks, reconciliation.rematch(e.advance_id, e.actor_id)))
 
     bot = WhatsAppBot(
         uow,
@@ -358,6 +380,7 @@ def build_container(settings: Settings, overrides: Overrides | None = None) -> C
         mfa,
         AuditService(uow, access),
         erp,
+        reconciliation,
         {"storage": storage, "sender": sender, "reminders": reminders, "sessions": sessions, "tokens": tokens},
     )
 

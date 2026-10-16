@@ -261,6 +261,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/advances/{advance_id}/statements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Statements and their matches */
+        get: operations["list_statements_api_v1_advances__advance_id__statements_get"];
+        put?: never;
+        /** Load the card statement (treasury) and match it with the card expenses */
+        post: operations["upload_api_v1_advances__advance_id__statements_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advances/{advance_id}/statements/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** How a CSV or Excel statement would be read (suggested column mapping) */
+        post: operations["preview_api_v1_advances__advance_id__statements_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/advances/{advance_id}/submit": {
         parameters: {
             query?: never;
@@ -1342,6 +1377,74 @@ export interface paths {
         patch: operations["update_settings_api_v1_settings_patch"];
         trace?: never;
     };
+    "/api/v1/statements/{statement_id}/movements/{movement_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a suggested or automatic match */
+        post: operations["confirm_api_v1_statements__statement_id__movements__movement_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/statements/{statement_id}/movements/{movement_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Charge without invoice: the company absorbs it or it is discounted to the employee */
+        post: operations["decide_api_v1_statements__statement_id__movements__movement_id__decision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/statements/{statement_id}/movements/{movement_id}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Match a charge with an expense by hand */
+        post: operations["link_api_v1_statements__statement_id__movements__movement_id__link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/statements/{statement_id}/movements/{movement_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo a match (it will not be proposed again) */
+        post: operations["reject_api_v1_statements__statement_id__movements__movement_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/usage": {
         parameters: {
             query?: never;
@@ -2031,6 +2134,12 @@ export interface components {
             /** Pending */
             pending: string;
         };
+        /**
+         * BankStatus
+         * @description Estado de un gasto pagado con tarjeta frente al extracto.
+         * @enum {string}
+         */
+        BankStatus: "matched" | "no_charge";
         /** BlockedConceptIn */
         BlockedConceptIn: {
             /**
@@ -2098,6 +2207,34 @@ export interface components {
              * @description .xlsx
              */
             file: string;
+        };
+        /** Body_preview_api_v1_advances__advance_id__statements_preview_post */
+        Body_preview_api_v1_advances__advance_id__statements_preview_post: {
+            /**
+             * File
+             * @description CSV o Excel del banco
+             */
+            file: string;
+            /**
+             * Profile
+             * @description StatementProfileIO en JSON; vacío = el que sugiere el sistema (o el fijo del PDF)
+             */
+            profile?: string | null;
+        };
+        /** Body_upload_api_v1_advances__advance_id__statements_post */
+        Body_upload_api_v1_advances__advance_id__statements_post: {
+            /** Card Last4 */
+            card_last4?: string | null;
+            /**
+             * File
+             * @description CSV, Excel o PDF del banco
+             */
+            file: string;
+            /**
+             * Profile
+             * @description StatementProfileIO en JSON; vacío = el que sugiere el sistema (o el fijo del PDF)
+             */
+            profile?: string | null;
         };
         /** Body_upload_expense_api_v1_expenses_post */
         Body_upload_expense_api_v1_expenses_post: {
@@ -2242,6 +2379,16 @@ export interface components {
             name?: string | null;
             /** Position */
             position?: number | null;
+        };
+        /**
+         * ChargeDecision
+         * @description Qué hace contabilidad con un cargo del extracto que no tiene factura (decisión 7.6).
+         * @enum {string}
+         */
+        ChargeDecision: "absorb" | "discount";
+        /** ChargeDecisionIn */
+        ChargeDecisionIn: {
+            decision: components["schemas"]["ChargeDecision"];
         };
         /** CompanyIn */
         CompanyIn: {
@@ -2708,6 +2855,20 @@ export interface components {
             ai_confidence: number | null;
             /** Amount Applied */
             amount_applied: string | null;
+            /**
+             * Amount Before Bank
+             * @description Valor por la factura antes del ajuste del banco
+             */
+            amount_before_bank: string | null;
+            /**
+             * Bank Amount
+             * @description Valor cobrado por el banco, en `bank_currency`
+             */
+            bank_amount: string | null;
+            /** Bank Currency */
+            bank_currency: string | null;
+            /** @description matched: se legaliza por lo que cobró el banco; no_charge: pagado con tarjeta y sin cargo en el extracto */
+            bank_status: components["schemas"]["BankStatus"] | null;
             /** Buyer Tax Id */
             buyer_tax_id: string | null;
             /** Category */
@@ -2783,6 +2944,7 @@ export interface components {
             non_reimbursable_amount: string | null;
             /** Parent Id */
             parent_id: string | null;
+            payment_method: components["schemas"]["PaymentMethod"] | null;
             /**
              * Policy Findings
              * @description Hallazgos de política: rule, action (warn | require_justification | block), code, detail y message
@@ -2894,6 +3056,20 @@ export interface components {
             ai_confidence: number | null;
             /** Amount Applied */
             amount_applied: string | null;
+            /**
+             * Amount Before Bank
+             * @description Valor por la factura antes del ajuste del banco
+             */
+            amount_before_bank: string | null;
+            /**
+             * Bank Amount
+             * @description Valor cobrado por el banco, en `bank_currency`
+             */
+            bank_amount: string | null;
+            /** Bank Currency */
+            bank_currency: string | null;
+            /** @description matched: se legaliza por lo que cobró el banco; no_charge: pagado con tarjeta y sin cargo en el extracto */
+            bank_status: components["schemas"]["BankStatus"] | null;
             /** Buyer Tax Id */
             buyer_tax_id: string | null;
             /** Category */
@@ -2967,6 +3143,7 @@ export interface components {
             non_reimbursable_amount: string | null;
             /** Parent Id */
             parent_id: string | null;
+            payment_method: components["schemas"]["PaymentMethod"] | null;
             /**
              * Policy Findings
              * @description Hallazgos de política: rule, action (warn | require_justification | block), code, detail y message
@@ -3056,6 +3233,8 @@ export interface components {
             invoice_number?: string | null;
             /** Invoice Time */
             invoice_time?: string | null;
+            /** @description Solo los pagos con tarjeta se cruzan con el extracto */
+            payment_method?: components["schemas"]["PaymentMethod"] | null;
             /** Subtotal */
             subtotal?: number | string | null;
             /** Tax Amount */
@@ -3078,7 +3257,7 @@ export interface components {
          * ExpenseSource
          * @enum {string}
          */
-        ExpenseSource: "whatsapp" | "app";
+        ExpenseSource: "whatsapp" | "app" | "bank";
         /**
          * ExpenseStatus
          * @enum {string}
@@ -3170,6 +3349,14 @@ export interface components {
             /** Instructions */
             instructions: string;
         };
+        /** LinkIn */
+        LinkIn: {
+            /**
+             * Expense Id
+             * Format: uuid
+             */
+            expense_id: string;
+        };
         /** ListOut[AdvanceListItemOut] */
         ListOut_AdvanceListItemOut_: {
             /** Data */
@@ -3245,6 +3432,11 @@ export interface components {
             /** Data */
             data: components["schemas"]["SpendOut"][];
         };
+        /** ListOut[StatementOut] */
+        ListOut_StatementOut_: {
+            /** Data */
+            data: components["schemas"]["StatementOut"][];
+        };
         /** ListOut[TimelineEventOut] */
         ListOut_TimelineEventOut_: {
             /** Data */
@@ -3299,6 +3491,13 @@ export interface components {
              */
             token_type: string;
         };
+        /**
+         * MatchStatus
+         * @description Cruce de un cargo del extracto con un gasto. AUTO y SUGGESTED los propone el sistema y se
+         *     recalculan; CONFIRMED y MANUAL los decidió contabilidad y el recálculo no los toca.
+         * @enum {string}
+         */
+        MatchStatus: "auto" | "suggested" | "confirmed" | "manual";
         /** MeOut */
         MeOut: {
             /** Active */
@@ -3366,6 +3565,45 @@ export interface components {
             code: string;
             /** Mfa Token */
             mfa_token: string;
+        };
+        /** MovementOut */
+        MovementOut: {
+            /** Amount */
+            amount: string;
+            charge_decision: components["schemas"]["ChargeDecision"] | null;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Description */
+            description: string;
+            /** Expense Id */
+            expense_id: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * In Trip
+             * @description Dentro de las fechas del viaje (con margen); los demás no son de esta legalización
+             */
+            in_trip: boolean;
+            /** Is Charge */
+            is_charge: boolean;
+            /** Match Score */
+            match_score: string | null;
+            match_status: components["schemas"]["MatchStatus"] | null;
+            /**
+             * Needs Decision
+             * @description Contabilidad debe resolverlo antes de cerrar
+             */
+            needs_decision: boolean;
+            /** Reference */
+            reference: string | null;
+            /** Row */
+            row: number;
         };
         /** NoteIn */
         NoteIn: {
@@ -3440,6 +3678,12 @@ export interface components {
             /** Password */
             password?: string | null;
         };
+        /**
+         * PaymentMethod
+         * @description Cómo pagó el empleado; solo los pagos con tarjeta se cruzan con el extracto.
+         * @enum {string}
+         */
+        PaymentMethod: "card" | "cash" | "transfer";
         /** PendingBalanceOut */
         PendingBalanceOut: {
             /**
@@ -3639,6 +3883,13 @@ export interface components {
          * @enum {string}
          */
         SettlementStatus: "none" | "refund_pending" | "refunded" | "payroll_deducted" | "payment_pending" | "paid";
+        /** SkippedRowOut */
+        SkippedRowOut: {
+            /** Reason */
+            reason: string;
+            /** Row */
+            row: number;
+        };
         /** SpendOut */
         SpendOut: {
             /** Category */
@@ -3660,6 +3911,95 @@ export interface components {
          * @enum {string}
          */
         StaffType: "administrative" | "operational";
+        /** StatementOut */
+        StatementOut: {
+            /**
+             * Advance Id
+             * Format: uuid
+             */
+            advance_id: string;
+            /** Card Last4 */
+            card_last4: string | null;
+            /** Currency */
+            currency: string;
+            /** File Name */
+            file_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Movements */
+            movements: components["schemas"]["MovementOut"][];
+            /** Profile */
+            profile: {
+                [key: string]: unknown;
+            };
+            /**
+             * Uploaded At
+             * Format: date-time
+             */
+            uploaded_at: string;
+        };
+        /** StatementPreviewOut */
+        StatementPreviewOut: {
+            /** Charges */
+            charges: number;
+            /**
+             * Confident
+             * @description False: revise el mapeo de columnas antes de cargar
+             */
+            confident: boolean;
+            /** Credits */
+            credits: number;
+            profile: components["schemas"]["StatementProfileIO"];
+            /**
+             * Rows
+             * @description Primeras filas del archivo, tal cual
+             */
+            rows: string[][];
+            /** Skipped */
+            skipped: components["schemas"]["SkippedRowOut"][];
+            /** Total Rows */
+            total_rows: number;
+        };
+        /**
+         * StatementProfileIO
+         * @description Cómo leer el extracto: columnas desde 0 y la fila de títulos desde 1 (0 = sin títulos).
+         */
+        StatementProfileIO: {
+            /** Amount Col */
+            amount_col?: number | null;
+            /**
+             * Charges Negative
+             * @default true
+             */
+            charges_negative: boolean;
+            /** Credit Col */
+            credit_col?: number | null;
+            /** Currency */
+            currency: string;
+            /** Date Col */
+            date_col: number;
+            /**
+             * Date Format
+             * @default DD/MM/YYYY
+             */
+            date_format: string;
+            /** Debit Col */
+            debit_col?: number | null;
+            /**
+             * Decimal Separator
+             * @default ,
+             */
+            decimal_separator: string;
+            /** Description Col */
+            description_col: number;
+            /** Header Row */
+            header_row: number;
+            /** Reference Col */
+            reference_col?: number | null;
+        };
         /**
          * StepStatus
          * @enum {string}
@@ -4463,6 +4803,107 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdvanceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_statements_api_v1_advances__advance_id__statements_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                advance_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListOut_StatementOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_api_v1_advances__advance_id__statements_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                advance_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_api_v1_advances__advance_id__statements_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_api_v1_advances__advance_id__statements_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                advance_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_preview_api_v1_advances__advance_id__statements_preview_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementPreviewOut"];
                 };
             };
             /** @description Validation Error */
@@ -6976,6 +7417,142 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ListOut_SettingOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_api_v1_statements__statement_id__movements__movement_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                statement_id: string;
+                movement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_api_v1_statements__statement_id__movements__movement_id__decision_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                statement_id: string;
+                movement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChargeDecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_api_v1_statements__statement_id__movements__movement_id__link_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                statement_id: string;
+                movement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_api_v1_statements__statement_id__movements__movement_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                statement_id: string;
+                movement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementOut"];
                 };
             };
             /** @description Validation Error */

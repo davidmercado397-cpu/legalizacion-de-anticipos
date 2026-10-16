@@ -20,7 +20,7 @@ from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait
 
 from app.domain.enums import DocumentType, Legibility, TaxType
 from app.domain.errors import ExternalServiceError
-from app.domain.ports import ExtractionRequest, ExtractionResponse
+from app.domain.ports import ExtractionOptions, ExtractionRequest, ExtractionResponse, StatementTable
 from app.domain.values import InvoiceData, InvoiceLine, TaxItem
 
 logger = logging.getLogger(__name__)
@@ -105,7 +105,9 @@ def _retryable(exc: BaseException) -> bool:
     return isinstance(exc, httpx.HTTPStatusError) and (exc.response.status_code == 429 or exc.response.status_code >= 500)
 
 
-class OpenRouterInvoiceExtractor:
+class _OpenRouter:
+    """Cliente común: chat completions con reintentos cortos y prompts versionados en disco."""
+
     def __init__(
         self,
         client: httpx.AsyncClient,
@@ -129,8 +131,22 @@ class OpenRouterInvoiceExtractor:
             self._prompts[version] = path.read_text(encoding="utf-8")
         return self._prompts[version]
 
-    async def extract(self, request: ExtractionRequest) -> ExtractionResponse:
-        payload = self._payload(request)
+    async def _post(self, payload: dict[str, Any]) -> dict[str, Any]:
+        headers = {"Authorization": f"Bearer {self._key}", "X-Title": "anticipos-gastos-api"}
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception(_retryable),
+            stop=stop_after_attempt(2),
+            wait=wait_exponential(multiplier=0.5, min=0.5, max=2),
+            reraise=True,
+        ):
+            with attempt:
+                response = await self._client.post(self._url, json=payload, headers=headers, timeout=self._timeout)
+                response.raise_for_status()
+                return response.json()
+        raise AssertionError("unreachable")
+
+    async def _ask(self, payload: dict[str, Any]) -> tuple[dict[str, Any], str, dict[str, Any], int]:
+        """Devuelve (respuesta, texto, JSON interpretado, latencia en ms)."""
         started = time.perf_counter()
         try:
             data = await self._post(payload)
@@ -144,6 +160,15 @@ class OpenRouterInvoiceExtractor:
             parsed = json.loads(_strip_fences(content))
         except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
             raise ExternalServiceError("The AI answer is not valid JSON", code="ai_unavailable") from exc
+        if not isinstance(parsed, dict):
+            raise ExternalServiceError("The AI answer is not an object", code="ai_unavailable")
+        return data, content, parsed, latency
+
+
+class OpenRouterInvoiceExtractor(_OpenRouter):
+    async def extract(self, request: ExtractionRequest) -> ExtractionResponse:
+        payload = self._payload(request)
+        data, content, parsed, latency = await self._ask(payload)
         usage = data.get("usage") or {}
         return ExtractionResponse(
             legibility=_enum(Legibility, parsed.get("legibility"), Legibility.POOR),
@@ -158,20 +183,6 @@ class OpenRouterInvoiceExtractor:
             cost_usd=_decimal(usage.get("cost")),
             latency_ms=latency,
         )
-
-    async def _post(self, payload: dict[str, Any]) -> dict[str, Any]:
-        headers = {"Authorization": f"Bearer {self._key}", "X-Title": "anticipos-gastos-api"}
-        async for attempt in AsyncRetrying(
-            retry=retry_if_exception(_retryable),
-            stop=stop_after_attempt(2),
-            wait=wait_exponential(multiplier=0.5, min=0.5, max=2),
-            reraise=True,
-        ):
-            with attempt:
-                response = await self._client.post(self._url, json=payload, headers=headers, timeout=self._timeout)
-                response.raise_for_status()
-                return response.json()
-        raise AssertionError("unreachable")
 
     def _payload(self, request: ExtractionRequest) -> dict[str, Any]:
         options = request.options
@@ -237,10 +248,96 @@ class OpenRouterInvoiceExtractor:
         return payload
 
 
-def _file_part(content: bytes, mime_type: str) -> dict[str, Any]:
+_STATEMENT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["currency", "card_last4", "movements"],
+    "properties": {
+        "currency": _NULLABLE_STRING,
+        "card_last4": _NULLABLE_STRING,
+        "movements": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["date", "description", "reference", "amount"],
+                "properties": {
+                    "date": {"type": "string", "description": "YYYY-MM-DD"},
+                    "description": {"type": "string"},
+                    "reference": _NULLABLE_STRING,
+                    "amount": {"type": "number", "description": "Charges negative, credits positive"},
+                },
+            },
+        },
+    },
+}
+
+
+class OpenRouterStatementExtractor(_OpenRouter):
+    """Lee un extracto bancario en PDF y lo entrega como tabla con columnas fijas (decisión 7.9). La IA
+    solo transcribe movimientos; el cruce lo hace el código."""
+
+    async def extract(self, content: bytes, model: str, options: ExtractionOptions) -> StatementTable:
+        payload: dict[str, Any] = {
+            "messages": [
+                {"role": "system", "content": self._instructions(options.prompt_version)},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Transcribe every movement of this bank statement."},
+                        _file_part(content, "application/pdf", "statement.pdf"),
+                    ],
+                },
+            ],
+            "temperature": 0,
+            "max_tokens": options.max_tokens,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {"name": "statement_extraction", "strict": True, "schema": _STATEMENT_SCHEMA},
+            },
+            "reasoning": {"effort": options.reasoning_off, "exclude": True},
+            "provider": {
+                "sort": "latency",
+                "data_collection": "deny",
+                "require_parameters": True,
+                "zdr": options.zero_data_retention,
+            },
+            "usage": {"include": True},
+        }
+        fallbacks = [m for m in options.availability_fallbacks if m != model]
+        if fallbacks:
+            payload["models"] = [model, *fallbacks]
+        else:
+            payload["model"] = model
+        data, _, parsed, _ = await self._ask(payload)
+        usage = data.get("usage") or {}
+        rows: list[list[str]] = [["fecha", "descripcion", "referencia", "valor"]]
+        for item in (parsed.get("movements") or [])[:2000]:
+            if not isinstance(item, dict):
+                continue
+            day, amount = _date(item.get("date")), _decimal(item.get("amount"))
+            if day is None or amount is None:
+                continue
+            reference = _text(item.get("reference"), 120) or ""
+            rows.append([day.isoformat(), _text(item.get("description"), 300) or "", reference, format(amount, "f")])
+        currency = _text(parsed.get("currency"), 3)
+        last4 = _text(parsed.get("card_last4"), 4)
+        return StatementTable(
+            rows=rows,
+            currency=currency.upper() if currency else None,
+            card_last4=last4 if last4 and last4.isdigit() and len(last4) == 4 else None,
+            model_used=data.get("model"),
+            prompt_tokens=usage.get("prompt_tokens"),
+            completion_tokens=usage.get("completion_tokens"),
+            cached_tokens=(usage.get("prompt_tokens_details") or {}).get("cached_tokens"),
+            cost_usd=_decimal(usage.get("cost")),
+        )
+
+
+def _file_part(content: bytes, mime_type: str, filename: str = "invoice.pdf") -> dict[str, Any]:
     encoded = base64.b64encode(content).decode()
     if mime_type == "application/pdf":
-        return {"type": "file", "file": {"filename": "invoice.pdf", "file_data": f"data:application/pdf;base64,{encoded}"}}
+        return {"type": "file", "file": {"filename": filename, "file_data": f"data:application/pdf;base64,{encoded}"}}
     return {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{encoded}"}}
 
 

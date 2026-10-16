@@ -4,6 +4,7 @@ PostgreSQL con GROUP BY, parámetros siempre ligados y sin cargar entidades."""
 from __future__ import annotations
 
 import uuid
+from dataclasses import replace
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -224,9 +225,36 @@ class SqlReportRepository:
             .group_by(month, model, _c.id, _c.name)
             .order_by(month.desc(), model, _c.name)
         )
-        rows = await self._s.execute(stmt)
+        result = [
+            AiCostRow(r[0], r[1], r[2], r[3], bool(r[4]), int(r[5]), int(r[6]), int(r[7]), int(r[8]), _dec(r[9]))
+            for r in await self._s.execute(stmt)
+        ]
+        return _merge_costs(result, await self._statement_costs(start, end))
+
+    async def _statement_costs(self, start: datetime, end: datetime) -> list[AiCostRow]:
+        """Extractos en PDF leídos con IA (conciliación)."""
+        bs = t.bank_statements.c
+        month = sa.func.to_char(sa.func.timezone("UTC", bs.uploaded_at), "YYYY-MM").label("month")
+        stmt = (
+            sa.select(
+                month,
+                bs.ai_model,
+                _c.id,
+                _c.name,
+                sa.func.coalesce(sa.func.bool_or(_c.is_test), False),
+                sa.func.count(),
+                sa.func.coalesce(sa.func.sum(bs.ai_prompt_tokens), 0),
+                sa.func.coalesce(sa.func.sum(bs.ai_completion_tokens), 0),
+                sa.func.coalesce(sa.func.sum(bs.ai_cached_tokens), 0),
+                sa.func.coalesce(sa.func.sum(bs.ai_cost_usd), 0),
+            )
+            .select_from(t.bank_statements.join(t.companies, _c.id == bs.company_id))
+            .where(bs.ai_model.is_not(None), bs.uploaded_at >= start, bs.uploaded_at < end)
+            .group_by(month, bs.ai_model, _c.id, _c.name)
+        )
         return [
-            AiCostRow(r[0], r[1], r[2], r[3], bool(r[4]), int(r[5]), int(r[6]), int(r[7]), int(r[8]), _dec(r[9])) for r in rows
+            AiCostRow(r[0], r[1], r[2], r[3], bool(r[4]), int(r[5]), int(r[6]), int(r[7]), int(r[8]), _dec(r[9]))
+            for r in await self._s.execute(stmt)
         ]
 
     async def line_accuracy(self, company_id: uuid.UUID, start: datetime, end: datetime) -> tuple[int, int, int]:
@@ -265,3 +293,25 @@ class SqlReportRepository:
             )
             for r in rows
         ]
+
+
+def _merge_costs(*groups: list[AiCostRow]) -> list[AiCostRow]:
+    """Suma las filas del mismo mes, modelo y compañía (facturas y extractos), en el orden del reporte."""
+    merged: dict[tuple[str, str, uuid.UUID | None], AiCostRow] = {}
+    for row in (r for group in groups for r in group):
+        key = (row.month, row.model, row.company_id)
+        prev = merged.get(key)
+        merged[key] = (
+            row
+            if prev is None
+            else replace(
+                prev,
+                calls=prev.calls + row.calls,
+                prompt_tokens=prev.prompt_tokens + row.prompt_tokens,
+                completion_tokens=prev.completion_tokens + row.completion_tokens,
+                cached_tokens=prev.cached_tokens + row.cached_tokens,
+                cost_usd=prev.cost_usd + row.cost_usd,
+            )
+        )
+    by_model = sorted(merged.values(), key=lambda r: (r.model, r.company_name or ""))
+    return sorted(by_model, key=lambda r: r.month, reverse=True)  # estable: el mes más reciente primero

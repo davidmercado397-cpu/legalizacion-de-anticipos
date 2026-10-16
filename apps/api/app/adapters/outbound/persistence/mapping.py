@@ -9,6 +9,7 @@ from app.domain.entities import (
     Advance,
     ApproverDelegation,
     AuditEntry,
+    BankStatement,
     BlockedConcept,
     Category,
     ClassificationExample,
@@ -22,6 +23,7 @@ from app.domain.entities import (
     InboundMessage,
     PolicyRuleConfig,
     RefreshToken,
+    StatementMovement,
     TravelBudgetRate,
     TravelZone,
     WhatsAppLinkCode,
@@ -58,4 +60,6 @@ def start_mappers() -> None:
     mapper_registry.map_imperatively(ClassificationExample, t.classification_examples)
     mapper_registry.map_imperatively(ExampleHistory, t.classification_example_history)
     mapper_registry.map_imperatively(WhatsAppSession, t.whatsapp_sessions)
+    mapper_registry.map_imperatively(BankStatement, t.bank_statements)
+    mapper_registry.map_imperatively(StatementMovement, t.statement_movements)
     _started = True

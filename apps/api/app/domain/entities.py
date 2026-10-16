@@ -16,8 +16,10 @@ from app.domain.enums import (
     AdvanceKind,
     AdvanceStatus,
     ApprovalLevel,
+    BankStatus,
     BudgetUnit,
     Channel,
+    ChargeDecision,
     Deductibility,
     DisbursementMethod,
     DocumentType,
@@ -30,6 +32,8 @@ from app.domain.enums import (
     ExpenseSource,
     ExpenseStatus,
     Legibility,
+    MatchStatus,
+    PaymentMethod,
     PolicyAction,
     ReviewDecision,
     ReviewStatus,
@@ -755,6 +759,8 @@ EDITABLE_INVOICE_FIELDS = (
     "description",
     "taxes",
 )
+# Lo que el usuario puede corregir: los datos de la factura y cómo la pagó.
+EDITABLE_FIELDS = (*EDITABLE_INVOICE_FIELDS, "payment_method")
 
 
 @dataclass(eq=False)
@@ -826,6 +832,12 @@ class Expense:
     notification_batch_id: uuid.UUID | None = None
     duplicate_of_id: uuid.UUID | None = None  # el mismo empleado ya la había registrado: se descarta sola
     receipt_signed: bool = False  # recibo de caja: el empleado declara que lo firmó quien vendió (decisión 5.6)
+    payment_method: PaymentMethod | None = None  # None = se asume por el tipo de anticipo al confirmar
+    # Conciliación: con el cargo del extracto, el gasto se legaliza por lo que cobró el banco (decisión 7.8).
+    bank_status: BankStatus | None = None
+    bank_amount: Decimal | None = None  # valor cobrado, en la moneda del extracto
+    bank_currency: str | None = None
+    amount_before_bank: Decimal | None = None  # valor por la factura, para volver a él si se deshace el cruce
     id: uuid.UUID = field(default_factory=uuid.uuid4)
     created_at: datetime = field(default_factory=utcnow)
     updated_at: datetime = field(default_factory=utcnow)
@@ -853,6 +865,35 @@ class Expense:
             and self.advance_id == advance_id
             and self.review_status != ReviewStatus.REJECTED
         )
+
+    @property
+    def invoice_amount(self) -> Decimal | None:
+        """Lo que vale la factura en la moneda del anticipo, sin el ajuste del banco."""
+        return self.amount_before_bank if self.bank_status == BankStatus.MATCHED else self.amount_applied
+
+    def apply_bank_charge(self, charged: Decimal, currency: str, in_advance_currency: Decimal, now: datetime) -> None:
+        """Se legaliza por lo cobrado en el extracto. Si contabilidad dejó líneas como no reembolsables,
+        su parte se recalcula sobre el valor nuevo."""
+        if self.bank_status != BankStatus.MATCHED:
+            self.amount_before_bank = self.amount_applied
+        self.bank_status, self.bank_amount, self.bank_currency = BankStatus.MATCHED, charged, currency.upper()
+        self.amount_applied = in_advance_currency
+        if self.review_status == ReviewStatus.ACCEPTED_PARTIAL:
+            self.non_reimbursable_amount = self._non_reimbursable_in_advance_currency()
+        self.touch(now)
+
+    def mark_bank_status(self, status: BankStatus | None, now: datetime) -> None:
+        """Sin cruce (o sin cargo): vuelve al valor de la factura."""
+        if self.bank_status == BankStatus.MATCHED:
+            self.amount_applied = self.amount_before_bank
+            self.amount_before_bank = self.bank_amount = self.bank_currency = None
+            if self.review_status == ReviewStatus.ACCEPTED_PARTIAL:
+                self.non_reimbursable_amount = self._non_reimbursable_in_advance_currency()
+        if status == BankStatus.MATCHED:
+            raise InvalidOperationError("Use apply_bank_charge to match an expense", code="invalid_bank_status")
+        if self.bank_status != status:
+            self.bank_status = status
+            self.touch(now)
 
     def findings_with(self, action: PolicyAction) -> list[dict[str, Any]]:
         return [f for f in self.policy_findings if f.get("action") == action]
@@ -936,7 +977,7 @@ class Expense:
             raise InvalidOperationError(
                 f"Expense cannot be edited in status {self.status}", code="expense_not_editable", status=self.status.value
             )
-        unknown = set(changes) - set(EDITABLE_INVOICE_FIELDS)
+        unknown = set(changes) - set(EDITABLE_FIELDS)
         if unknown:
             raise InvalidOperationError("Fields not editable", code="fields_not_editable", fields=", ".join(sorted(unknown)))
         for name, value in changes.items():
@@ -983,6 +1024,12 @@ class Expense:
         if self.findings_with(PolicyAction.REQUIRE_JUSTIFICATION) and not self.justification:
             raise JustificationRequiredError("This expense needs a justification")
         self.assign_to(advance)
+        # Confirmar de nuevo (p. ej. tras una devolución) vuelve al valor de la factura; la conciliación
+        # lo cruza otra vez cuando el empleado reenvía la legalización.
+        self.amount_before_bank = self.bank_amount = self.bank_currency = self.bank_status = None
+        if self.payment_method is None and advance is not None:
+            card = advance.kind in (AdvanceKind.RELOADABLE_CARD, AdvanceKind.CORPORATE_CARD)
+            self.payment_method = PaymentMethod.CARD if card else PaymentMethod.CASH
         if advance is None:
             self.amount_applied = None
             self.clear_conversion()
@@ -1051,6 +1098,7 @@ class Expense:
     def _non_reimbursable_in_advance_currency(self) -> Decimal | None:
         if not self.suggested_non_reimbursable or not self.total:
             return None
+        # Sobre lo que se legaliza: el valor del banco si el gasto ya se cruzó con el extracto.
         base = self.amount_applied if self.amount_applied is not None else self.total
         # Conversión proporcional: sirve esté o no el gasto en la moneda del anticipo.
         return (base * self.suggested_non_reimbursable / self.total).quantize(Decimal("0.01"))
@@ -1181,6 +1229,116 @@ class ExchangeRate:
     rate: Decimal
     source: ExchangeRateSource
     fetched_at: datetime = field(default_factory=utcnow)
+
+
+@dataclass(eq=False)
+class BankStatement:
+    """Extracto bancario de la tarjeta con que se pagaron los gastos de un anticipo. Lo carga tesorería
+    cuando la legalización ya está en revisión (decisión 7.1)."""
+
+    advance_id: uuid.UUID
+    company_id: uuid.UUID
+    employee_id: uuid.UUID  # titular de la tarjeta
+    currency: str
+    file_name: str
+    file_sha256: str
+    file_key: str
+    profile: dict[str, Any]  # cómo se leyó (reconciliation.StatementProfile); el PDF lo lee la IA
+    uploaded_by: uuid.UUID
+    card_last4: str | None = None
+    # Lectura con IA de un PDF: se suma al costo de la IA del mes.
+    ai_model: str | None = None
+    ai_prompt_tokens: int | None = None
+    ai_completion_tokens: int | None = None
+    ai_cached_tokens: int | None = None
+    ai_cost_usd: Decimal | None = None
+    id: uuid.UUID = field(default_factory=uuid.uuid4)
+    uploaded_at: datetime = field(default_factory=utcnow)
+
+
+@dataclass(eq=False)
+class StatementMovement:
+    """Un movimiento del extracto. Un cargo se cruza con un gasto o, si no tiene factura, contabilidad
+    decide si lo asume la empresa o se le descuenta al empleado."""
+
+    statement_id: uuid.UUID
+    row: int
+    day: date
+    description: str
+    amount: Decimal  # siempre positivo, en la moneda del extracto
+    is_charge: bool
+    in_trip: bool  # dentro de las fechas del viaje (con margen); los demás no son de esta legalización
+    reference: str | None = None
+    expense_id: uuid.UUID | None = None
+    match_status: MatchStatus | None = None
+    match_score: Decimal | None = None
+    matched_by: uuid.UUID | None = None
+    matched_at: datetime | None = None
+    rejected_expense_ids: list[str] = field(default_factory=list)  # pares que contabilidad descartó
+    charge_decision: ChargeDecision | None = None
+    absorbed_expense_id: uuid.UUID | None = None  # gasto que representa el cargo que asume la empresa
+    decided_by: uuid.UUID | None = None
+    decided_at: datetime | None = None
+    id: uuid.UUID = field(default_factory=uuid.uuid4)
+
+    @property
+    def is_fixed(self) -> bool:
+        """Lo decidió contabilidad: el recálculo no lo toca."""
+        return self.match_status in (MatchStatus.CONFIRMED, MatchStatus.MANUAL)
+
+    @property
+    def applies(self) -> bool:
+        """El cruce cuenta para legalizar por el valor del banco (una sugerencia todavía no)."""
+        return self.expense_id is not None and self.match_status != MatchStatus.SUGGESTED
+
+    @property
+    def needs_decision(self) -> bool:
+        """Lo que contabilidad debe resolver antes de cerrar: una sugerencia o un cargo del viaje sin factura."""
+        if self.match_status == MatchStatus.SUGGESTED:
+            return True
+        return self.is_charge and self.in_trip and self.expense_id is None and self.charge_decision is None
+
+    def propose(self, expense_id: uuid.UUID, score: Decimal, automatic: bool) -> None:
+        self.expense_id, self.match_score = expense_id, score
+        self.match_status = MatchStatus.AUTO if automatic else MatchStatus.SUGGESTED
+        self.matched_by = self.matched_at = None
+        self._clear_decision()
+
+    def unmatch(self) -> None:
+        self.expense_id = self.match_status = self.match_score = self.matched_by = self.matched_at = None
+
+    def confirm(self, actor_id: uuid.UUID, now: datetime) -> None:
+        if self.expense_id is None:
+            raise InvalidOperationError("Nothing to confirm", code="movement_not_matched")
+        self.match_status = MatchStatus.MANUAL if self.match_status == MatchStatus.MANUAL else MatchStatus.CONFIRMED
+        self.matched_by, self.matched_at = actor_id, now
+
+    def reject(self) -> uuid.UUID:
+        """Deshace el cruce y el sistema no vuelve a proponer ese par. Devuelve el gasto que se soltó."""
+        if self.expense_id is None:
+            raise InvalidOperationError("Nothing to reject", code="movement_not_matched")
+        released = self.expense_id
+        self.rejected_expense_ids = [*self.rejected_expense_ids, str(released)]
+        self.unmatch()
+        return released
+
+    def link(self, expense_id: uuid.UUID, actor_id: uuid.UUID, now: datetime) -> None:
+        if not self.is_charge:
+            raise InvalidOperationError("Only charges are matched", code="movement_not_charge")
+        if self.is_fixed:
+            raise InvalidOperationError("Already matched", code="movement_already_matched")
+        self.expense_id, self.match_status, self.match_score = expense_id, MatchStatus.MANUAL, None
+        self.matched_by, self.matched_at = actor_id, now
+        self.rejected_expense_ids = [e for e in self.rejected_expense_ids if e != str(expense_id)]
+        self._clear_decision()
+
+    def decide(self, decision: ChargeDecision, actor_id: uuid.UUID, now: datetime) -> None:
+        if not self.is_charge or self.expense_id is not None:
+            raise InvalidOperationError("Only charges without an invoice are decided", code="movement_not_decidable")
+        self.charge_decision, self.decided_by, self.decided_at = decision, actor_id, now
+
+    def _clear_decision(self) -> None:
+        self.charge_decision = self.decided_by = self.decided_at = None
 
 
 @dataclass(eq=False)

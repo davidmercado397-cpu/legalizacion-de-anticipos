@@ -16,6 +16,7 @@ from app.application.access import AccessPolicy
 from app.application.budgets import TravelBudgetService, TripQuery
 from app.application.exchange import ExchangeRateService
 from app.application.learning import LearningService
+from app.application.reconciliation import unresolved_items
 from app.application.settings import SettingsService, check_currency
 from app.domain.approvals import Approver, build_route, escalation_reasons
 from app.domain.budgets import TripLeg
@@ -431,6 +432,10 @@ class AdvanceService:
                     ]
                     if pending:
                         raise InvalidOperationError("Unreviewed findings", code="unreviewed_findings", count=len(pending))
+                    statements = await uow.statements.list_for_advance(advance.id)
+                    bank_items = unresolved_items(await uow.statements.movements_of([st.id for st in statements]))
+                    if bank_items:
+                        raise InvalidOperationError("Unresolved bank items", code="unresolved_bank_items", count=bank_items)
                     advance.close(actor, owner, advance.balance(expenses).pending, delegated)
                     await self._learning.activate_closed(uow, actor, [e.id for e in expenses])
                 case "return":
