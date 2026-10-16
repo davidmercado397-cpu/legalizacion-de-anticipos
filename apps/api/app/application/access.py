@@ -17,6 +17,8 @@ from app.domain.permissions import Permission, has_permission
 from app.domain.ports import Clock, ScopeFilter, UnitOfWork
 
 NoDelegation: frozenset[uuid.UUID] = frozenset()
+# Contabilidad y tesorería ven todo lo de sus compañías.
+_COMPANY_WIDE = (Role.ACCOUNTANT, Role.TREASURY)
 
 
 class AccessPolicy:
@@ -37,7 +39,7 @@ class AccessPolicy:
     async def scope_for(self, uow: UnitOfWork, actor: Employee) -> ScopeFilter:
         if actor.role == Role.ADMIN:
             return ScopeFilter()
-        if actor.role == Role.ACCOUNTANT:
+        if actor.role in _COMPANY_WIDE:
             return ScopeFilter(company_ids=list(actor.company_ids))
         if actor.role == Role.APPROVER:
             team = [actor.id, *await uow.employees.list_reports_of(actor.id)]
@@ -52,7 +54,7 @@ class AccessPolicy:
     ) -> bool:
         if actor.role == Role.ADMIN or actor.id == owner.id:
             return True
-        if actor.role == Role.ACCOUNTANT:
+        if actor.role in _COMPANY_WIDE:
             return actor.works_for(company_id) if company_id else actor.shares_company_with(owner)
         return actor.role == Role.APPROVER and (owner.approver_id == actor.id or owner.approver_id in delegated_from)
 

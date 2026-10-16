@@ -63,7 +63,7 @@ export function EditorGasto({ anticipo, gasto }: { anticipo: AnticipoDetalle; ga
   const usuario = useSesion((s) => s.usuario);
   const propio = usuario?.id === gasto.employee_id;
   const editable = propio && anticipo.status === 'approved' && ['extracted', 'failed', 'confirmed'].includes(gasto.status);
-  const revisa = !propio && puede(usuario, 'aprobar') && anticipo.status === 'in_review';
+  const revisa = !propio && puede(usuario, 'contabilidad') && anticipo.status === 'in_review';
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">

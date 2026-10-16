@@ -3298,7 +3298,7 @@ export interface components {
          * Role
          * @enum {string}
          */
-        Role: "employee" | "approver" | "accountant" | "admin" | "superadmin";
+        Role: "employee" | "approver" | "accountant" | "treasury" | "admin" | "superadmin";
         /** SettingOut */
         SettingOut: {
             /** Constraints */

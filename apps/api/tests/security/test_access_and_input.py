@@ -57,3 +57,30 @@ async def test_logs_never_contain_passwords_tokens_or_full_phone_numbers(
     logged = "\n".join(record.getMessage() for record in caplog.records)
     for secret in (PASSWORD, "otra-clave-mala", tokens["access_token"], tokens["refresh_token"], phone):
         assert secret not in logged
+
+
+async def test_each_step_belongs_to_its_role(harness: Harness) -> None:
+    """Segregación (decisiones 8.1 a 8.5): el jefe aprueba la solicitud, tesorería entrega y liquida, y
+    contabilidad revisa y cierra la legalización. Ninguno hace el paso del otro."""
+    company = await harness.add_company()
+    boss = await harness.add_employee(company, "jefe@forsa.com", Role.APPROVER)
+    traveler = await harness.add_employee(company, "juan@forsa.com", approver=boss)
+    accounting = await harness.add_employee(company, "conta@forsa.com", Role.ACCOUNTANT)
+    treasury = await harness.add_employee(company, "teso@forsa.com", Role.TREASURY)
+    boss_h, emp_h, acc_h, tre_h = [await harness.login(e) for e in (boss, traveler, accounting, treasury)]
+    body = {"company_id": str(company.id), "kind": "cash", "currency": "COP", "amount": "100000", "purpose": "Obra"}
+    advance_id = (await harness.client.post("/api/v1/advances", headers=emp_h, json=body)).json()["id"]
+    url = f"/api/v1/advances/{advance_id}"
+
+    assert (await harness.client.post(f"{url}/approve", headers=tre_h)).status_code == 403
+    assert (await harness.client.post(f"{url}/approve", headers=boss_h)).status_code == 200
+    assert (await harness.client.post(f"{url}/disburse", headers=boss_h, json={"method": "cash"})).status_code == 403
+    assert (await harness.client.post(f"{url}/disburse", headers=acc_h, json={"method": "cash"})).status_code == 403
+    assert (await harness.client.post(f"{url}/disburse", headers=tre_h, json={"method": "cash"})).status_code == 200
+    assert (await harness.client.post(f"{url}/submit", headers=emp_h)).status_code == 200
+    for headers in (boss_h, tre_h):
+        assert (await harness.client.post(f"{url}/close", headers=headers)).status_code == 403
+    closed = await harness.client.post(f"{url}/close", headers=acc_h)
+    assert closed.json()["settlement_status"] == "refund_pending"
+    assert (await harness.client.post(f"{url}/settle", headers=acc_h, json={"method": "refund"})).status_code == 403
+    assert (await harness.client.post(f"{url}/settle", headers=tre_h, json={"method": "refund"})).status_code == 200

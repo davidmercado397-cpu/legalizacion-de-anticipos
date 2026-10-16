@@ -209,13 +209,10 @@ class MenuHandler(Handler):
 
     async def _approvals(self, c: Conversation, fmt: msg.NumberFormat) -> str | None:
         queue = await self._advances.decision_queue(c.employee, _APPROVALS_SHOWN)
-        if not queue.requested and not queue.in_review:
+        if not queue.requested:
             return msg.NOTHING_TO_APPROVE
         for advance, owner in queue.requested:
             await send_reply(self._sender, c.address, approval_request(advance, owner.full_name, fmt))
-        notes = []
         if queue.requested_total > len(queue.requested):
-            notes.append(msg.APPROVALS_MORE.format(count=queue.requested_total - len(queue.requested)))
-        if queue.in_review:
-            notes.append(msg.REVIEWS_IN_APP.format(what=msg.legalizations_count(queue.in_review)))
-        return "\n".join(notes) or None
+            return msg.APPROVALS_MORE.format(count=queue.requested_total - len(queue.requested))
+        return None

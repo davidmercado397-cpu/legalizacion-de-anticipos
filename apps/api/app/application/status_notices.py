@@ -1,6 +1,7 @@
-"""Avisos por WhatsApp de cada cambio de estado del anticipo: al empleado (aprobado, rechazado, anulado,
-devuelto, cerrado, entregado) y al aprobador (legalización enviada o reenviada). Se disparan con los
-eventos de `AdvanceService` después del commit y van por `WhatsAppNotifier` (ventana o plantilla)."""
+"""Avisos por WhatsApp de cada cambio de estado del anticipo al empleado (aprobado, rechazado, anulado,
+devuelto, cerrado, entregado). Se disparan con los eventos de `AdvanceService` después del commit y van
+por `WhatsAppNotifier` (ventana o plantilla). La legalización enviada no se avisa: la revisa contabilidad
+desde su bandeja en la app, no el jefe."""
 
 from __future__ import annotations
 
@@ -12,8 +13,7 @@ from app.application.messages import NumberFormat
 from app.application.settings import SettingsService
 from app.application.whatsapp_notifier import WhatsAppNotifier
 from app.application.whatsapp_presenter import Reply
-from app.domain.entities import Advance, Company, Employee, Expense
-from app.domain.enums import ExpenseStatus
+from app.domain.entities import Advance, Company, Expense
 from app.domain.ports import Button, UnitOfWorkFactory
 
 logger = logging.getLogger(__name__)
@@ -40,18 +40,12 @@ class StatusNotices:
             owner = await uow.employees.get(advance.employee_id) if advance else None
             actor = await uow.employees.get(event.actor_id)
             company = await uow.companies.get(advance.company_id) if advance else None
-            approver = await uow.employees.get(owner.approver_id) if owner and owner.approver_id else None
             expenses = await uow.expenses.list_for_advance(advance.id) if advance else []
         if advance is None or owner is None or company is None:
             return
         countries = (await self._settings.current()).country_defaults
         fmt = NumberFormat.of((countries.get(company.country) or {}).get("number_format"))
         actor_name = actor.full_name if actor else ""
-        if event.type == AdvanceEventType.SUBMITTED:
-            if approver is not None:
-                reply, line = _submitted(advance, owner, expenses)
-                await self._notifier.notify(approver, reply, line)
-            return
         reply, line = _for_employee(event.type, advance, company, actor_name, expenses, fmt)
         await self._notifier.notify(owner, reply, line)
 
@@ -86,19 +80,6 @@ def _for_employee(
             return Reply(_join(msg.NOTICE_CLOSED.format(**values), result)), msg.NOTICE_CLOSED_LINE.format(**values)
         case _:
             return Reply(msg.NOTICE_DISBURSED.format(**values)), msg.NOTICE_DISBURSED_LINE.format(**values)
-
-
-def _submitted(advance: Advance, owner: Employee, expenses: list[Expense]) -> tuple[Reply, str]:
-    confirmed = [e for e in expenses if e.status == ExpenseStatus.CONFIRMED]
-    values = {"name": owner.full_name, "label": advance.label}
-    if advance.returned_at is not None:
-        marked = [e for e in expenses if e.return_note]
-        unresolved = sum(1 for e in marked if e.return_resolved_at is None)
-        text = msg.NOTICE_RESUBMITTED.format(**values, resolved=len(marked) - unresolved, unresolved=unresolved)
-    else:
-        alerts = sum(1 for e in confirmed if e.policy_findings or e.warnings)
-        text = msg.NOTICE_SUBMITTED.format(**values, count=msg.expenses_count(len(confirmed)), alerts=alerts)
-    return Reply(text), msg.NOTICE_SUBMITTED_LINE.format(**values)
 
 
 def _join(*parts: str) -> str:

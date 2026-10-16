@@ -41,7 +41,6 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `APPROVAL_ITEM` | 👤 {name} pide {amount} para {label}. |
 | `APPROVAL_JUSTIFICATION` | Pidió otro valor que el calculado ({budget}): {justification} |
 | `APPROVALS_MORE` | Hay {count} más: revísalas en la app. |
-| `REVIEWS_IN_APP` | 📤 Tienes {what} en revisión: revísalas en la app, donde ves cada factura. |
 | `NOTHING_TO_APPROVE` | No tienes anticipos por aprobar 👍 |
 | `IDLE_REMINDER` | {name}, quedó pendiente: {what}. Cuando puedas, lo revisamos 👇 |
 | `IDLE_UNREADABLE` | una foto que no pude leer (envíamela de nuevo) |
@@ -116,9 +115,6 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `NOTICE_CLOSED_LINE` | {approver} aprobó tu legalización de {label} |
 | `NOTICE_DISBURSED` | 💸 Tesorería te entregó el anticipo {label} ({amount}). |
 | `NOTICE_DISBURSED_LINE` | tesorería te entregó el anticipo {label} ({amount}) |
-| `NOTICE_SUBMITTED` | 📤 {name} envió su legalización de {label}: {count}, {alerts} con alertas. Revísala en la app. |
-| `NOTICE_RESUBMITTED` | 📤 {name} corrigió y reenvió la legalización de {label}: {resolved} corregidos y {unresolved} sin resolver. Revísala en la app. |
-| `NOTICE_SUBMITTED_LINE` | {name} envió su legalización de {label} para que la revises |
 | `BUTTON_SEE_MARKED` | ↩️ Ver marcados |
 | `MARKED_PROMPT` | ↩️ Estos gastos te los marcaron para revisar. Elige uno: |
 | `NO_MARKED` | No tienes gastos marcados por revisar 👍 |

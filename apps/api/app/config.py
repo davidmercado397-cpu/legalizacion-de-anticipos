@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     # Doble factor: obligatorio para estos roles; la llave cifra la semilla TOTP en la BD.
     # Generar con: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     MFA_ENCRYPTION_KEY: str = ""
-    MFA_REQUIRED_ROLES: str = "admin,accountant,superadmin"
+    MFA_REQUIRED_ROLES: str = "admin,accountant,treasury,superadmin"
     MFA_ISSUER: str = "Forsa Gastos"
     MFA_CHALLENGE_TTL_SECONDS: int = 300
     FLOW_TOKEN_TTL_MINUTES: int = 30  # vigencia de un formulario (WhatsApp Flow) abierto

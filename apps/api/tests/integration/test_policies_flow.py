@@ -62,7 +62,7 @@ async def _upload(harness: Harness, headers: dict[str, str], seed: int = 1) -> d
     return (await harness.client.get(f"/api/v1/expenses/{response.json()['id']}", headers=headers)).json()
 
 
-async def test_minibar_needs_justification_then_approver_reviews(harness: Harness) -> None:
+async def test_minibar_needs_justification_then_accounting_reviews(harness: Harness) -> None:
     company, employee, emp_h, appr_h, acc_h, advance_id = await _scenario(harness)
     harness.extractor.respond = lambda _r, _n: [invoice(**HOTEL)]
     expense = await _upload(harness, emp_h)
@@ -83,25 +83,30 @@ async def test_minibar_needs_justification_then_approver_reviews(harness: Harnes
     assert confirmed.status_code == 200
 
     assert (await harness.client.post(f"/api/v1/advances/{advance_id}/submit", headers=emp_h)).status_code == 200
-    blocked_close = await harness.client.post(f"/api/v1/advances/{advance_id}/close", headers=appr_h)
+    blocked_close = await harness.client.post(f"/api/v1/advances/{advance_id}/close", headers=acc_h)
     assert blocked_close.status_code == 409  # primero hay que resolver la revisión pendiente
 
     own_review = await harness.client.post(
         f"/api/v1/expenses/{expense['id']}/review", headers=emp_h, json={"decision": "accept_full", "note": "yo"}
     )
     assert own_review.status_code == 403
+    # El jefe aprobó la solicitud, pero los hallazgos de la legalización los decide contabilidad.
+    boss_review = await harness.client.post(
+        f"/api/v1/expenses/{expense['id']}/review", headers=appr_h, json={"decision": "accept_without_blocked"}
+    )
+    assert boss_review.status_code == 403
     no_note = await harness.client.post(
-        f"/api/v1/expenses/{expense['id']}/review", headers=appr_h, json={"decision": "accept_full"}
+        f"/api/v1/expenses/{expense['id']}/review", headers=acc_h, json={"decision": "accept_full"}
     )
     assert no_note.status_code == 409
     reviewed = await harness.client.post(
-        f"/api/v1/expenses/{expense['id']}/review", headers=appr_h, json={"decision": "accept_without_blocked"}
+        f"/api/v1/expenses/{expense['id']}/review", headers=acc_h, json={"decision": "accept_without_blocked"}
     )
     assert reviewed.json()["review_status"] == "accepted_partial" and reviewed.json()["non_reimbursable_amount"] == "28560.00"
 
     detail = (await harness.client.get(f"/api/v1/advances/{advance_id}", headers=emp_h)).json()
     assert Decimal(detail["balance"]["applied"]) == Decimal("642600")  # 671.160 - 28.560
-    assert (await harness.client.post(f"/api/v1/advances/{advance_id}/close", headers=appr_h)).json()["status"] == "closed"
+    assert (await harness.client.post(f"/api/v1/advances/{advance_id}/close", headers=acc_h)).json()["status"] == "closed"
 
     export = await harness.client.get(f"/api/v1/advances/{advance_id}/legalization.xlsx", headers=acc_h)
     assert export.status_code == 200 and "attachment" in export.headers["content-disposition"]
@@ -168,7 +173,7 @@ async def test_accounting_configures_rules_and_concepts(harness: Harness) -> Non
     blocked = await harness.client.post(f"/api/v1/expenses/{expense['id']}/confirm", headers=emp_h, json={"justification": "x"})
     assert blocked.status_code == 409 and blocked.json()["error"]["code"] == "policy_blocked"
     review = await harness.client.post(
-        f"/api/v1/expenses/{expense['id']}/review", headers=appr_h, json={"decision": "accept_full", "note": "Cliente invitó"}
+        f"/api/v1/expenses/{expense['id']}/review", headers=acc_h, json={"decision": "accept_full", "note": "Cliente invitó"}
     )
     assert review.status_code == 200
     assert (
@@ -188,13 +193,13 @@ async def test_reviewer_corrects_a_line_the_ai_missed(harness: Harness) -> None:
     ]
     expense = await _upload(harness, emp_h)
     assert expense["policy_findings"] == []
-    lines = (await harness.client.get(f"/api/v1/expenses/{expense['id']}/lines", headers=appr_h)).json()["data"]
+    lines = (await harness.client.get(f"/api/v1/expenses/{expense['id']}/lines", headers=acc_h)).json()["data"]
     unknown = await harness.client.patch(
-        f"/api/v1/expenses/{expense['id']}/lines/{lines[1]['id']}", headers=appr_h, json={"concept_code": "caviar"}
+        f"/api/v1/expenses/{expense['id']}/lines/{lines[1]['id']}", headers=acc_h, json={"concept_code": "caviar"}
     )
     assert unknown.status_code == 422
     fixed = await harness.client.patch(
-        f"/api/v1/expenses/{expense['id']}/lines/{lines[1]['id']}", headers=appr_h, json={"concept_code": "alcohol"}
+        f"/api/v1/expenses/{expense['id']}/lines/{lines[1]['id']}", headers=acc_h, json={"concept_code": "alcohol"}
     )
     assert fixed.status_code == 200 and fixed.json()["corrected_by"]
     after = (await harness.client.get(f"/api/v1/expenses/{expense['id']}", headers=emp_h)).json()

@@ -17,7 +17,8 @@ class Permission(StrEnum):
     ADVANCES_REQUEST = "advances:request"
     ADVANCES_APPROVE = "advances:approve"
     ADVANCES_CLOSE = "advances:close"
-    ADVANCES_ADMINISTER = "advances:administer"  # anular, reabrir, desembolsar, liquidar, suplencias
+    ADVANCES_ADMINISTER = "advances:administer"  # anular, reabrir, suplencias
+    TREASURY_MANAGE = "treasury:manage"  # desembolsar y liquidar la diferencia (reintegro o reembolso)
     USERS_MANAGE = "users:manage"
     COMPANIES_MANAGE = "companies:manage"
     POLICIES_MANAGE = "policies:manage"
@@ -34,30 +35,41 @@ _EMPLOYEE = {
     Permission.EXPENSES_CREATE,
     Permission.ADVANCES_REQUEST,
 }
+# El jefe aprueba la solicitud; la legalización la revisa y la cierra contabilidad (decisión 8 del negocio).
 _APPROVER = _EMPLOYEE | {
     Permission.EXPENSES_READ_TEAM,
-    Permission.EXPENSES_REVIEW,
     Permission.ADVANCES_APPROVE,
-    Permission.ADVANCES_CLOSE,
 }
 _ACCOUNTANT = _APPROVER | {
     Permission.EXPENSES_READ_COMPANY,
+    Permission.EXPENSES_REVIEW,
+    Permission.ADVANCES_CLOSE,
     Permission.ADVANCES_ADMINISTER,
     Permission.POLICIES_MANAGE,
     Permission.EXAMPLES_MANAGE,
     Permission.REPORTS_EXPORT,
     Permission.USAGE_READ,
 }
-_ADMIN = _ACCOUNTANT | {
-    Permission.USERS_MANAGE,
-    Permission.COMPANIES_MANAGE,
-    Permission.AUDIT_READ,
+# Tesorería ve los anticipos de sus compañías para desembolsar y liquidar; no aprueba ni revisa.
+_TREASURY = _EMPLOYEE | {
+    Permission.EXPENSES_READ_COMPANY,
+    Permission.TREASURY_MANAGE,
 }
+_ADMIN = (
+    _ACCOUNTANT
+    | _TREASURY
+    | {
+        Permission.USERS_MANAGE,
+        Permission.COMPANIES_MANAGE,
+        Permission.AUDIT_READ,
+    }
+)
 
 ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     Role.EMPLOYEE: frozenset(_EMPLOYEE),
     Role.APPROVER: frozenset(_APPROVER),
     Role.ACCOUNTANT: frozenset(_ACCOUNTANT),
+    Role.TREASURY: frozenset(_TREASURY),
     Role.ADMIN: frozenset(_ADMIN),
     Role.SUPERADMIN: frozenset({Permission.SETTINGS_MANAGE, Permission.USAGE_READ, Permission.PLATFORM_COSTS_READ}),
 }

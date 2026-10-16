@@ -19,8 +19,10 @@ export function PanelAcciones({ anticipo }: { anticipo: AnticipoDetalle }) {
   const accion = useAccionAnticipo(anticipo.id);
   const [abierto, setAbierto] = useState<Formulario>(null);
   const propio = usuario?.id === anticipo.employee_id;
-  const decide = !propio && puede(usuario, 'aprobar');
+  const aprueba = !propio && puede(usuario, 'aprobar');
   const contable = puede(usuario, 'contabilidad');
+  const revisa = !propio && contable;
+  const tesoreria = puede(usuario, 'tesoreria');
   const s = anticipo.status;
 
   const botones: React.ReactNode[] = [];
@@ -30,7 +32,7 @@ export function PanelAcciones({ anticipo }: { anticipo: AnticipoDetalle }) {
         Cancelar solicitud
       </Boton>,
     );
-  if (s === 'requested' && decide)
+  if (s === 'requested' && aprueba)
     botones.push(
       <Boton key="aprobar" cargando={accion.isPending} onClick={() => accion.mutate({ tipo: 'aprobar' })}>
         Aprobar
@@ -45,7 +47,7 @@ export function PanelAcciones({ anticipo }: { anticipo: AnticipoDetalle }) {
         Enviar legalización a revisión
       </Boton>,
     );
-  if (s === 'in_review' && decide)
+  if (s === 'in_review' && revisa)
     botones.push(
       <Boton key="cerrar" cargando={accion.isPending} onClick={() => accion.mutate({ tipo: 'cerrar' })}>
         Aprobar legalización
@@ -54,7 +56,7 @@ export function PanelAcciones({ anticipo }: { anticipo: AnticipoDetalle }) {
         Devolver para corregir
       </Boton>,
     );
-  if (s === 'approved' && contable && !anticipo.disbursed_at)
+  if (s === 'approved' && tesoreria && !anticipo.disbursed_at)
     botones.push(
       <Boton key="desembolsar" variante="secundario" onClick={() => setAbierto('desembolsar')}>
         Registrar desembolso
@@ -66,7 +68,7 @@ export function PanelAcciones({ anticipo }: { anticipo: AnticipoDetalle }) {
         Anular
       </Boton>,
     );
-  if (s === 'closed' && contable && (anticipo.settlement_status === 'refund_pending' || anticipo.settlement_status === 'payment_pending'))
+  if (s === 'closed' && tesoreria && (anticipo.settlement_status === 'refund_pending' || anticipo.settlement_status === 'payment_pending'))
     botones.push(
       <Boton key="liquidar" onClick={() => setAbierto('liquidar')}>
         Registrar {anticipo.settlement_status === 'refund_pending' ? 'reintegro' : 'reembolso'}

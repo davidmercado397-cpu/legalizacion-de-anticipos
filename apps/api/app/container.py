@@ -286,7 +286,7 @@ def build_container(settings: Settings, overrides: Overrides | None = None) -> C
     employees.on_created(lambda employee_id: _spawn(tasks, identity.send_welcome(employee_id)))
     notices = StatusNotices(uow, wa_notifier, runtime)
     events.on([AdvanceEventType.REQUESTED], lambda e: _spawn(tasks, approvals.advance_requested(e.advance_id)))
-    events.on([*EMPLOYEE_EVENTS, AdvanceEventType.SUBMITTED], lambda e: _spawn(tasks, notices.handle(e)))
+    events.on(EMPLOYEE_EVENTS, lambda e: _spawn(tasks, notices.handle(e)))
 
     bot = WhatsAppBot(
         uow,

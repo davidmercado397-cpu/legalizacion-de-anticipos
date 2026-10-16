@@ -35,21 +35,20 @@ Canales: **App** (frontend), **WA** (WhatsApp) y **Sistema** (tareas automática
 |---|---|---|---|
 | A1 | Aprobar o rechazar un anticipo de su equipo (también como suplente) | App / WA (plantilla o ✅ Por aprobar) | `POST /advances/{id}/approve`, `POST /advances/{id}/reject` |
 | A2 | Ver los anticipos y gastos de su equipo | App | `GET /advances`, `GET /expenses` |
-| A3 | Revisar un gasto con hallazgos (aceptar sin lo bloqueado, completo con nota, o rechazar) | App | `POST /expenses/{id}/review` |
-| A4 | Ver sugerencias de marcas y devolver la legalización marcando gastos | App | `GET /advances/{id}/return-suggestions`, `POST /advances/{id}/return` |
-| A5 | Aprobar la legalización (cerrar) | App | `POST /advances/{id}/close` |
-| A6 | Corregir el concepto de una línea (enseña al sistema) | App | `PATCH /expenses/{id}/lines/{line_id}` |
-| A7 | Validar o rechazar lo que corrigió su equipo | App | `GET /classification-examples?status=pending`, `POST /classification-examples/{id}/approve\|reject` |
-| A8 | Descargar el Excel de una legalización | App | `GET /advances/{id}/legalization.xlsx` |
+| A3 | Validar o rechazar lo que corrigió su equipo | App | `GET /classification-examples?status=pending`, `POST /classification-examples/{id}/approve\|reject` |
 
-## Contabilidad y tesorería
+El jefe solo aprueba la solicitud; la legalización la revisa y la cierra contabilidad (decisión 8).
+
+## Contabilidad
 
 | # | Caso | Canal | Endpoint |
 |---|---|---|---|
+| C0a | Revisar un gasto con hallazgos (aceptar sin lo bloqueado, completo con nota, o rechazar) | App | `POST /expenses/{id}/review` |
+| C0b | Corregir el concepto de una línea (enseña al sistema) | App | `PATCH /expenses/{id}/lines/{line_id}` |
+| C0c | Ver sugerencias de marcas y devolver la legalización marcando gastos | App | `GET /advances/{id}/return-suggestions`, `POST /advances/{id}/return` |
+| C0d | Aprobar la legalización (cerrar) y descargar su Excel | App | `POST /advances/{id}/close`, `GET /advances/{id}/legalization.xlsx` |
 | C1 | Configurar reglas de política, conceptos bloqueados y categorías | App | `/companies/{id}/policy-rules`, `/blocked-concepts`, `/categories` |
 | C2 | Cargar zonas y tarifas de viaje (también desde Excel) | App | `/companies/{id}/travel-zones`, `/travel-rates`, `POST /travel-rates/import` |
-| C3 | Registrar la entrega del anticipo y ver los pendientes de entregar | App | `POST /advances/{id}/disburse`, `GET /advances?status=approved&disbursed=false` |
-| C4 | Liquidar la diferencia al cerrar (reintegro, nómina o pago) | App | `POST /advances/{id}/settle`, `GET /advances?settlement=pending` |
 | C5 | Anular un anticipo o reabrir una legalización cerrada | App | `POST /advances/{id}/void`, `POST /advances/{id}/reopen` |
 | C6 | Revisar la deducibilidad (desglose por línea, pendientes de revisión, cambiarla) | App | `GET /expenses/{id}/deductibility`, `GET /expenses?deductibility=requires_review`, `POST /expenses/{id}/deductibility` |
 | C7 | Nombrar aprobadores suplentes | App | `GET/POST /employees/{id}/delegations`, `DELETE …/delegations/{id}` |
@@ -57,6 +56,13 @@ Canales: **App** (frontend), **WA** (WhatsApp) y **Sistema** (tareas automática
 | C9 | Tableros y Excel: saldos por legalizar, gasto, presupuesto, facturas a otra compañía | App | `/reports/*?format=xlsx` |
 | C10 | Precisión de la IA (también cuántos documentos se corrigieron antes de confirmar) y uso del mes | App | `GET /companies/{id}/ai-accuracy`, `GET /usage` |
 | C11 | Consultar la tasa de cambio de una fecha | App | `GET /exchange-rates/convert` |
+
+## Tesorería
+
+| # | Caso | Canal | Endpoint |
+|---|---|---|---|
+| T1 | Registrar la entrega del anticipo y ver los pendientes de entregar | App | `POST /advances/{id}/disburse`, `GET /advances?status=approved&disbursed=false` |
+| T2 | Registrar el reintegro del empleado o el reembolso de la empresa | App | `POST /advances/{id}/settle`, `GET /advances?settlement=pending` |
 
 ## Administrador de Forsa
 
@@ -92,4 +98,4 @@ Canales: **App** (frontend), **WA** (WhatsApp) y **Sistema** (tareas automática
 | S12 | Activar lo aprendido de un empleado al cerrarse su legalización | Al cerrar |
 | S13 | Recordar la legalización días después del viaje (plantilla fuera de la ventana de 24 h) | Tarea periódica |
 | S14 | Cerrar la conversación de WhatsApp por inactividad, con un solo recordatorio si quedó algo pendiente | Tarea periódica |
-| S15 | Avisar al empleado cada cambio de su anticipo y al aprobador cada legalización recibida | Al cambiar de estado |
+| S15 | Avisar al empleado cada cambio de su anticipo | Al cambiar de estado |

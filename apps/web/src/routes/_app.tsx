@@ -54,14 +54,14 @@ function Layout() {
                   </Link>
                 )}
                 {puede(usuario, 'contabilidad') && (
-                  <>
-                    <Link to="/contabilidad" className={ENLACE} activeProps={ACTIVO}>
-                      Contabilidad
-                    </Link>
-                    <Link to="/tesoreria" className={ENLACE} activeProps={ACTIVO}>
-                      Tesorería
-                    </Link>
-                  </>
+                  <Link to="/contabilidad" className={ENLACE} activeProps={ACTIVO}>
+                    Contabilidad
+                  </Link>
+                )}
+                {puede(usuario, 'tesoreria') && (
+                  <Link to="/tesoreria" className={ENLACE} activeProps={ACTIVO}>
+                    Tesorería
+                  </Link>
                 )}
                 {puede(usuario, 'administrar') && (
                   <Link to="/administracion" className={ENLACE} activeProps={ACTIVO}>

@@ -11,12 +11,12 @@ import { Boton } from '../../ui/boton';
 import { Campo, Entrada, Seleccion } from '../../ui/campos';
 import { Alerta, Cargando, Insignia, Tarjeta } from '../../ui/superficies';
 
-const ROLES: Rol[] = ['employee', 'approver', 'accountant', 'admin'];
+const ROLES: Rol[] = ['employee', 'approver', 'accountant', 'treasury', 'admin'];
 
 const esquema = z.object({
   full_name: z.string().trim().min(2, 'validation.minLength'),
   email: z.string().trim().email('validation.email'),
-  role: z.enum(['employee', 'approver', 'accountant', 'admin']),
+  role: z.enum(['employee', 'approver', 'accountant', 'treasury', 'admin']),
   company_id: z.string().min(1, 'validation.required'),
   approver_id: z.string(),
   phone: z.string().trim(),

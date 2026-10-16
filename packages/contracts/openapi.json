@@ -6562,6 +6562,7 @@
           "employee",
           "approver",
           "accountant",
+          "treasury",
           "admin",
           "superadmin"
         ],

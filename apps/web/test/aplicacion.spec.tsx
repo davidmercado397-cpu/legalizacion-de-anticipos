@@ -41,9 +41,11 @@ function montar(ui: ReactNode, usuario: Perfil | null, api: Partial<Api> = {}) {
 }
 
 describe('roles', () => {
-  it('cada rol incluye lo del anterior y el operador de la plataforma no maneja anticipos', () => {
+  it('cada paso tiene su rol y el operador de la plataforma no maneja anticipos', () => {
     expect(puede({ role: 'accountant' }, 'aprobar')).toBe(true);
     expect(puede({ role: 'approver' }, 'contabilidad')).toBe(false);
+    expect(puede({ role: 'treasury' }, 'tesoreria')).toBe(true);
+    expect(puede({ role: 'accountant' }, 'tesoreria')).toBe(false);
     expect(puede({ role: 'superadmin' }, 'solicitar')).toBe(false);
   });
 });
@@ -63,9 +65,19 @@ describe('PanelAcciones', () => {
     expect(screen.queryByRole('button', { name: 'Aprobar' })).not.toBeInTheDocument();
   });
 
-  it('a contabilidad le ofrece liquidar el reintegro de una legalización cerrada', () => {
-    montar(<PanelAcciones anticipo={anticipo({ status: 'closed', settlement_status: 'refund_pending' })} />, perfil({ role: 'accountant' }));
+  it('a tesorería le ofrece liquidar el reintegro de una legalización cerrada; a contabilidad no', () => {
+    const cerrada = anticipo({ status: 'closed', settlement_status: 'refund_pending' });
+    montar(<PanelAcciones anticipo={cerrada} />, perfil({ role: 'treasury' }));
     expect(screen.getByRole('button', { name: 'Registrar reintegro' })).toBeInTheDocument();
+  });
+
+  it('la legalización enviada la cierra contabilidad, no el jefe', () => {
+    const enRevision = anticipo({ status: 'in_review' });
+    const { unmount } = montar(<PanelAcciones anticipo={enRevision} />, perfil({ role: 'approver' }));
+    expect(screen.queryByRole('button', { name: 'Aprobar legalización' })).not.toBeInTheDocument();
+    unmount();
+    montar(<PanelAcciones anticipo={enRevision} />, perfil({ id: 'u-conta', role: 'accountant' }));
+    expect(screen.getByRole('button', { name: 'Aprobar legalización' })).toBeInTheDocument();
   });
 });
 

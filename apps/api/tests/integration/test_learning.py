@@ -43,7 +43,9 @@ async def _set_concept(harness: Harness, headers: dict[str, str], expense_id: st
 async def test_a_reviewer_correction_is_remembered_exactly(harness: Harness) -> None:
     _, acc_h, appr_h, emp_h = await _team(harness)
     first = await _read(harness, emp_h, 1, InvoiceLine("Almuerzo", Decimal("30000")), InvoiceLine("POKER x3", Decimal("12000")))
-    await _set_concept(harness, appr_h, first, 2, "alcohol")
+    # Las líneas las decide contabilidad (el jefe solo aprueba la solicitud).
+    assert (await harness.client.get(f"/api/v1/expenses/{first}/lines", headers=appr_h)).status_code == 200
+    await _set_concept(harness, acc_h, first, 2, "alcohol")
 
     # La IA no lo marca, pero la memoria sí: "Poker x6" es el mismo texto normalizado.
     second = await _read(harness, emp_h, 2, InvoiceLine("Poker x6", Decimal("24000")))
@@ -52,11 +54,11 @@ async def test_a_reviewer_correction_is_remembered_exactly(harness: Harness) -> 
     findings = (await harness.client.get(f"/api/v1/expenses/{second}", headers=emp_h)).json()["policy_findings"]
     assert "blocked_concept" in {f["code"] for f in findings}
 
-    # Un negativo: el aprobador dice que el agua está permitida aunque la IA la marque.
+    # Un negativo: contabilidad dice que el agua está permitida aunque la IA la marque.
     third = await _read(
         harness, emp_h, 3, InvoiceLine("Agua Cristal", Decimal("3000"), concept_code="alcohol", concept_confidence=0.7)
     )
-    await _set_concept(harness, appr_h, third, 1, None)
+    await _set_concept(harness, acc_h, third, 1, None)
     fourth = await _read(
         harness, emp_h, 4, InvoiceLine("AGUA CRISTAL", Decimal("3000"), concept_code="alcohol", concept_confidence=0.7)
     )
@@ -99,9 +101,9 @@ async def test_the_employee_cannot_teach_without_validation(harness: Harness) ->
 
 
 async def test_similar_lines_get_only_a_warning(harness: Harness) -> None:
-    _, _, appr_h, emp_h = await _team(harness)
+    _, acc_h, _, emp_h = await _team(harness)
     first = await _read(harness, emp_h, 1, InvoiceLine("Club Colombia Dorada", Decimal("9000")))
-    await _set_concept(harness, appr_h, first, 1, "alcohol")
+    await _set_concept(harness, acc_h, first, 1, "alcohol")
     second = await _read(harness, emp_h, 2, InvoiceLine("Club Colombia Roja", Decimal("9000")))
     line = (await _lines(harness, emp_h, second))[0]
     assert line["final_concept_code"] is None and line["similar_concept_code"] == "alcohol"
@@ -111,9 +113,10 @@ async def test_similar_lines_get_only_a_warning(harness: Harness) -> None:
 
 
 async def test_conflicts_history_deactivation_and_group_scope(harness: Harness) -> None:
-    company, acc_h, appr_h, emp_h = await _team(harness)
+    company, acc_h, _, emp_h = await _team(harness)
+    other_accountant = await harness.add_employee(company, "conta2@forsa.com", Role.ACCOUNTANT)
     first = await _read(harness, emp_h, 1, InvoiceLine("Frigobar", Decimal("15000")))
-    await _set_concept(harness, appr_h, first, 1, "minibar")
+    await _set_concept(harness, await harness.login(other_accountant), first, 1, "minibar")
     second = await _read(harness, emp_h, 2, InvoiceLine("Frigobar", Decimal("15000")))
     await _set_concept(harness, acc_h, second, 1, "alcohol")  # otra persona, otra etiqueta
     example = (await harness.client.get("/api/v1/classification-examples", headers=acc_h, params={"conflicted": True})).json()[
@@ -159,7 +162,7 @@ async def test_vendor_category_is_learned_when_the_legalization_closes(harness: 
 
     await harness.client.post(f"/api/v1/expenses/{second}/discard", headers=emp_h)
     await harness.client.post(f"/api/v1/advances/{advance.json()['id']}/submit", headers=emp_h)
-    await harness.client.post(f"/api/v1/advances/{advance.json()['id']}/close", headers=appr_h)
+    await harness.client.post(f"/api/v1/advances/{advance.json()['id']}/close", headers=acc_h)
     third = await _read(
         harness, emp_h, 3, InvoiceLine("Lavado", Decimal("9000")), vendor_tax_id="900.555.111-3", category="other"
     )

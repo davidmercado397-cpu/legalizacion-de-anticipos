@@ -7,7 +7,7 @@ import { exigir } from '../../lib/roles';
 import { Alerta, Cargando } from '../../ui/superficies';
 
 export const Route = createFileRoute('/_app/tesoreria')({
-  beforeLoad: ({ context }) => exigir(context.sesion, 'contabilidad'),
+  beforeLoad: ({ context }) => exigir(context.sesion, 'tesoreria'),
   component: Tesoreria,
 });
 

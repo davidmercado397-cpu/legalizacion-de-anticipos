@@ -117,7 +117,9 @@ async def test_timeline_cancel_void_and_reopen(harness: Harness) -> None:
     assert with_expenses.json()["error"]["code"] == "advance_has_expenses"
 
     await harness.client.post(f"/api/v1/advances/{advance_id}/submit", headers=emp_h)
-    await harness.client.post(f"/api/v1/advances/{advance_id}/close", headers=appr_h)
+    # La legalización la cierra contabilidad; el jefe solo aprueba la solicitud.
+    assert (await harness.client.post(f"/api/v1/advances/{advance_id}/close", headers=appr_h)).status_code == 403
+    await harness.client.post(f"/api/v1/advances/{advance_id}/close", headers=acc_h)
     no_note = await harness.client.post(f"/api/v1/advances/{advance_id}/reopen", headers=acc_h, json={"note": ""})
     assert no_note.status_code == 422
     reopened = await harness.client.post(
@@ -158,32 +160,42 @@ async def test_void_keeps_unconfirmed_expenses_without_an_advance(harness: Harne
 
 
 async def test_treasury_disburses_and_settles_the_difference(harness: Harness) -> None:
-    _, _, _, emp_h, appr_h, acc_h, advance_id = await _approved(harness)
-    pending = await harness.client.get("/api/v1/advances", headers=acc_h, params={"status": "approved", "disbursed": "false"})
+    company, _, _, emp_h, appr_h, acc_h, advance_id = await _approved(harness)
+    treasurer = await harness.add_employee(company, "tesoreria@forsa.com", Role.TREASURY)
+    tre_h = await harness.login(treasurer)
+    pending = await harness.client.get("/api/v1/advances", headers=tre_h, params={"status": "approved", "disbursed": "false"})
     assert [a["id"] for a in pending.json()["data"]] == [advance_id]
     assert pending.json()["data"][0]["employee_name"]  # los listados dicen de quién es cada anticipo
-    assert (
-        await harness.client.post(f"/api/v1/advances/{advance_id}/disburse", headers=appr_h, json={"method": "cash"})
-    ).status_code == 403
+    # Desembolsa tesorería: ni el jefe ni contabilidad.
+    for headers in (appr_h, acc_h):
+        denied = await harness.client.post(f"/api/v1/advances/{advance_id}/disburse", headers=headers, json={"method": "cash"})
+        assert denied.status_code == 403
     paid = await harness.client.post(
-        f"/api/v1/advances/{advance_id}/disburse", headers=acc_h, json={"method": "transfer", "reference": "TRX-991"}
+        f"/api/v1/advances/{advance_id}/disburse", headers=tre_h, json={"method": "transfer", "reference": "TRX-991"}
     )
     assert paid.json()["disbursement_method"] == "transfer" and paid.json()["disbursed_at"]
-    again = await harness.client.post(f"/api/v1/advances/{advance_id}/disburse", headers=acc_h, json={"method": "cash"})
+    again = await harness.client.post(f"/api/v1/advances/{advance_id}/disburse", headers=tre_h, json={"method": "cash"})
     assert again.json()["error"]["code"] == "advance_already_disbursed"
     balance = (await harness.client.get(f"/api/v1/advances/{advance_id}", headers=emp_h)).json()["balance"]
     assert Decimal(balance["disbursed"]) == Decimal("500000")
 
     await _confirmed_expense(harness, emp_h, total="45000")
     await harness.client.post(f"/api/v1/advances/{advance_id}/submit", headers=emp_h)
-    closed = await harness.client.post(f"/api/v1/advances/{advance_id}/close", headers=appr_h)
+    closed = await harness.client.post(f"/api/v1/advances/{advance_id}/close", headers=acc_h)
     assert closed.json()["settlement_status"] == "refund_pending"
-    to_settle = await harness.client.get("/api/v1/advances", headers=acc_h, params={"settlement": "pending"})
+    # Tesorería no cierra legalizaciones.
+    assert (
+        await harness.client.post(f"/api/v1/advances/{advance_id}/reopen", headers=tre_h, json={"note": "Cerrada por error"})
+    ).status_code == 403
+    to_settle = await harness.client.get("/api/v1/advances", headers=tre_h, params={"settlement": "pending"})
     assert [a["id"] for a in to_settle.json()["data"]] == [advance_id]
-    wrong = await harness.client.post(f"/api/v1/advances/{advance_id}/settle", headers=acc_h, json={"method": "payment"})
+    wrong = await harness.client.post(f"/api/v1/advances/{advance_id}/settle", headers=tre_h, json={"method": "payment"})
     assert wrong.status_code == 409 and "reintegro pendiente" in wrong.json()["error"]["message"]
+    assert (
+        await harness.client.post(f"/api/v1/advances/{advance_id}/settle", headers=acc_h, json={"method": "refund"})
+    ).status_code == 403
     settled = await harness.client.post(
-        f"/api/v1/advances/{advance_id}/settle", headers=acc_h, json={"method": "payroll_deduction", "reference": "Nómina oct"}
+        f"/api/v1/advances/{advance_id}/settle", headers=tre_h, json={"method": "payroll_deduction", "reference": "Nómina oct"}
     )
     assert settled.json()["settlement_status"] == "payroll_deducted"
     late = await harness.client.post(f"/api/v1/advances/{advance_id}/reopen", headers=acc_h, json={"note": "Error"})
@@ -232,7 +244,7 @@ async def test_a_substitute_approves_only_while_the_delegation_lasts(harness: Ha
 
 
 async def test_return_with_marked_expenses_and_suggestions(harness: Harness) -> None:
-    _, _, _, emp_h, appr_h, _, advance_id = await _approved(harness)
+    _, _, _, emp_h, _, acc_h, advance_id = await _approved(harness)
     harness.extractor.respond = lambda _r, _n: [invoice(invoice_date=datetime(2026, 9, 1).date(), invoice_number="POS-OLD")]
     upload = await harness.client.post(
         "/api/v1/expenses", headers=emp_h, files={"file": ("f.jpg", make_jpeg(seed=4), "image/jpeg")}
@@ -243,12 +255,12 @@ async def test_return_with_marked_expenses_and_suggestions(harness: Harness) -> 
     clean = await _confirmed_expense(harness, emp_h, seed=5)
     await harness.client.post(f"/api/v1/advances/{advance_id}/submit", headers=emp_h)
 
-    suggestions = (await harness.client.get(f"/api/v1/advances/{advance_id}/return-suggestions", headers=appr_h)).json()["data"]
+    suggestions = (await harness.client.get(f"/api/v1/advances/{advance_id}/return-suggestions", headers=acc_h)).json()["data"]
     assert [s["expense_id"] for s in suggestions] == [flagged] and "fuera del viaje" in suggestions[0]["note"]
 
     returned = await harness.client.post(
         f"/api/v1/advances/{advance_id}/return",
-        headers=appr_h,
+        headers=acc_h,
         json={"note": "Revisa lo marcado", "items": [{"expense_id": flagged, "note": "¿Por qué antes del viaje?"}]},
     )
     assert returned.json()["status"] == "approved" and returned.json()["returned_at"]

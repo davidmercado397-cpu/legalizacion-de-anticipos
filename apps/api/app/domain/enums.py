@@ -8,7 +8,8 @@ from enum import StrEnum
 class Role(StrEnum):
     EMPLOYEE = "employee"  # pide anticipos y registra gastos
     APPROVER = "approver"  # además aprueba a quienes le reportan
-    ACCOUNTANT = "accountant"  # contabilidad / tesorería: políticas, revisión, exportes
+    ACCOUNTANT = "accountant"  # contabilidad: revisa y cierra legalizaciones, políticas, exportes
+    TREASURY = "treasury"  # tesorería: desembolsos, extractos bancarios, reintegros y reembolsos
     ADMIN = "admin"  # usuarios, compañías y configuración de negocio de Forsa
     # Operador de la plataforma (NextByte): parámetros del sistema y métricas de uso. No pertenece a
     # ninguna compañía ni ve gastos, anticipos o datos personales de Forsa (mínimo privilegio).

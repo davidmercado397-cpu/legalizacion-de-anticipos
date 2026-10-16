@@ -24,7 +24,7 @@ function Contabilidad() {
     <div className="space-y-8">
       <h1 className="text-xl font-bold">Contabilidad</h1>
       <section className="space-y-3">
-        <h2 className="font-semibold text-slate-700">Legalizaciones en revisión</h2>
+        <h2 className="font-semibold text-slate-700">Legalizaciones por revisar</h2>
         {enRevision.isPending ? (
           <Cargando />
         ) : enRevision.isError ? (

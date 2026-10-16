@@ -75,12 +75,10 @@ class OpenBalance:
 
 @dataclass(frozen=True)
 class DecisionQueue:
-    """Lo que espera una decisión de un aprobador: solicitudes de su equipo (o de quien suple) y
-    cuántas legalizaciones tiene en revisión."""
+    """Las solicitudes de su equipo (o de quien suple) que esperan la decisión de un aprobador."""
 
     requested: list[tuple[Advance, Employee]]
     requested_total: int
-    in_review: int
 
 
 class AdvanceEventType(StrEnum):
@@ -244,13 +242,12 @@ class AdvanceService:
                 team.extend(await uow.employees.list_reports_of(approver_id))
             scope = ScopeFilter(employee_ids=list(dict.fromkeys(team)))
             requested = await uow.advances.find(AdvanceFilter(scope=scope, status=AdvanceStatus.REQUESTED), Page(limit, 0))
-            in_review = await uow.advances.find(AdvanceFilter(scope=scope, status=AdvanceStatus.IN_REVIEW), Page(1, 0))
             items = []
             for advance in requested.items:
                 owner = await uow.employees.get(advance.employee_id)
                 if owner is not None:
                     items.append((advance, owner))
-        return DecisionQueue(items, requested.total, in_review.total)
+        return DecisionQueue(items, requested.total)
 
     async def mine(self, actor: Employee, limit: int) -> list[Advance]:
         async with self._uow() as uow:

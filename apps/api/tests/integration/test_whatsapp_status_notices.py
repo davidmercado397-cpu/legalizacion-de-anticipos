@@ -27,6 +27,7 @@ async def test_employee_hears_about_approval_rejection_disbursement_and_void(har
         await conn.execute(sa.text("UPDATE companies SET legal_name = 'Forsa S.A.S.', tax_id = '900123456-7'"))
     company = (await harness.client.get("/api/v1/me", headers=emp_h)).json()["company_ids"][0]
     accountant = await harness.add_employee(await _company(harness, company), "conta@forsa.com", Role.ACCOUNTANT)
+    treasurer = await harness.add_employee(await _company(harness, company), "tesoreria@forsa.com", Role.TREASURY)
     acc_h, appr_h = await harness.login(accountant), await harness.login(await _employee(harness, "ana@forsa.com"))
     await juan.say("hola")  # ventana de 24 h abierta
 
@@ -37,7 +38,9 @@ async def test_employee_hears_about_approval_rejection_disbursement_and_void(har
     assert approved.startswith("✅ Ana Pérez aprobó tu anticipo Cali por $200.000 COP.")
     assert "Pide tus facturas a nombre de *Forsa S.A.S.*, NIT 900123456-7." in approved
 
-    await harness.client.post(f"/api/v1/advances/{first}/disburse", headers=acc_h, json={"method": "cash"})
+    await harness.client.post(
+        f"/api/v1/advances/{first}/disburse", headers=await harness.login(treasurer), json={"method": "cash"}
+    )
     await harness.drain()
     assert juan.last("text").text == "💸 Tesorería te entregó el anticipo Cali ($200.000 COP)."
     await harness.client.post(f"/api/v1/advances/{first}/void", headers=acc_h, json={"note": "Viaje cancelado"})
@@ -55,27 +58,32 @@ async def test_employee_hears_about_approval_rejection_disbursement_and_void(har
     assert template.text == "aviso_gastos" and template.extra["params"] == ["Juan", "Ana Pérez no aprobó tu anticipo Bogotá"]
 
 
-async def test_legalization_round_trip_notifies_both_sides(harness: Harness) -> None:
+async def test_legalization_round_trip_notifies_the_employee(harness: Harness) -> None:
+    """La legalización la revisa contabilidad desde la app: al jefe ya no le llega por WhatsApp."""
     juan, ana, emp_h, advance_id = await _scenario(harness)
-    appr_h = await harness.login(await _employee(harness, "ana@forsa.com"))
+    company = (await harness.client.get("/api/v1/me", headers=emp_h)).json()["company_ids"][0]
+    accountant = await harness.add_employee(await _company(harness, company), "conta@forsa.com", Role.ACCOUNTANT)
+    acc_h = await harness.login(accountant)
     await _configure_flows(harness)
     await ana.say("hola")
+    sent_to_ana = ana.received
     harness.extractor.respond = lambda _r, _n: [invoice(invoice_date=date(2026, 10, 13))]
     await juan.photo(1)
     expense_id = (await harness.client.get("/api/v1/expenses", headers=emp_h)).json()["data"][0]["id"]
     await juan.tap(juan.last("buttons").extra[0].id)  # Está bien
     await juan.tap(f"submit:{advance_id}")
     await juan.tap(juan.last("buttons").extra[0].id)  # Enviar
-    assert ana.last("text").text.startswith("📤 Juan Pérez envió su legalización de Medellín 12/10–15/10: 1 gasto, 0 con alertas")
+    await harness.drain()
+    assert ana.received == sent_to_ana
 
     await harness.client.post(
         f"/api/v1/advances/{advance_id}/return",
-        headers=appr_h,
+        headers=acc_h,
         json={"note": "Falta un soporte", "items": [{"expense_id": expense_id, "note": "Explica el almuerzo"}]},
     )
     await harness.drain()
     returned = juan.last("buttons")
-    assert returned.text.startswith("↩️ Ana Pérez te devolvió la legalización de Medellín 12/10–15/10 para cambios.")
+    assert returned.text.startswith("↩️ Conta Pérez te devolvió la legalización de Medellín 12/10–15/10 para cambios.")
     assert "Motivo: Falta un soporte" in returned.text and "Marcó 1 gasto para revisar." in returned.text
     await juan.tap(returned.extra[0].id)  # Ver marcados
     await juan.tap(juan.last("list").extra[0].id)
@@ -88,12 +96,13 @@ async def test_legalization_round_trip_notifies_both_sides(harness: Harness) -> 
 
     await juan.tap(f"submit:{advance_id}")
     await juan.tap(juan.last("buttons").extra[0].id)
-    assert "corrigió y reenvió la legalización de Medellín 12/10–15/10: 1 corregidos y 0 sin resolver" in ana.last("text").text
+    await harness.drain()
+    assert ana.received == sent_to_ana
 
-    await harness.client.post(f"/api/v1/advances/{advance_id}/close", headers=appr_h)
+    await harness.client.post(f"/api/v1/advances/{advance_id}/close", headers=acc_h)
     await harness.drain()
     assert juan.last("text").text == (
-        "✅ Ana Pérez aprobó tu legalización de Medellín 12/10–15/10.\n"
+        "✅ Conta Pérez aprobó tu legalización de Medellín 12/10–15/10.\n"
         "Te queda por reintegrar $355.000 COP. Tesorería te dirá cómo hacerlo."
     )
 

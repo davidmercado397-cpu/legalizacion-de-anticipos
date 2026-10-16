@@ -11,12 +11,12 @@ export const Route = createFileRoute('/_app/aprobaciones')({
   component: Aprobaciones,
 });
 
+/** El jefe aprueba la solicitud; la legalización la revisa contabilidad. */
 function Aprobaciones() {
   return (
     <div className="space-y-8">
       <h1 className="text-xl font-bold">Aprobaciones</h1>
       <Bandeja titulo="Solicitudes por aprobar" estado="requested" vacio="No hay solicitudes esperando su aprobación" />
-      <Bandeja titulo="Legalizaciones por revisar" estado="in_review" vacio="No hay legalizaciones por revisar" />
     </div>
   );
 }

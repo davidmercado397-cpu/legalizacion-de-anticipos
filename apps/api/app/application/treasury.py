@@ -1,5 +1,6 @@
-"""Tesorería y suplencias: entrega del anticipo, liquidación de la diferencia al cerrar y aprobadores
-suplentes. Lo maneja contabilidad o administración (`advances:administer`)."""
+"""Tesorería y suplencias. La entrega del anticipo y la liquidación de la diferencia las registra
+tesorería (`treasury:manage`); las suplencias de aprobadores, contabilidad o administración
+(`advances:administer`)."""
 
 from __future__ import annotations
 
@@ -90,7 +91,7 @@ class TreasuryService:
             await uow.commit()
 
     async def _advance(self, uow: UnitOfWork, actor: Employee, advance_id: uuid.UUID) -> Advance:
-        self._access.require(actor, Permission.ADVANCES_ADMINISTER)
+        self._access.require(actor, Permission.TREASURY_MANAGE)
         advance = await uow.advances.get(advance_id)
         owner = await uow.employees.get(advance.employee_id) if advance else None
         if advance is None or owner is None:

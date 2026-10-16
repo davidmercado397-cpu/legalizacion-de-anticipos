@@ -45,6 +45,11 @@ class Chat:
     def last(self, kind: str) -> Any:
         return [s for s in self.harness.wa.of_kind(kind) if s.to and s.to.phone == self.phone][-1]
 
+    @property
+    def received(self) -> int:
+        """Cuántos mensajes le ha enviado el bot a este número."""
+        return sum(1 for s in self.harness.wa.sent if s.to and s.to.phone == self.phone)
+
 
 async def _scenario(harness: Harness) -> tuple[Chat, Chat, dict[str, str], str]:
     company = await harness.add_company()

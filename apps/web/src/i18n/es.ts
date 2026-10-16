@@ -12,6 +12,7 @@ export const es: Record<string, string> = {
   'rol.employee': 'Empleado',
   'rol.approver': 'Aprobador',
   'rol.accountant': 'Contabilidad',
+  'rol.treasury': 'Tesorería',
   'rol.admin': 'Administrador',
   'rol.superadmin': 'Operador de la plataforma',
 

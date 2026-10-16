@@ -32,8 +32,11 @@ Contraseña de todos: **`Viaticos2026*`**
 | `ana@empresa.co` | Empleada (viajera) | Solicitar anticipos y registrar facturas |
 | `carlos@empresa.co` | Aprobador, jefe de Ana | Aprobar la solicitud de Ana |
 | `diana@empresa.co` | Aprobadora, jefa de Carlos | Aprobación de segundo nivel |
-| `laura@empresa.co` | Contabilidad | Revisar y cerrar legalizaciones, políticas, reportes |
+| `tomas@empresa.co` | Tesorería | Registrar el desembolso y el reintegro o reembolso |
+| `laura@empresa.co` | Contabilidad | Revisar y cerrar legalizaciones, política de gastos |
 | `andres@empresa.co` | Administrador | Usuarios y compañías |
+
+El jefe solo aprueba la solicitud. Cuando el viajero envía la legalización, la revisa y la cierra contabilidad, y tesorería registra el reintegro o el reembolso de la diferencia.
 
 ### Lectura de facturas con IA (opcional)
 
