@@ -66,6 +66,8 @@ export function EditorGasto({ anticipo, gasto }: { anticipo: AnticipoDetalle; ga
   const usuario = useSesion((s) => s.usuario);
   const propio = usuario?.id === gasto.employee_id;
   const editable = propio && anticipo.status === 'approved' && ['extracted', 'failed', 'confirmed'].includes(gasto.status);
+  // Mientras la IA la lee (o la reintenta) no se edita, pero sí se puede descartar: una foto equivocada no debe esperar.
+  const enLectura = propio && anticipo.status === 'approved' && ['received', 'processing', 'unreadable'].includes(gasto.status);
   const revisa = !propio && puede(usuario, 'contabilidad') && anticipo.status === 'in_review';
 
   return (
@@ -79,6 +81,14 @@ export function EditorGasto({ anticipo, gasto }: { anticipo: AnticipoDetalle; ga
         {gasto.status === 'unreadable' && (
           <Alerta tono="peligro">No se pudo leer la foto. Tómela de nuevo con buena luz y súbala otra vez.</Alerta>
         )}
+        {(gasto.status === 'received' || gasto.status === 'processing') && (
+          <Alerta tono={gasto.last_error ? 'aviso' : 'info'}>
+            {gasto.last_error
+              ? 'La lectura automática falló y se intentará de nuevo. Si sigue fallando, en unos minutos podrá completar los datos a mano.'
+              : 'Estamos leyendo la factura. En unos segundos aparecen los datos para que los revise.'}
+          </Alerta>
+        )}
+        {enLectura && <BotonDescartar gastoId={gasto.id} />}
       </Tarjeta>
       <div className="space-y-4">
         {gasto.return_note && !gasto.return_resolved_at && (
@@ -92,6 +102,18 @@ export function EditorGasto({ anticipo, gasto }: { anticipo: AnticipoDetalle; ga
         {revisa && (gasto.review_status === 'pending' || gasto.status === 'confirmed') && <Revision gasto={gasto} />}
         {!propio && puede(usuario, 'contabilidad') && gasto.status === 'confirmed' && <TarjetaDeducibilidad gasto={gasto} />}
       </div>
+    </div>
+  );
+}
+
+function BotonDescartar({ gastoId }: { gastoId: string }) {
+  const descartar = useDescartarGasto();
+  return (
+    <div className="space-y-2">
+      <Boton variante="secundario" cargando={descartar.isPending} onClick={() => descartar.mutate(gastoId)}>
+        Descartar esta factura
+      </Boton>
+      {descartar.isError && <Alerta tono="peligro">{mensajeDeError(descartar.error)}</Alerta>}
     </div>
   );
 }

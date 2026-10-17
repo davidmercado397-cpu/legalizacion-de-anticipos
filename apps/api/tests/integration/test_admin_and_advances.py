@@ -194,3 +194,43 @@ async def test_without_ai_configured_an_uploaded_invoice_goes_straight_to_manual
     expense = (await harness.client.get(f"/api/v1/expenses/{upload.json()['id']}", headers=headers)).json()
     # Reintentar no sirve: queda para completar a mano, con la foto guardada.
     assert expense["status"] == "failed" and expense["file"] is not None
+
+
+async def test_an_invoice_waiting_for_a_retry_can_be_discarded_and_stays_discarded(harness: Harness) -> None:
+    from datetime import timedelta
+
+    from tests.fakes import make_jpeg
+
+    company = await harness.add_company()
+    employee = await harness.add_employee(company, "juan@forsa.com")
+    headers = await harness.login(employee)
+    harness.extractor.fail_times = 1
+    upload = await harness.client.post("/api/v1/expenses", headers=headers, files={"file": ("f.jpg", make_jpeg(), "image/jpeg")})
+    await harness.drain()
+    expense_id = upload.json()["id"]
+
+    discarded = await harness.client.post(f"/api/v1/expenses/{expense_id}/discard", headers=headers)
+    assert discarded.status_code == 200 and discarded.json()["status"] == "discarded"
+    # El barrido ya no la reintenta.
+    harness.container.sweeper._stale = timedelta(seconds=-1)
+    assert await harness.container.sweeper.run_once() == 0
+
+
+async def test_discarding_while_the_ai_reads_is_not_undone_by_the_reading(harness: Harness) -> None:
+    from tests.fakes import make_jpeg
+
+    company = await harness.add_company()
+    employee = await harness.add_employee(company, "juan@forsa.com")
+    headers = await harness.login(employee)
+    read = harness.extractor.extract
+
+    async def discard_meanwhile(request):  # type: ignore[no-untyped-def]
+        listed = (await harness.client.get("/api/v1/expenses", headers=headers)).json()["data"]
+        await harness.client.post(f"/api/v1/expenses/{listed[0]['id']}/discard", headers=headers)
+        return await read(request)
+
+    harness.extractor.extract = discard_meanwhile  # type: ignore[method-assign]
+    upload = await harness.client.post("/api/v1/expenses", headers=headers, files={"file": ("f.jpg", make_jpeg(), "image/jpeg")})
+    await harness.drain()
+    expense = (await harness.client.get(f"/api/v1/expenses/{upload.json()['id']}", headers=headers)).json()
+    assert expense["status"] == "discarded"

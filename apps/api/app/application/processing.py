@@ -90,8 +90,8 @@ class ExpenseProcessor:
                 with contextlib.suppress(asyncio.CancelledError):
                     await slow_task
         thumbnail_key = await self._save_thumbnail(expense, outcome.thumbnail)
-        await self._save(expense_id, key, mime, sha256, outcome, thumbnail_key)
-        await self._notifier.expense_processed(expense_id)
+        if await self._save(expense_id, key, mime, sha256, outcome, thumbnail_key):
+            await self._notifier.expense_processed(expense_id)
 
     async def _discard_if_own_duplicate(self, expense_id: uuid.UUID, sha256: str, mime: str) -> bool:
         """La misma foto que el empleado ya envió: se descarta antes de pagar otra lectura de la IA."""
@@ -143,7 +143,8 @@ class ExpenseProcessor:
     async def _fail(self, expense_id: uuid.UUID, error: str, final: bool = False) -> None:
         async with self._uow() as uow:
             expense = await uow.expenses.get(expense_id)
-            if expense is None:
+            # Descartado mientras se leía: no vuelve a la cola.
+            if expense is None or expense.status == ExpenseStatus.DISCARDED:
                 return
             expense.register_failure(error, 0 if final else self._max_attempts, self._clock.now())
             await uow.commit()
@@ -152,11 +153,14 @@ class ExpenseProcessor:
 
     async def _save(
         self, expense_id: uuid.UUID, key: str, mime: str, sha256: str, outcome: ReadingOutcome, thumbnail_key: str | None
-    ) -> None:
+    ) -> bool:
+        """Guarda la lectura; False si el gasto se descartó mientras se leía."""
         now = self._clock.now()
         async with self._uow() as uow:
             expense = await uow.expenses.get(expense_id)
             assert expense is not None
+            if expense.status == ExpenseStatus.DISCARDED:
+                return False  # el usuario la descartó mientras la IA la leía: la lectura no la revive
             expense.attach_file(key, mime, sha256)
             expense.thumbnail_key = thumbnail_key or expense.thumbnail_key
             if outcome.unreadable:
@@ -196,6 +200,7 @@ class ExpenseProcessor:
             for number, attempt in enumerate(outcome.attempts, start=previous + 1):
                 await uow.attempts.add(_attempt_row(expense.id, number, attempt, outcome.timings))
             await uow.commit()
+        return True
 
     async def _auto_assign(self, uow: UnitOfWork, employee_id: uuid.UUID, expenses: list[Expense]) -> None:
         """Con un solo anticipo abierto, o con varios si la fecha de la factura cae en uno solo, se asigna

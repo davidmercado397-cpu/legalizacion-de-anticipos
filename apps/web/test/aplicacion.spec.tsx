@@ -3,10 +3,11 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type Api, ApiError, type Perfil } from '@viaticos/client-api';
 import { ClienteProvider, crearSesionStore } from '@viaticos/client-app';
-import type { AnticipoDetalle } from '@viaticos/contracts';
+import type { AnticipoDetalle, GastoDetalle } from '@viaticos/contracts';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { PanelAcciones } from '../src/features/anticipos/panel-acciones';
+import { EditorGasto } from '../src/features/gastos/editor-gasto';
 import { SubirFactura } from '../src/features/gastos/subir-factura';
 import { FormularioLogin } from '../src/features/sesion/formulario-login';
 import { puede } from '../src/lib/roles';
@@ -147,5 +148,37 @@ describe('SubirFactura', () => {
     await userEvent.setup({ applyAccept: false }).upload(screen.getByLabelText('Fotos o PDF de las facturas'), archivo('IMG_0001.HEIC', 'image/heic'));
     expect(await screen.findByText(/guárdela como JPG/)).toBeInTheDocument();
     expect(subir).not.toHaveBeenCalled();
+  });
+});
+
+describe('EditorGasto', () => {
+  const gasto = (cambios: Partial<GastoDetalle>): GastoDetalle =>
+    ({
+      id: 'g1',
+      employee_id: 'u-ana',
+      status: 'received',
+      review_status: 'not_required',
+      policy_findings: [],
+      lines: [],
+      file: null,
+      last_error: null,
+      currency: 'COP',
+      ...cambios,
+    }) as GastoDetalle;
+  const aprobado = anticipo({ status: 'approved' });
+
+  it('la factura que la IA sigue reintentando se puede descartar', async () => {
+    const descartar = vi.fn(async () => ({}));
+    montar(<EditorGasto anticipo={aprobado} gasto={gasto({ last_error: 'OpenRouter answered 404' })} />, perfil({ id: 'u-ana' }), {
+      gastos: { descartar } as unknown as Api['gastos'],
+    });
+    expect(screen.getByText(/La lectura automática falló/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Descartar esta factura' }));
+    expect(descartar).toHaveBeenCalledWith('g1');
+  });
+
+  it('a quien no es el dueño no le ofrece descartar', () => {
+    montar(<EditorGasto anticipo={aprobado} gasto={gasto({})} />, perfil({ id: 'u-jefe' }));
+    expect(screen.queryByRole('button', { name: 'Descartar esta factura' })).not.toBeInTheDocument();
   });
 });
