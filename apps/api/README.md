@@ -334,6 +334,8 @@ con el set de evaluación).
 
 ## Ambientes y despliegue (Coolify)
 
+Paso a paso, puertos y variables: [`docs/despliegue-coolify.md`](../../docs/despliegue-coolify.md) (recurso Docker Compose con `docker-compose.prod.yml`).
+
 El mismo repositorio se despliega dos veces en el mismo VPS:
 
 | | Staging | Producción |

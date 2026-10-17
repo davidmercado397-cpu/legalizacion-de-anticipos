@@ -13,6 +13,8 @@ RUN pnpm install --offline --frozen-lockfile && pnpm --filter @viaticos/web buil
 
 FROM nginx:1.29-alpine AS runtime
 ENV API_UPSTREAM=http://api:8000
+# Origen de las URLs firmadas de las fotos (R2 por defecto); si usa otro almacenamiento S3, póngalo aquí.
+ENV FILES_ORIGIN=https://*.r2.cloudflarestorage.com
 COPY docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/apps/web/dist /usr/share/nginx/html
 EXPOSE 8080
