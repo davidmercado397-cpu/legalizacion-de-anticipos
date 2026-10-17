@@ -62,7 +62,7 @@ El jefe solo aprueba la solicitud; la legalización la revisa y la cierra contab
 | C6 | Revisar la deducibilidad (desglose por línea, pendientes de revisión, cambiarla) | App (Contabilidad → Deducibilidad y cada gasto) | `GET /expenses/{id}/deductibility`, `GET /expenses?deductibility=requires_review`, `POST /expenses/{id}/deductibility` |
 | C7 | Nombrar aprobadores suplentes | App | `GET/POST /employees/{id}/delegations`, `DELETE …/delegations/{id}` |
 | C8 | Gestionar lo aprendido (corregir, compartir con el grupo, desactivar) | App (Contabilidad → Aprendizaje) | `/classification-examples` |
-| C9 | Tableros y Excel: saldos por legalizar, gasto, presupuesto, facturas a otra compañía | App | `/reports/*?format=xlsx` |
+| C9 | Tableros y Excel: saldos por legalizar, gasto, presupuesto, facturas a otra compañía | App (Contabilidad → Reportes) | `/reports/*?format=xlsx` |
 | C10 | Precisión de la IA (también cuántos documentos se corrigieron antes de confirmar) y uso del mes | App | `GET /companies/{id}/ai-accuracy`, `GET /usage` |
 | C11 | Consultar la tasa de cambio de una fecha | App | `GET /exchange-rates/convert` |
 

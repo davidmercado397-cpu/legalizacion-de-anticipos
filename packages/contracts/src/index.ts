@@ -117,3 +117,10 @@ export type HistorialAprendizaje = S['ExampleHistoryOut'];
 export type TipoAprendizaje = S['ExampleKind'];
 export type EstadoAprendizaje = S['ExampleStatus'];
 export type AlcanceAprendizaje = S['ExampleScope'];
+
+/** Tableros de contabilidad (todos tienen su Excel con `?format=xlsx`). */
+export type GastoPorConcepto = S['SpendOut'];
+export type CumplimientoPresupuesto = S['BudgetComplianceOut'];
+export type FacturaOtraCompania = S['IntercompanyOut'];
+export type PrecisionIa = S['AccuracyOut'];
+export type UsoMes = S['UsageOut'];

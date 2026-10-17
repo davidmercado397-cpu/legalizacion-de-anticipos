@@ -5,6 +5,7 @@ import { crearAuthApi, type AuthApi } from './api/auth.api';
 import { crearConciliacionApi, type ConciliacionApi } from './api/conciliacion.api';
 import { crearGastosApi, type GastosApi } from './api/gastos.api';
 import { crearOrganizacionApi, type OrganizacionApi } from './api/organizacion.api';
+import { crearReportesApi, type ReportesApi } from './api/reportes.api';
 import { crearClienteHttp, type OpcionesClienteHttp } from './http';
 
 export { ApiError } from './errores';
@@ -15,6 +16,7 @@ export type { AuthApi, Perfil } from './api/auth.api';
 export type { AccionMovimiento, ArchivoExtracto, ConciliacionApi } from './api/conciliacion.api';
 export type { ArchivoParaSubir, FiltrosGastos, GastosApi } from './api/gastos.api';
 export type { FiltrosEmpleados, OrganizacionApi } from './api/organizacion.api';
+export type { Periodo, Reporte, ReportesApi } from './api/reportes.api';
 
 export interface Api {
   auth: AuthApi;
@@ -22,6 +24,7 @@ export interface Api {
   gastos: GastosApi;
   conciliacion: ConciliacionApi;
   aprendizaje: AprendizajeApi;
+  reportes: ReportesApi;
   organizacion: OrganizacionApi;
 }
 
@@ -33,6 +36,7 @@ export function crearApi(opciones: OpcionesClienteHttp): Api {
     gastos: crearGastosApi(http),
     conciliacion: crearConciliacionApi(http),
     aprendizaje: crearAprendizajeApi(http),
+    reportes: crearReportesApi(http),
     organizacion: crearOrganizacionApi(http),
   };
 }

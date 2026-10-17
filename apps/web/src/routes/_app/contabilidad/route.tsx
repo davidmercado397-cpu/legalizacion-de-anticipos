@@ -27,6 +27,9 @@ function Contabilidad() {
           <Link to="/contabilidad/aprendizaje" className={PESTANA} activeProps={ACTIVA}>
             Aprendizaje
           </Link>
+          <Link to="/contabilidad/reportes" className={PESTANA} activeProps={ACTIVA}>
+            Reportes
+          </Link>
           <Link to="/contabilidad/politica" className={PESTANA} activeProps={ACTIVA}>
             Política de gastos
           </Link>

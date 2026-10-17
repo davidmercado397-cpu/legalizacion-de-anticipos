@@ -17,3 +17,4 @@ export * from './anticipos/conciliacion.queries';
 export * from './organizacion/tarifas.queries';
 export * from './organizacion/usuarios.queries';
 export * from './gastos/aprendizaje.queries';
+export * from './organizacion/reportes.queries';

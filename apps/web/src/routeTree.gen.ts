@@ -23,6 +23,7 @@ import { Route as AppContabilidadIndexRouteImport } from './routes/_app/contabil
 import { Route as AppContabilidadAprendizajeRouteImport } from './routes/_app/contabilidad/aprendizaje'
 import { Route as AppContabilidadDeducibilidadRouteImport } from './routes/_app/contabilidad/deducibilidad'
 import { Route as AppContabilidadPoliticaRouteImport } from './routes/_app/contabilidad/politica'
+import { Route as AppContabilidadReportesRouteImport } from './routes/_app/contabilidad/reportes'
 import { Route as AppContabilidadTarifasRouteImport } from './routes/_app/contabilidad/tarifas'
 import { Route as AppCuentaClaveRouteImport } from './routes/_app/cuenta/clave'
 import { Route as AppCuentaMfaRouteImport } from './routes/_app/cuenta/mfa'
@@ -99,6 +100,11 @@ const AppContabilidadPoliticaRoute = AppContabilidadPoliticaRouteImport.update({
   path: '/politica',
   getParentRoute: () => AppContabilidadRouteRoute,
 } as any)
+const AppContabilidadReportesRoute = AppContabilidadReportesRouteImport.update({
+  id: '/reportes',
+  path: '/reportes',
+  getParentRoute: () => AppContabilidadRouteRoute,
+} as any)
 const AppContabilidadTarifasRoute = AppContabilidadTarifasRouteImport.update({
   id: '/tarifas',
   path: '/tarifas',
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/contabilidad/aprendizaje': typeof AppContabilidadAprendizajeRoute
   '/contabilidad/deducibilidad': typeof AppContabilidadDeducibilidadRoute
   '/contabilidad/politica': typeof AppContabilidadPoliticaRoute
+  '/contabilidad/reportes': typeof AppContabilidadReportesRoute
   '/contabilidad/tarifas': typeof AppContabilidadTarifasRoute
   '/cuenta/clave': typeof AppCuentaClaveRoute
   '/cuenta/mfa': typeof AppCuentaMfaRoute
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/contabilidad/aprendizaje': typeof AppContabilidadAprendizajeRoute
   '/contabilidad/deducibilidad': typeof AppContabilidadDeducibilidadRoute
   '/contabilidad/politica': typeof AppContabilidadPoliticaRoute
+  '/contabilidad/reportes': typeof AppContabilidadReportesRoute
   '/contabilidad/tarifas': typeof AppContabilidadTarifasRoute
   '/cuenta/clave': typeof AppCuentaClaveRoute
   '/cuenta/mfa': typeof AppCuentaMfaRoute
@@ -171,6 +179,7 @@ export interface FileRoutesById {
   '/_app/contabilidad/aprendizaje': typeof AppContabilidadAprendizajeRoute
   '/_app/contabilidad/deducibilidad': typeof AppContabilidadDeducibilidadRoute
   '/_app/contabilidad/politica': typeof AppContabilidadPoliticaRoute
+  '/_app/contabilidad/reportes': typeof AppContabilidadReportesRoute
   '/_app/contabilidad/tarifas': typeof AppContabilidadTarifasRoute
   '/_app/cuenta/clave': typeof AppCuentaClaveRoute
   '/_app/cuenta/mfa': typeof AppCuentaMfaRoute
@@ -192,6 +201,7 @@ export interface FileRouteTypes {
     | '/contabilidad/aprendizaje'
     | '/contabilidad/deducibilidad'
     | '/contabilidad/politica'
+    | '/contabilidad/reportes'
     | '/contabilidad/tarifas'
     | '/cuenta/clave'
     | '/cuenta/mfa'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/contabilidad/aprendizaje'
     | '/contabilidad/deducibilidad'
     | '/contabilidad/politica'
+    | '/contabilidad/reportes'
     | '/contabilidad/tarifas'
     | '/cuenta/clave'
     | '/cuenta/mfa'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/_app/contabilidad/aprendizaje'
     | '/_app/contabilidad/deducibilidad'
     | '/_app/contabilidad/politica'
+    | '/_app/contabilidad/reportes'
     | '/_app/contabilidad/tarifas'
     | '/_app/cuenta/clave'
     | '/_app/cuenta/mfa'
@@ -344,6 +356,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppContabilidadPoliticaRouteImport
       parentRoute: typeof AppContabilidadRouteRoute
     }
+    '/_app/contabilidad/reportes': {
+      id: '/_app/contabilidad/reportes'
+      path: '/reportes'
+      fullPath: '/contabilidad/reportes'
+      preLoaderRoute: typeof AppContabilidadReportesRouteImport
+      parentRoute: typeof AppContabilidadRouteRoute
+    }
     '/_app/contabilidad/tarifas': {
       id: '/_app/contabilidad/tarifas'
       path: '/tarifas'
@@ -379,6 +398,7 @@ interface AppContabilidadRouteRouteChildren {
   AppContabilidadAprendizajeRoute: typeof AppContabilidadAprendizajeRoute
   AppContabilidadDeducibilidadRoute: typeof AppContabilidadDeducibilidadRoute
   AppContabilidadPoliticaRoute: typeof AppContabilidadPoliticaRoute
+  AppContabilidadReportesRoute: typeof AppContabilidadReportesRoute
   AppContabilidadTarifasRoute: typeof AppContabilidadTarifasRoute
   AppContabilidadIndexRoute: typeof AppContabilidadIndexRoute
 }
@@ -387,6 +407,7 @@ const AppContabilidadRouteRouteChildren: AppContabilidadRouteRouteChildren = {
   AppContabilidadAprendizajeRoute: AppContabilidadAprendizajeRoute,
   AppContabilidadDeducibilidadRoute: AppContabilidadDeducibilidadRoute,
   AppContabilidadPoliticaRoute: AppContabilidadPoliticaRoute,
+  AppContabilidadReportesRoute: AppContabilidadReportesRoute,
   AppContabilidadTarifasRoute: AppContabilidadTarifasRoute,
   AppContabilidadIndexRoute: AppContabilidadIndexRoute,
 }
