@@ -105,6 +105,16 @@ def _retryable(exc: BaseException) -> bool:
     return isinstance(exc, httpx.HTTPStatusError) and (exc.response.status_code == 429 or exc.response.status_code >= 500)
 
 
+def provider_reason(response: httpx.Response) -> str:
+    """El motivo que da OpenRouter (clave inválida, sin créditos, modelo inexistente…): sin él el log no dice qué arreglar."""
+    try:
+        error = response.json().get("error")
+    except ValueError:
+        return response.text[:300]
+    message = error.get("message") if isinstance(error, dict) else error
+    return str(message or response.text)[:300]
+
+
 class _OpenRouter:
     """Cliente común: chat completions con reintentos cortos y prompts versionados en disco."""
 
@@ -151,7 +161,10 @@ class _OpenRouter:
         try:
             data = await self._post(payload)
         except httpx.HTTPStatusError as exc:
-            raise ExternalServiceError(f"OpenRouter answered {exc.response.status_code}", code="ai_unavailable") from exc
+            status = exc.response.status_code
+            raise ExternalServiceError(
+                f"OpenRouter answered {status}: {provider_reason(exc.response)}", code="ai_unavailable"
+            ) from exc
         except httpx.HTTPError as exc:
             raise ExternalServiceError(f"OpenRouter unreachable ({type(exc).__name__})", code="ai_unavailable") from exc
         latency = int((time.perf_counter() - started) * 1000)

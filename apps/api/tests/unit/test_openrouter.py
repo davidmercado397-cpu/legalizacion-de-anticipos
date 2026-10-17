@@ -137,7 +137,18 @@ async def test_invalid_json_and_provider_errors_raise() -> None:
             await _extractor(client).extract(_request())
     respx.post(URL).mock(return_value=httpx.Response(401, json={"error": "bad key"}))
     async with httpx.AsyncClient() as client:
-        with pytest.raises(ExternalServiceError):
+        with pytest.raises(ExternalServiceError, match="401: bad key"):
+            await _extractor(client).extract(_request())
+    # El log dice qué arreglar: el motivo que da OpenRouter va en el error.
+    respx.post(URL).mock(
+        return_value=httpx.Response(400, json={"error": {"code": 400, "message": "x/y is not a valid model ID"}})
+    )
+    async with httpx.AsyncClient() as client:
+        with pytest.raises(ExternalServiceError, match="400: x/y is not a valid model ID"):
+            await _extractor(client).extract(_request())
+    respx.post(URL).mock(return_value=httpx.Response(502, text="Bad gateway"))
+    async with httpx.AsyncClient() as client:
+        with pytest.raises(ExternalServiceError, match="502: Bad gateway"):
             await _extractor(client).extract(_request())
 
 

@@ -45,7 +45,15 @@ El valor sugerido del anticipo sale de las tarifas de *Contabilidad → Tarifas 
 
 ### Lectura de facturas con IA (opcional)
 
-Ponga su clave de [OpenRouter](https://openrouter.ai) en `.env` (`OPENROUTER_API_KEY=...`) y reinicie. Sin clave, la API responde que la lectura no está configurada y los datos se digitan a mano.
+Ponga su clave de [OpenRouter](https://openrouter.ai) en el `.env` de la carpeta donde está `docker-compose.yml` (`OPENROUTER_API_KEY=sk-or-...`, sin comillas) y **recree** la API: `docker compose up -d api`, o detenga con Ctrl+C y vuelva a correr `docker compose up --build --watch`. `docker compose restart` no relee el `.env`. Sin clave, la API responde que la lectura no está configurada y los datos se digitan a mano.
+
+Para saber si quedó bien:
+
+```bash
+docker compose exec api python -m scripts.check_ai
+```
+
+Revisa la clave, los créditos, que los modelos de *Plataforma → Configuración* existan en OpenRouter, y hace una lectura mínima con cada uno; si algo falla, dice qué y cómo arreglarlo. Las facturas que se subieron antes de conectar la IA quedan para completar a mano: suba una nueva para probar.
 
 ## 3. Qué se levanta
 
@@ -91,4 +99,5 @@ pnpm install && pnpm typecheck && pnpm test
 | Quiero datos limpios | `docker compose down -v` |
 | La base no arranca: *there appears to be PostgreSQL data in /var/lib/postgresql* | Quedó un volumen de una versión anterior: `docker compose down -v` y vuelva a arrancar |
 | *Demasiados intentos* al iniciar sesión | El límite es de 30 por minuto en desarrollo; espere un minuto |
+| La IA no lee las facturas (quedan en *Complete los datos a mano*) | `docker compose exec api python -m scripts.check_ai` dice la causa; el motivo de cada falla también sale en `docker compose logs api` (*processing failed*) |
 | Avisos de *Exchange rate source failed* en el log | El equipo no tiene salida a internet: las tasas oficiales no se descargan, el resto funciona |
