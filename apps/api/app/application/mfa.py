@@ -44,12 +44,17 @@ class MfaService:
         self._recovery_codes = recovery_codes
 
     async def setup(self, actor: Employee) -> MfaSetup:
-        secret = self._totp.new_secret()
+        """Mientras no se active, repetir la configuración devuelve la misma semilla: una recarga de la página o
+        una petición doble no deja inservible el QR que ya se escaneó."""
         async with self._uow() as uow:
             employee = await self._load_self(uow, actor)
-            employee.start_mfa_setup(self._cipher.encrypt(secret))
-            await uow.audit.add(AuditEntry("mfa_setup_started", "employee", str(employee.id), employee.id))
-            await uow.commit()
+            if employee.mfa_secret is not None and not employee.mfa_enabled:
+                secret = self._cipher.decrypt(employee.mfa_secret)
+            else:
+                secret = self._totp.new_secret()
+                employee.start_mfa_setup(self._cipher.encrypt(secret))
+                await uow.audit.add(AuditEntry("mfa_setup_started", "employee", str(employee.id), employee.id))
+                await uow.commit()
         return MfaSetup(secret, self._totp.provisioning_uri(secret, actor.email))
 
     async def enable(self, actor: Employee, code: str) -> list[str]:

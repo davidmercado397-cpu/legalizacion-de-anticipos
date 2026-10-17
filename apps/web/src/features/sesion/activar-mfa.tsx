@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useActivarMfa, useContextoSesion, useIniciarMfa } from '@viaticos/client-app';
 import QRCode from 'qrcode';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { mensajeDeError } from '../../lib/errores';
@@ -24,7 +24,13 @@ export function ActivarMfa({ alTerminar }: { alTerminar: () => void }) {
   const { register, handleSubmit, formState } = useForm({ resolver: zodResolver(esquema) });
 
   const { mutate: generar, data: configuracion } = iniciar;
-  useEffect(() => generar(), [generar]);
+  // Una sola vez por pantalla: en desarrollo React monta dos veces y no debe pedir dos semillas.
+  const pedida = useRef(false);
+  useEffect(() => {
+    if (pedida.current) return;
+    pedida.current = true;
+    generar();
+  }, [generar]);
   useEffect(() => {
     if (configuracion) void QRCode.toDataURL(configuracion.provisioning_uri, { margin: 1, width: 220 }).then(setQr);
   }, [configuracion]);

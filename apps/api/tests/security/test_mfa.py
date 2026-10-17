@@ -108,3 +108,18 @@ async def test_an_admin_resets_someone_elses_mfa_but_not_their_own(harness: Harn
     assert (await harness.client.post(f"/api/v1/employees/{accountant.id}/mfa/reset", headers=admin_h)).status_code == 204
     after = await _login(harness, accountant.email)
     assert after["mfa_required"] is False and after["access_token"]  # deberá activarlo de nuevo
+
+
+@pytest.mark.parametrize("settings_overrides", [MFA_ON])
+async def test_repeating_the_setup_keeps_the_scanned_secret(harness: Harness, settings_overrides: dict[str, Any]) -> None:
+    """La página puede pedir la configuración dos veces (recarga o doble render): el QR ya escaneado sigue sirviendo."""
+    company = await harness.add_company()
+    admin = await harness.add_employee(company, "admin@forsa.com", Role.ADMIN)
+    headers = await harness.login(admin)
+    first = (await harness.client.post("/api/v1/me/mfa/setup", headers=headers)).json()
+    second = (await harness.client.post("/api/v1/me/mfa/setup", headers=headers)).json()
+    assert first["secret"] == second["secret"]
+    enabled = await harness.client.post(
+        "/api/v1/me/mfa/enable", headers=headers, json={"code": pyotp.TOTP(first["secret"]).now()}
+    )
+    assert enabled.status_code == 200, enabled.text
