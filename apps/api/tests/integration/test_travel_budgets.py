@@ -8,6 +8,7 @@ from openpyxl import Workbook
 
 from app.domain.entities import ExchangeRate
 from app.domain.enums import ExchangeRateSource, Role, StaffType
+from app.domain.time import local_date
 from tests.conftest import Harness
 
 HEADER = ["Zona", "Tipo_personal", "Categoria", "Valor", "Moneda", "Unidad", "Desde", "Hasta"]
@@ -198,7 +199,7 @@ async def test_a_trip_with_two_destinations_in_two_currencies_goes_in_dollars(ha
         assert (
             await harness.client.post(f"/api/v1/companies/{company.id}/travel-rates", headers=acc_h, json=rate)
         ).status_code == 201
-    today = harness.container.clock.now().date()
+    today = local_date(harness.container.clock.now(), company.timezone)  # la fecha de la compañía, no la UTC
     async with harness.container.uow() as uow:
         await uow.exchange_rates.upsert([ExchangeRate(today, "USD", "COP", Decimal("4000"), ExchangeRateSource.TRM)])
         await uow.commit()

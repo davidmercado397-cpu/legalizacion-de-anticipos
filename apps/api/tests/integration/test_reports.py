@@ -8,6 +8,7 @@ import sqlalchemy as sa
 from openpyxl import load_workbook
 
 from app.domain.enums import DocumentType, Role, StaffType
+from app.domain.time import local_date
 from tests.conftest import Harness
 from tests.fakes import invoice, make_jpeg
 
@@ -31,7 +32,7 @@ async def _scenario(harness: Harness):  # type: ignore[no-untyped-def]
     approver = await harness.add_employee(company, "ana@forsa.com", Role.APPROVER)
     employee = await harness.add_employee(company, "juan@forsa.com", approver=approver, staff_type=StaffType.OPERATIONAL)
     acc_h, appr_h, emp_h = await harness.login(accountant), await harness.login(approver), await harness.login(employee)
-    today = harness.container.clock.now().date()
+    today = local_date(harness.container.clock.now(), company.timezone)  # la fecha de la compañía, no la UTC
     created = await harness.client.post(
         "/api/v1/advances",
         headers=emp_h,
