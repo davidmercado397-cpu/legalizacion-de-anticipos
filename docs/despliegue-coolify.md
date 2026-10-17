@@ -22,14 +22,20 @@ No publique la API, la base ni Redis. Para entrar a la base use la terminal de C
 
 ## 3. Variables
 
-### Obligatorias
+### Obligatorias (con solo estas tres la aplicación levanta)
 
 | Variable | Valor |
 |---|---|
-| `APP_URL` | URL pública de la web, con `https://` y sin `/` final: `https://viaticos.empresa.co` |
 | `POSTGRES_PASSWORD` | Contraseña larga y aleatoria de la base (no la cambie después del primer despliegue: el volumen ya la tiene) |
 | `JWT_SECRET` | 48+ caracteres aleatorios: `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
 | `MFA_ENCRYPTION_KEY` | Llave Fernet: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. **Guárdela**: si se pierde, todos deben volver a activar la verificación en dos pasos |
+
+### Para subir facturas (Cloudflare R2)
+
+Sin ellas la aplicación funciona, pero subir una factura responde que el almacenamiento no está configurado.
+
+| Variable | Valor |
+|---|---|
 | `R2_ENDPOINT_URL` | `https://<account-id>.r2.cloudflarestorage.com` |
 | `R2_BUCKET` | Nombre del bucket de R2 (privado) |
 | `R2_ACCESS_KEY_ID` | Token de R2 con permiso de lectura y escritura sobre el bucket |
@@ -49,6 +55,7 @@ No publique la API, la base ni Redis. Para entrar a la base use la terminal de C
 
 | Variable | Por defecto | Para qué |
 |---|---|---|
+| `APP_URL` | vacío | URL pública de la web; solo hace falta si otro dominio llama a la API (CORS) |
 | `MFA_REQUIRED_ROLES` | `admin,accountant,treasury,superadmin` | Roles que deben activar la verificación en dos pasos |
 | `WEB_CONCURRENCY` | `2` | Procesos de la API (uno por núcleo, aprox.) |
 | `LOG_LEVEL` | `INFO` | Detalle del log |

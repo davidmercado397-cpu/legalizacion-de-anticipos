@@ -2,7 +2,8 @@
 #
 # Solo la web se publica: en Coolify se le asigna el dominio apuntando al puerto 8080. La API, la base y Redis
 # quedan en la red interna; nginx reenvía /api y /webhooks a la API. Los archivos van a Cloudflare R2.
-# Las variables con «:?» son obligatorias: Coolify las muestra en Environment Variables para llenarlas.
+# Las variables con «:?» son las únicas obligatorias (POSTGRES_PASSWORD, JWT_SECRET, MFA_ENCRYPTION_KEY); Coolify
+# las muestra en Environment Variables para llenarlas.
 
 services:
   web:
@@ -26,7 +27,8 @@ services:
       APP_ENV: production
       ENABLE_DOCS: "false"
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      CORS_ORIGINS: ${APP_URL:?la URL pública de la web, p. ej. https://viaticos.empresa.co}
+      # La web y la API comparten dominio (nginx), así que CORS solo hace falta si otro origen llama a la API.
+      CORS_ORIGINS: ${APP_URL:-}
       DATABASE_URL: postgresql+asyncpg://gastos:${POSTGRES_PASSWORD:?}@db:5432/gastos
       MIGRATION_DATABASE_URL: ${MIGRATION_DATABASE_URL:-}
       REDIS_URL: redis://redis:6379/0
@@ -34,10 +36,11 @@ services:
       JWT_SECRET: ${JWT_SECRET:?}
       MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?}
       MFA_REQUIRED_ROLES: ${MFA_REQUIRED_ROLES:-admin,accountant,treasury,superadmin}
-      R2_ENDPOINT_URL: ${R2_ENDPOINT_URL:?}
-      R2_BUCKET: ${R2_BUCKET:?}
-      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:?}
-      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:?}
+      # Sin R2 la app arranca, pero subir facturas responde que el almacenamiento no está configurado.
+      R2_ENDPOINT_URL: ${R2_ENDPOINT_URL:-}
+      R2_BUCKET: ${R2_BUCKET:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
       WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
