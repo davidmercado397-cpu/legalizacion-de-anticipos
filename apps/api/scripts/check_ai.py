@@ -9,6 +9,7 @@ las mismas restricciones de proveedor que la lectura real (retención cero, sin 
 from __future__ import annotations
 
 import asyncio
+import difflib
 from typing import Any
 
 import httpx
@@ -44,6 +45,17 @@ def _key_problem(key: str) -> str | None:
             "sirven aquí: la API habla solo con OpenRouter."
         )
     return None
+
+
+def similar_models(model: str, catalog: list[dict[str, Any]]) -> list[str]:
+    """Modelos del mismo proveedor que sí existen y leen imágenes y PDF, los más parecidos primero."""
+    provider = model.split("/")[0] + "/"
+    readers = [
+        m["id"]
+        for m in catalog
+        if m["id"].startswith(provider) and {"image", "file"} <= set(m.get("architecture", {}).get("input_modalities", []))
+    ]
+    return difflib.get_close_matches(model, readers, n=3, cutoff=0.4)
 
 
 def _failure(response: httpx.Response) -> str:
@@ -95,7 +107,8 @@ async def main() -> int:
             + (f"; le quedan USD {remaining}" if remaining is not None else "")
         )
 
-        available = {m["id"] for m in (await http.get(f"{base}/models")).json().get("data", [])}
+        catalog = (await http.get(f"{base}/models")).json().get("data", [])
+        available = {m["id"] for m in catalog}
         settings_keys = {
             "ai.primary_model": config.primary_model,
             "ai.lite_model": config.lite_model,
@@ -108,6 +121,8 @@ async def main() -> int:
                 failures += 1
                 print(f"✗ {setting} = {model}: ese modelo no existe en OpenRouter.")
                 print("    → Cámbielo como superadmin en Plataforma → Configuración (vea los nombres en openrouter.ai/models).")
+                if similar := similar_models(model, catalog):
+                    print(f"    → Parecidos que sí existen y leen imágenes y PDF: {', '.join(similar)}")
         for model in dict.fromkeys(m for m in settings_keys.values() if m in available):
             if problem := await _try_model(http, base, headers, model, config.extraction.zero_data_retention):
                 failures += 1

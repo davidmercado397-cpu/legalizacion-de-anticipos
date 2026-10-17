@@ -99,7 +99,8 @@ async def test_reports_unreachable_openrouter(setup, capsys) -> None:  # type: i
 async def test_reports_missing_models_and_providers_that_refuse(setup, capsys) -> None:  # type: ignore[no-untyped-def]
     setup()
     respx.get(f"{BASE}/key").mock(return_value=httpx.Response(200, json={"data": {"label": "dev"}}))
-    models = [{"id": m} for m in ("google/main", "backup/model")]
+    vision = {"input_modalities": ["text", "image", "file"]}
+    models = [{"id": "google/main", "architecture": vision}, {"id": "google/lite-text"}, {"id": "backup/model"}]
     respx.get(f"{BASE}/models").mock(return_value=httpx.Response(200, json={"data": models}))
     refused = {"error": {"message": "No endpoints found matching your data policy"}}
     respx.post(f"{BASE}/chat/completions").mock(
@@ -108,7 +109,18 @@ async def test_reports_missing_models_and_providers_that_refuse(setup, capsys) -
     assert await check_ai.main() == 1
     out = capsys.readouterr().out
     assert "ai.lite_model = google/lite: ese modelo no existe" in out
+    assert "Parecidos que sí existen y leen imágenes y PDF: google/main" in out
     assert "No endpoints found matching your data policy" in out
     assert "retención cero" in out
     assert "no tiene créditos" in out
     assert "3 problema(s)" in out
+
+
+def test_suggests_only_models_of_the_same_provider_that_read_images_and_pdf() -> None:
+    vision = {"input_modalities": ["text", "image", "file"]}
+    catalog = [
+        {"id": "google/gemini-flash", "architecture": vision},
+        {"id": "google/gemini-flash-text", "architecture": {"input_modalities": ["text"]}},
+        {"id": "other/gemini-flash", "architecture": vision},
+    ]
+    assert check_ai.similar_models("google/gemini-flsh", catalog) == ["google/gemini-flash"]
