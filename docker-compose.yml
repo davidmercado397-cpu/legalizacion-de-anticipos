@@ -18,7 +18,8 @@ services:
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
-      - db-data:/var/lib/postgresql
+      # Nombre propio de PostgreSQL 18: un volumen de una versión anterior del proyecto no se reutiliza.
+      - postgres18-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U gastos"]
       interval: 5s
@@ -141,5 +142,5 @@ configs:
                        "actions": ["Admin", "Read", "Write", "List", "Tagging"]}]}
 
 volumes:
-  db-data:
+  postgres18-data:
   s3-data:
