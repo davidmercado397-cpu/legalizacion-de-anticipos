@@ -81,6 +81,14 @@ python -m scripts.check_ai      # si configuró OPENROUTER_API_KEY
 
 Cada comando pide la contraseña (mínimo 10 caracteres, sin el correo dentro). Al entrar, el admin y el superadmin activan la verificación en dos pasos. Los datos de prueba de desarrollo (`seed_dev`) no corren en producción.
 
+**Para probar con los mismos usuarios del entorno local** (Andrés, Diana, Carlos, Ana, Óscar, Laura, Tomás, Gabriela y `soporte@nextbyte.co`), la compañía «Empresa Principal» y las tarifas de viaje por país, en lugar de los dos primeros comandos:
+
+```bash
+python -m scripts.seed_users
+```
+
+Pide una contraseña para todos (no acepta `Viaticos2026*`, que está publicada en el repositorio) y cada usuario la cambia en su primer ingreso. Si se corre otra vez, solo agrega lo que falte.
+
 ## 6. Antes de usarlo con datos reales
 
 - **Respaldos:** programe el respaldo diario de la base (desde Coolify si su versión lo ofrece para el servicio `db`, o con `apps/api/scripts/backup_db.sh`) y pruebe restaurar uno (`apps/api/scripts/restore_drill.sh`).

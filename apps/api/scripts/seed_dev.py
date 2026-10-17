@@ -26,6 +26,17 @@ PASSWORD = "Viaticos2026*"  # gitleaks:allow (solo desarrollo local)
 ADMIN_EMAIL = "andres@empresa.co"
 OPERATOR_EMAIL = "soporte@nextbyte.co"  # superadmin de la plataforma: no pertenece a ninguna compañía
 OPERATIONAL_EMAIL = "oscar@empresa.co"  # personal operativo: su tarifa es distinta a la del administrativo
+SEED_EMAILS = (
+    ADMIN_EMAIL,
+    OPERATOR_EMAIL,
+    "diana@empresa.co",
+    "carlos@empresa.co",
+    "ana@empresa.co",
+    "laura@empresa.co",
+    "tomas@empresa.co",
+    "gabriela@empresa.co",
+    OPERATIONAL_EMAIL,
+)
 
 # Zona -> (lugares, moneda, {categoría: (unidad, administrativo, operativo)}). Colombia en pesos; el exterior en
 # dólares, así un viaje que mezcla Colombia y el exterior va en USD (decisión 4.8).
@@ -77,27 +88,27 @@ TRAVEL_ZONES: dict[str, tuple[list[str], str, dict[str, tuple[BudgetUnit, str, s
 }
 
 
-async def seed() -> None:
-    settings = get_settings()
-    if settings.is_production:
-        raise SystemExit("seed_dev no corre en producción")
-    container = build_container(settings)
+async def seed(password: str = PASSWORD, must_change_password: bool = False) -> None:
+    """Crea la compañía, los usuarios y las tarifas; en una base que ya los tiene, agrega lo que falte.
+    `must_change_password`: cada usuario cambia la contraseña en su primer ingreso (servidores; ver seed_users)."""
+    container = build_container(get_settings())
     try:
         async with container.uow() as uow:
             existing = await uow.employees.get_by_email(ADMIN_EMAIL)
         if existing is not None:
-            await _complete(container, existing)
+            await _complete(container, existing, password, must_change_password)
             return
         async with container.uow() as uow:
             admin = Employee(
                 full_name="Andrés Administrador",
                 email=ADMIN_EMAIL,
                 role=Role.ADMIN,
-                password_hash=Argon2PasswordHasher().hash(PASSWORD),
+                password_hash=Argon2PasswordHasher().hash(password),
+                must_change_password=must_change_password,
             )
             await uow.employees.add(admin)
             # La API no crea superadmins (nadie se puede dar ese rol); en desarrollo va directo a la base.
-            await uow.employees.add(_operator())
+            await uow.employees.add(_operator(password, must_change_password))
             await uow.commit()
 
         company = await container.companies.create(
@@ -119,7 +130,7 @@ async def seed() -> None:
                 role=role,
                 company_ids=[company.id],
                 approver_id=approver.id if approver else None,
-                password=PASSWORD,
+                password=password,
                 staff_type=staff,
             )
             employee = (await container.employees.create(admin, data)).employee
@@ -139,24 +150,25 @@ async def seed() -> None:
             for employee_id in (e.id for e in created):
                 stored = await uow.employees.get(employee_id)
                 assert stored is not None
-                stored.must_change_password = False
+                stored.must_change_password = must_change_password
             await uow.commit()
         await _travel_rates(container, admin, company.id)
-        print(f"Datos de desarrollo creados. Contraseña de todos: {PASSWORD}")
+        print(f"Usuarios creados: {', '.join(SEED_EMAILS)}")
     finally:
         await container.close()
 
 
-def _operator() -> Employee:
+def _operator(password: str, must_change_password: bool) -> Employee:
     return Employee(
         full_name="Soporte NextByte",
         email=OPERATOR_EMAIL,
         role=Role.SUPERADMIN,
-        password_hash=Argon2PasswordHasher().hash(PASSWORD),
+        password_hash=Argon2PasswordHasher().hash(password),
+        must_change_password=must_change_password,
     )
 
 
-async def _complete(container: Container, admin: Employee) -> None:
+async def _complete(container: Container, admin: Employee, password: str, must_change_password: bool) -> None:
     """Base creada con una versión anterior de este script: agrega lo que le falte."""
     company_id = admin.company_ids[0]
     added = await _travel_rates(container, admin, company_id)
@@ -164,7 +176,7 @@ async def _complete(container: Container, admin: Employee) -> None:
         missing_operational = await uow.employees.get_by_email(OPERATIONAL_EMAIL) is None
         boss = await uow.employees.get_by_email("carlos@empresa.co")
         if await uow.employees.get_by_email(OPERATOR_EMAIL) is None:
-            await uow.employees.add(_operator())
+            await uow.employees.add(_operator(password, must_change_password))
             await uow.commit()
             added = True
     if missing_operational:
@@ -174,19 +186,19 @@ async def _complete(container: Container, admin: Employee) -> None:
             role=Role.EMPLOYEE,
             company_ids=[company_id],
             approver_id=boss.id if boss else None,
-            password=PASSWORD,
+            password=password,
             staff_type=StaffType.OPERATIONAL,
         )
         oscar = (await container.employees.create(admin, data)).employee
         async with container.uow() as uow:
             stored = await uow.employees.get(oscar.id)
             assert stored is not None
-            stored.must_change_password = False
+            stored.must_change_password = must_change_password
             await uow.commit()
     if added or missing_operational:
-        print("Datos de desarrollo completados (tarifas de viaje por país y usuarios nuevos)")
+        print("Datos completados (tarifas de viaje por país y usuarios nuevos)")
     else:
-        print("Los datos de desarrollo ya existen")
+        print("Los usuarios ya existen: no se cambió nada")
 
 
 async def _travel_rates(container: Container, admin: Employee, company_id: uuid.UUID) -> bool:
@@ -202,9 +214,16 @@ async def _travel_rates(container: Container, admin: Employee, company_id: uuid.
     return True
 
 
+async def main() -> None:
+    if get_settings().is_production:
+        raise SystemExit("seed_dev no corre en producción: use python -m scripts.seed_users")
+    await seed()
+    print(f"Contraseña de todos: {PASSWORD}")
+
+
 if __name__ == "__main__":
     try:
-        asyncio.run(seed())
+        asyncio.run(main())
     except Exception as exc:  # noqa: BLE001
         print(f"Error: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
