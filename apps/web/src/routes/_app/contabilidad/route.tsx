@@ -21,6 +21,12 @@ function Contabilidad() {
           <Link to="/contabilidad/tarifas" className={PESTANA} activeProps={ACTIVA}>
             Tarifas de viaje
           </Link>
+          <Link to="/contabilidad/deducibilidad" className={PESTANA} activeProps={ACTIVA}>
+            Deducibilidad
+          </Link>
+          <Link to="/contabilidad/aprendizaje" className={PESTANA} activeProps={ACTIVA}>
+            Aprendizaje
+          </Link>
           <Link to="/contabilidad/politica" className={PESTANA} activeProps={ACTIVA}>
             Política de gastos
           </Link>

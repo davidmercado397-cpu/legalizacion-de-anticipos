@@ -107,3 +107,13 @@ export type Suplencia = S['DelegationOut'];
 export type SuplenciaNueva = S['DelegationIn'];
 export type CodigoWhatsApp = S['LinkCodeOut'];
 export type EstadoWhatsApp = S['WhatsAppLinkStatus'];
+
+/** Deducibilidad sugerida de un gasto (la decide contabilidad) y lo que el sistema aprendió de las correcciones. */
+export type Deducibilidad = S['Deductibility'];
+export type DesgloseDeducibilidad = S['DeductibilityOut'];
+export type Aprendizaje = S['ExampleOut'];
+export type AprendizajeCambios = S['ExamplePatch'];
+export type HistorialAprendizaje = S['ExampleHistoryOut'];
+export type TipoAprendizaje = S['ExampleKind'];
+export type EstadoAprendizaje = S['ExampleStatus'];
+export type AlcanceAprendizaje = S['ExampleScope'];

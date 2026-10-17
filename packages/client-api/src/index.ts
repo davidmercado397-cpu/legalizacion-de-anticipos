@@ -1,5 +1,6 @@
 import type { AxiosInstance } from 'axios';
 import { crearAnticiposApi, type AnticiposApi } from './api/anticipos.api';
+import { crearAprendizajeApi, type AprendizajeApi } from './api/aprendizaje.api';
 import { crearAuthApi, type AuthApi } from './api/auth.api';
 import { crearConciliacionApi, type ConciliacionApi } from './api/conciliacion.api';
 import { crearGastosApi, type GastosApi } from './api/gastos.api';
@@ -9,6 +10,7 @@ import { crearClienteHttp, type OpcionesClienteHttp } from './http';
 export { ApiError } from './errores';
 export { crearClienteHttp, type OpcionesClienteHttp, type PuertoSesion } from './http';
 export type { AnticiposApi, FiltrosAnticipos } from './api/anticipos.api';
+export type { AprendizajeApi, FiltrosAprendizaje } from './api/aprendizaje.api';
 export type { AuthApi, Perfil } from './api/auth.api';
 export type { AccionMovimiento, ArchivoExtracto, ConciliacionApi } from './api/conciliacion.api';
 export type { ArchivoParaSubir, FiltrosGastos, GastosApi } from './api/gastos.api';
@@ -19,6 +21,7 @@ export interface Api {
   anticipos: AnticiposApi;
   gastos: GastosApi;
   conciliacion: ConciliacionApi;
+  aprendizaje: AprendizajeApi;
   organizacion: OrganizacionApi;
 }
 
@@ -29,6 +32,7 @@ export function crearApi(opciones: OpcionesClienteHttp): Api {
     anticipos: crearAnticiposApi(http),
     gastos: crearGastosApi(http),
     conciliacion: crearConciliacionApi(http),
+    aprendizaje: crearAprendizajeApi(http),
     organizacion: crearOrganizacionApi(http),
   };
 }

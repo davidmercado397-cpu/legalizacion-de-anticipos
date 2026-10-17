@@ -3,6 +3,8 @@ import type {
   Confirmacion,
   CorreccionGasto,
   DecisionRevision,
+  Deducibilidad,
+  DesgloseDeducibilidad,
   EstadoGasto,
   Gasto,
   LineaGasto,
@@ -16,6 +18,7 @@ export type ArchivoParaSubir = Blob | { uri: string; name: string; type: string 
 export interface FiltrosGastos {
   status?: EstadoGasto;
   advance_id?: string;
+  deductibility?: Deducibilidad;
   /** Para consultar solo lo que cambió (la lectura con IA sigue en segundo plano). */
   updated_since?: string;
   limit?: number;
@@ -34,6 +37,9 @@ export interface GastosApi {
   /** null = la línea es permitida. */
   corregirLinea(id: string, lineaId: string, concepto: string | null): Promise<LineaGasto>;
   revisar(id: string, decision: DecisionRevision, nota: string | null): Promise<Gasto>;
+  /** Base deducible e impuestos línea por línea (sugerencia; el criterio es de contabilidad). */
+  desgloseDeducibilidad(id: string): Promise<DesgloseDeducibilidad>;
+  cambiarDeducibilidad(id: string, deducibilidad: Deducibilidad): Promise<Gasto>;
 }
 
 export const crearGastosApi = (http: AxiosInstance): GastosApi => ({
@@ -54,4 +60,7 @@ export const crearGastosApi = (http: AxiosInstance): GastosApi => ({
   corregirLinea: async (id, lineaId, concepto) =>
     (await http.patch<LineaGasto>(`/expenses/${id}/lines/${lineaId}`, { concept_code: concepto })).data,
   revisar: async (id, decision, nota) => (await http.post<Gasto>(`/expenses/${id}/review`, { decision, note: nota })).data,
+  desgloseDeducibilidad: async (id) => (await http.get<DesgloseDeducibilidad>(`/expenses/${id}/deductibility`)).data,
+  cambiarDeducibilidad: async (id, deducibilidad) =>
+    (await http.post<Gasto>(`/expenses/${id}/deductibility`, { deductibility: deducibilidad })).data,
 });

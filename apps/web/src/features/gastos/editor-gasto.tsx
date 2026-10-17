@@ -21,6 +21,7 @@ import { Boton } from '../../ui/boton';
 import { AreaTexto, Campo, Entrada, Seleccion } from '../../ui/campos';
 import { Alerta, Insignia, Tarjeta } from '../../ui/superficies';
 import { InsigniaGasto, hallazgos } from './componentes';
+import { TarjetaDeducibilidad } from './deducibilidad';
 import { sinRechazo } from '../../lib/sin-rechazo';
 
 const decimal = z
@@ -89,6 +90,7 @@ export function EditorGasto({ anticipo, gasto }: { anticipo: AnticipoDetalle; ga
         {editable ? <Formulario anticipo={anticipo} gasto={gasto} /> : <Resumen gasto={gasto} />}
         <Lineas gasto={gasto} companiaId={anticipo.company_id} editable={editable || revisa} />
         {revisa && (gasto.review_status === 'pending' || gasto.status === 'confirmed') && <Revision gasto={gasto} />}
+        {!propio && puede(usuario, 'contabilidad') && gasto.status === 'confirmed' && <TarjetaDeducibilidad gasto={gasto} />}
       </div>
     </div>
   );

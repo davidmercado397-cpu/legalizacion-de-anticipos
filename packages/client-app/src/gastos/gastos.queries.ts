@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ArchivoParaSubir } from '@viaticos/client-api';
-import type { Confirmacion, CorreccionGasto, DecisionRevision } from '@viaticos/contracts';
+import type { Confirmacion, CorreccionGasto, DecisionRevision, Deducibilidad } from '@viaticos/contracts';
 import { clavesAnticipos } from '../anticipos/anticipos.queries';
 import { useApi } from '../contexto';
 
@@ -75,4 +75,22 @@ export function useRevisarGasto() {
 export function useGastos(filtros: Parameters<ReturnType<typeof useApi>['gastos']['listar']>[0] = {}) {
   const api = useApi();
   return useQuery({ queryKey: [...clavesGastos.todos, 'lista', filtros], queryFn: () => api.gastos.listar(filtros) });
+}
+
+export function useDesgloseDeducibilidad(id: string, activa = true) {
+  const api = useApi();
+  return useQuery({
+    queryKey: [...clavesGastos.todos, 'deducibilidad', id],
+    queryFn: () => api.gastos.desgloseDeducibilidad(id),
+    enabled: activa,
+  });
+}
+
+export function useCambiarDeducibilidad() {
+  const api = useApi();
+  const alCambiar = useAlCambiar();
+  return useMutation({
+    mutationFn: ({ id, deducibilidad }: { id: string; deducibilidad: Deducibilidad }) => api.gastos.cambiarDeducibilidad(id, deducibilidad),
+    onSuccess: alCambiar,
+  });
 }

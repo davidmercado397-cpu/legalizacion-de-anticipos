@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { usePendientesDeAprobar } from '@viaticos/client-app';
 import { ListaAnticipos } from '../../features/anticipos/componentes';
+import { CorreccionesPorValidar } from '../../features/gastos/aprendizaje';
 import { mensajeDeError } from '../../lib/errores';
 import { exigir } from '../../lib/roles';
 import { Alerta, Cargando } from '../../ui/superficies';
@@ -16,6 +17,7 @@ function Aprobaciones() {
     <div className="space-y-8">
       <h1 className="text-xl font-bold">Aprobaciones</h1>
       <Bandeja />
+      <CorreccionesPorValidar />
     </div>
   );
 }

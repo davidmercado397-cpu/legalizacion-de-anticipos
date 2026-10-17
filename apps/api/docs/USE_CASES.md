@@ -59,9 +59,9 @@ El jefe solo aprueba la solicitud; la legalización la revisa y la cierra contab
 | C0e | Crear la legalización cerrada en Siesa, o reintentar el anticipo si Siesa falló | App | `POST /advances/{id}/erp/legalization`, `POST /advances/{id}/erp/advance` |
 | C0f | Conciliar con el extracto: confirmar o deshacer cruces, cruzar a mano y decidir los cargos sin factura (antes de cerrar) | App | `GET /advances/{id}/statements`, `POST /statements/{id}/movements/{id}/confirm\|reject\|link\|decision` |
 | C5 | Anular un anticipo o reabrir una legalización cerrada | App | `POST /advances/{id}/void`, `POST /advances/{id}/reopen` |
-| C6 | Revisar la deducibilidad (desglose por línea, pendientes de revisión, cambiarla) | App | `GET /expenses/{id}/deductibility`, `GET /expenses?deductibility=requires_review`, `POST /expenses/{id}/deductibility` |
+| C6 | Revisar la deducibilidad (desglose por línea, pendientes de revisión, cambiarla) | App (Contabilidad → Deducibilidad y cada gasto) | `GET /expenses/{id}/deductibility`, `GET /expenses?deductibility=requires_review`, `POST /expenses/{id}/deductibility` |
 | C7 | Nombrar aprobadores suplentes | App | `GET/POST /employees/{id}/delegations`, `DELETE …/delegations/{id}` |
-| C8 | Gestionar lo aprendido (corregir, compartir con el grupo, desactivar) | App | `/classification-examples` |
+| C8 | Gestionar lo aprendido (corregir, compartir con el grupo, desactivar) | App (Contabilidad → Aprendizaje) | `/classification-examples` |
 | C9 | Tableros y Excel: saldos por legalizar, gasto, presupuesto, facturas a otra compañía | App | `/reports/*?format=xlsx` |
 | C10 | Precisión de la IA (también cuántos documentos se corrigieron antes de confirmar) y uso del mes | App | `GET /companies/{id}/ai-accuracy`, `GET /usage` |
 | C11 | Consultar la tasa de cambio de una fecha | App | `GET /exchange-rates/convert` |
