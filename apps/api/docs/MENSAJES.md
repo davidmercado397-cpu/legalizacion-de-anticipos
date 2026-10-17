@@ -310,6 +310,7 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `setting_max` | No se pudo completar la acción. |
 | `service_not_configured` | El almacenamiento de archivos (R2) no está configurado. |
 | `ai_unavailable` | El servicio de lectura de facturas no respondió. Lo intentaremos de nuevo automáticamente. |
+| `storage_unavailable` | No pudimos guardar o leer el archivo de la factura. Intenta de nuevo en unos minutos. |
 | `whatsapp_unavailable` | No pudimos comunicarnos con WhatsApp. Intenta de nuevo en unos minutos. |
 | `exchange_rates_unavailable` | No pudimos consultar las tasas de cambio. Se intentará de nuevo automáticamente. |
 

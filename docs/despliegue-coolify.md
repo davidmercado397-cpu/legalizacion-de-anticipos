@@ -76,6 +76,7 @@ Después del primer despliegue, en la terminal de Coolify del servicio **api**:
 ```bash
 python -m app.cli create-admin --email admin@empresa.co --name "Nombre" --company "Razón social S.A.S." --country CO --currency COP
 python -m app.cli create-superadmin --email soporte@nextbyte.co --name "Operación NextByte"
+python -m scripts.check_storage # si configuró R2: guarda y lee un archivo de prueba
 python -m scripts.check_ai      # si configuró OPENROUTER_API_KEY
 ```
 

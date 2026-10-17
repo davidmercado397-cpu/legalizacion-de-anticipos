@@ -65,6 +65,8 @@ extend_exclude = ["alembic", "tests", "vulture_allowlist.py"]
 # Se usan sin import directo: uvicorn (Dockerfile), email-validator (EmailStr), asyncpg (driver de
 # SQLAlchemy), alembic (migraciones) y python-multipart (formularios de FastAPI).
 DEP002 = ["uvicorn", "email-validator", "asyncpg", "alembic", "python-multipart"]
+# botocore llega con aioboto3, que fija su versión exacta: declararla aparte solo duplicaría ese pin.
+DEP003 = ["botocore"]
 
 [tool.bandit]
 # B101: los assert del código son invariantes internos (estrechan tipos), nunca controles de seguridad;

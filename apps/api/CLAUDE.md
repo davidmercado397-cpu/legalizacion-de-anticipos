@@ -68,6 +68,8 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
   `docs/eval_dataset_example.json`). mypy también revisa `scripts/`.
 - Diagnóstico de la IA: `python -m scripts.check_ai` (clave, créditos, modelos de la configuración y una
   lectura mínima con las restricciones de proveedor reales). El error de OpenRouter lleva su motivo al log.
+- Diagnóstico de R2: `python -m scripts.check_storage`. Un fallo de R2 es `storage_unavailable` (502) con el
+  código y mensaje del proveedor en el log, no un 500.
 - 3b, primera parte (migración 0013): sesión de WhatsApp (`whatsapp_sessions`: ventana de 24 h de
   Meta y conversación nueva tras `whatsapp.session_ttl_minutes`), presentador puro
   (`whatsapp_presenter.py`, con los límites de Meta y el formato de moneda de

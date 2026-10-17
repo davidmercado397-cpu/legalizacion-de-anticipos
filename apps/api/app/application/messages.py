@@ -540,6 +540,7 @@ ERROR_MESSAGES: dict[str, ErrorText] = {
     # Integraciones
     "service_not_configured": lambda p: f"{SERVICE_LABELS.get(p.get('service', ''), 'Una integración')} no está configurado.",
     "ai_unavailable": "El servicio de lectura de facturas no respondió. Lo intentaremos de nuevo automáticamente.",
+    "storage_unavailable": "No pudimos guardar o leer el archivo de la factura. Intenta de nuevo en unos minutos.",
     "whatsapp_unavailable": "No pudimos comunicarnos con WhatsApp. Intenta de nuevo en unos minutos.",
     "exchange_rates_unavailable": "No pudimos consultar las tasas de cambio. Se intentará de nuevo automáticamente.",
 }
