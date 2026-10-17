@@ -1,4 +1,4 @@
-# Imagen de DESARROLLO compartida por la API y la web (recarga en caliente con "docker compose up --watch").
+# Imagen de DESARROLLO de la web (recarga en caliente con "docker compose up --watch").
 FROM node:22-alpine
 
 RUN corepack enable && corepack prepare pnpm@10.28.0 --activate

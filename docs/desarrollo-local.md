@@ -88,3 +88,6 @@ pnpm install && pnpm typecheck && pnpm test
 | Las fotos no cargan en el navegador | Las URLs firmadas apuntan a `localhost:9000`: revise que el servicio `s3` esté arriba y que `S3_PORT` coincida |
 | `unknown flag: --watch` o error en `configs` | Actualice Docker Desktop (Compose ≥ 2.23.1) |
 | Quiero datos limpios | `docker compose down -v` |
+| La base no arranca: *there appears to be PostgreSQL data in /var/lib/postgresql* | Quedó un volumen de una versión anterior: `docker compose down -v` y vuelva a arrancar |
+| *Demasiados intentos* al iniciar sesión | El límite es de 30 por minuto en desarrollo; espere un minuto |
+| Avisos de *Exchange rate source failed* en el log | El equipo no tiene salida a internet: las tasas oficiales no se descargan, el resto funciona |

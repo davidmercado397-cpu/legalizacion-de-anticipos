@@ -72,6 +72,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:-desarrollo-local-no-usar-en-produccion-0123456789}
       MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-x6rXhbMybM3IU7DmO7c2gE6PS-VzlI7nKeRuTzvYsBo=}
       MFA_REQUIRED_ROLES: ${MFA_REQUIRED_ROLES:-superadmin}
+      # Todo llega a la API desde el contenedor de la web (una sola IP): con 5 por minuto, cambiar de usuario
+      # para probar agota el límite enseguida. En producción queda el valor de la API.
+      RATE_LIMIT_LOGIN: ${RATE_LIMIT_LOGIN:-30/minute}
       CORS_ORIGINS: http://localhost:${WEB_PORT:-5173}
       R2_ENDPOINT_URL: http://s3:9000
       R2_PUBLIC_ENDPOINT_URL: http://localhost:${S3_PORT:-9000}
