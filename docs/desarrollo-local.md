@@ -30,6 +30,7 @@ Contraseña de todos: **`Viaticos2026*`**
 | Correo | Rol | Para probar |
 |--------|-----|-------------|
 | `ana@empresa.co` | Empleada (viajera) | Solicitar anticipos y registrar facturas |
+| `oscar@empresa.co` | Empleado operativo | El mismo viaje con la tarifa del personal operativo |
 | `carlos@empresa.co` | Aprobador, jefe de Ana | Aprobar la solicitud de Ana |
 | `diana@empresa.co` | Aprobadora, jefa de Carlos (jefe directivo de Ana) | Aprobar lo que escala, sin esperar a Carlos |
 | `gabriela@empresa.co` | Gerencia | Aprobar los viajes de Diana, que no tiene jefe |
@@ -40,7 +41,7 @@ Contraseña de todos: **`Viaticos2026*`**
 
 La solicitud la aprueba el jefe inmediato. Si supera en más del 10 % el presupuesto calculado, o el monto que fije contabilidad en *Contabilidad → Política de gastos*, también la aprueba el jefe directivo, que puede hacerlo sin esperar. El jefe solo aprueba la solicitud. Cuando el viajero envía la legalización, la revisa y la cierra contabilidad, y tesorería registra el reintegro o el reembolso de la diferencia.
 
-El valor sugerido del anticipo sale de las tarifas que carga contabilidad en *Contabilidad → Tarifas de viaje* (zonas con sus ciudades y tarifas por tipo de personal, una por una o desde Excel). Cada usuario necesita su tipo de personal en *Administración*.
+El valor sugerido del anticipo sale de las tarifas de *Contabilidad → Tarifas de viaje*. Los datos de desarrollo ya traen zonas y tarifas para Colombia, Estados Unidos, Brasil y Panamá; los casos de prueba con sus valores esperados están en [`datos-de-prueba.md`](datos-de-prueba.md).
 
 ### Lectura de facturas con IA (opcional)
 
