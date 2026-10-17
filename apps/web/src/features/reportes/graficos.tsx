@@ -71,3 +71,45 @@ export function Medidor({ etiqueta, fraccion }: { etiqueta: string; fraccion: nu
     </div>
   );
 }
+
+/**
+ * Una serie en el tiempo: columnas de un tono, de máximo 24px, punta redondeada y base recta, con el valor sobre la
+ * columna. Cada columna muestra su detalle al pasar o enfocar.
+ */
+export function Columnas({ filas, etiqueta, alto = 160 }: { filas: Barra[]; etiqueta: string; alto?: number }) {
+  const [activa, setActiva] = useState<number | null>(null);
+  const maximo = Math.max(...filas.map((f) => f.valor), 0);
+  return (
+    <div className="space-y-2">
+      <ul aria-label={etiqueta} className="flex items-end gap-2 border-b border-slate-200" style={{ height: alto + 24 }}>
+        {filas.map((f, i) => (
+          <li
+            key={f.etiqueta}
+            tabIndex={0}
+            aria-label={`${f.etiqueta}: ${f.texto}${f.detalle ? `, ${f.detalle}` : ''}`}
+            className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1 outline-none focus-visible:ring-2 focus-visible:ring-marca-600"
+            style={{ height: '100%' }}
+            onPointerEnter={() => setActiva(i)}
+            onPointerLeave={() => setActiva(null)}
+            onFocus={() => setActiva(i)}
+            onBlur={() => setActiva(null)}
+          >
+            <span className="whitespace-nowrap text-xs font-medium text-slate-900">{f.texto}</span>
+            <span
+              className={cx('w-full max-w-6 rounded-t bg-marca-600 transition-[filter]', activa === i && 'brightness-110')}
+              style={{ height: maximo > 0 ? Math.max((f.valor / maximo) * alto, f.valor > 0 ? 2 : 0) : 0 }}
+            />
+          </li>
+        ))}
+      </ul>
+      <div className="flex gap-2">
+        {filas.map((f, i) => (
+          <span key={f.etiqueta} className={cx('min-w-0 flex-1 truncate text-center text-xs', activa === i ? 'text-slate-900' : 'text-slate-500')}>
+            {f.etiqueta}
+          </span>
+        ))}
+      </div>
+      <p className="h-4 text-xs text-slate-500">{activa !== null && filas[activa]?.detalle}</p>
+    </div>
+  );
+}

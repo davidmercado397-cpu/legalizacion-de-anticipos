@@ -124,3 +124,9 @@ export type CumplimientoPresupuesto = S['BudgetComplianceOut'];
 export type FacturaOtraCompania = S['IntercompanyOut'];
 export type PrecisionIa = S['AccuracyOut'];
 export type UsoMes = S['UsageOut'];
+
+/** Operador de la plataforma (superadmin de NextByte) y auditoría. */
+export type CostosIa = S['AiCostsOut'];
+export type TotalesCostoIa = S['AiCostTotalsOut'];
+export type Configuracion = S['SettingOut'];
+export type RegistroAuditoria = S['AuditOut'];

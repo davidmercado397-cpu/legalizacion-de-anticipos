@@ -70,6 +70,11 @@ function Layout() {
                 )}
               </>
             )}
+            {!pendiente && puede(usuario, 'plataforma') && (
+              <Link to="/plataforma" className={ENLACE} activeProps={ACTIVO}>
+                Plataforma
+              </Link>
+            )}
           </nav>
           <Link to="/cuenta/clave" className="hidden text-right text-sm leading-tight text-slate-600 hover:text-slate-900 md:block">
             {usuario?.full_name}

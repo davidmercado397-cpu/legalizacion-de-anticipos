@@ -3,7 +3,7 @@ import type { Perfil } from '@viaticos/client-api';
 import type { SesionStore } from '@viaticos/client-app';
 import type { Rol } from '@viaticos/contracts';
 
-export type Capacidad = 'solicitar' | 'aprobar' | 'contabilidad' | 'tesoreria' | 'administrar';
+export type Capacidad = 'solicitar' | 'aprobar' | 'contabilidad' | 'tesoreria' | 'administrar' | 'plataforma';
 
 /**
  * Qué puede hacer cada rol (espejo de apps/api/app/domain/permissions.py): el jefe aprueba la solicitud,
@@ -16,7 +16,7 @@ const CAPACIDADES: Record<Rol, readonly Capacidad[]> = {
   treasury: ['solicitar', 'tesoreria'],
   management: ['solicitar', 'aprobar'],
   admin: ['solicitar', 'aprobar', 'contabilidad', 'tesoreria', 'administrar'],
-  superadmin: [],
+  superadmin: ['plataforma'],
 };
 
 export function puede(usuario: Pick<Perfil, 'role'> | null | undefined, capacidad: Capacidad): boolean {

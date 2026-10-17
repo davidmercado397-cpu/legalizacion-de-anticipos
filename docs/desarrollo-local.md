@@ -35,7 +35,8 @@ Contraseña de todos: **`Viaticos2026*`**
 | `gabriela@empresa.co` | Gerencia | Aprobar los viajes de Diana, que no tiene jefe |
 | `tomas@empresa.co` | Tesorería | Registrar el desembolso, cargar el extracto de la tarjeta y el reintegro o reembolso |
 | `laura@empresa.co` | Contabilidad | Revisar los cruces con el extracto, cerrar legalizaciones, crearlas en Siesa, política de gastos |
-| `andres@empresa.co` | Administrador | Usuarios y compañías |
+| `andres@empresa.co` | Administrador | Usuarios, compañías y auditoría |
+| `soporte@nextbyte.co` | Superadmin de NextByte | Costo de la IA y configuración del sistema (modelos de IA). Al entrar activa la verificación en dos pasos |
 
 La solicitud la aprueba el jefe inmediato. Si supera en más del 10 % el presupuesto calculado, o el monto que fije contabilidad en *Contabilidad → Política de gastos*, también la aprueba el jefe directivo, que puede hacerlo sin esperar. El jefe solo aprueba la solicitud. Cuando el viajero envía la legalización, la revisa y la cierra contabilidad, y tesorería registra el reintegro o el reembolso de la diferencia.
 

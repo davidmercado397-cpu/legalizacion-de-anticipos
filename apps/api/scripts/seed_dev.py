@@ -19,6 +19,7 @@ from app.domain.enums import Role, StaffType
 
 PASSWORD = "Viaticos2026*"  # gitleaks:allow (solo desarrollo local)
 ADMIN_EMAIL = "andres@empresa.co"
+OPERATOR_EMAIL = "soporte@nextbyte.co"  # superadmin de la plataforma: no pertenece a ninguna compañía
 
 
 async def seed() -> None:
@@ -38,6 +39,14 @@ async def seed() -> None:
                 password_hash=Argon2PasswordHasher().hash(PASSWORD),
             )
             await uow.employees.add(admin)
+            # La API no crea superadmins (nadie se puede dar ese rol); en desarrollo va directo a la base.
+            operator = Employee(
+                full_name="Soporte NextByte",
+                email=OPERATOR_EMAIL,
+                role=Role.SUPERADMIN,
+                password_hash=Argon2PasswordHasher().hash(PASSWORD),
+            )
+            await uow.employees.add(operator)
             await uow.commit()
 
         company = await container.companies.create(

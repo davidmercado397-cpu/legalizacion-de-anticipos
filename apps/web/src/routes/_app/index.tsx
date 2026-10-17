@@ -5,6 +5,7 @@ import { puede } from '../../lib/roles';
 export const Route = createFileRoute('/_app/')({
   beforeLoad: ({ context }) => {
     const usuario = context.sesion.getState().usuario;
-    throw redirect({ to: usuario?.role === 'superadmin' || !puede(usuario, 'solicitar') ? '/cuenta/clave' : '/anticipos' });
+    if (puede(usuario, 'plataforma')) throw redirect({ to: '/plataforma' });
+    throw redirect({ to: puede(usuario, 'solicitar') ? '/anticipos' : '/cuenta/clave' });
   },
 });
