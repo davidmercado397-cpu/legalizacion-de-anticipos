@@ -29,7 +29,7 @@ export const hallazgos = (gasto: Gasto): Hallazgo[] => gasto.policy_findings as 
 
 export function ListaGastos({ anticipoId, gastos }: { anticipoId: string; gastos: Gasto[] }) {
   const visibles = gastos.filter((g) => g.status !== 'discarded');
-  if (visibles.length === 0) return <EstadoVacio titulo="Todavía no hay facturas">Agréguelas por aquí o envíe la foto por WhatsApp.</EstadoVacio>;
+  if (visibles.length === 0) return <EstadoVacio titulo="Todavía no hay facturas">Súbalas aquí o envíe la foto por WhatsApp.</EstadoVacio>;
   return (
     <ul className="grid gap-3 sm:grid-cols-2">
       {visibles.map((g) => {

@@ -1,12 +1,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { Api, Perfil } from '@viaticos/client-api';
+import { type Api, ApiError, type Perfil } from '@viaticos/client-api';
 import { ClienteProvider, crearSesionStore } from '@viaticos/client-app';
 import type { AnticipoDetalle } from '@viaticos/contracts';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { PanelAcciones } from '../src/features/anticipos/panel-acciones';
+import { SubirFactura } from '../src/features/gastos/subir-factura';
 import { FormularioLogin } from '../src/features/sesion/formulario-login';
 import { puede } from '../src/lib/roles';
 
@@ -116,5 +117,35 @@ describe('FormularioLogin', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
     expect(await screen.findByText('Verificación en dos pasos')).toBeInTheDocument();
     expect(login).toHaveBeenCalledWith({ email: 'laura@empresa.co', password: 'clave' });
+  });
+});
+
+describe('SubirFactura', () => {
+  const archivo = (nombre: string, tipo: string) => new File(['contenido'], nombre, { type: tipo });
+
+  it('sube cada archivo por separado y, si uno falla, sigue con los demás', async () => {
+    const subir = vi.fn(async (_archivo: unknown, opciones: { nombre?: string }) => {
+      if (opciones.nombre === 'pesada.pdf') throw new ApiError(422, 'file_too_large', 'El archivo es muy pesado.');
+      return {};
+    });
+    montar(<SubirFactura anticipoId="a1" />, perfil({ id: 'u-ana' }), { gastos: { subir } as unknown as Api['gastos'] });
+    await userEvent.upload(screen.getByLabelText('Fotos o PDF de las facturas'), [
+      archivo('almuerzo.pdf', 'application/pdf'),
+      archivo('pesada.pdf', 'application/pdf'),
+      archivo('taxi.png', 'image/png'),
+    ]);
+    expect(await screen.findByText(/Se subieron 2 facturas/)).toBeInTheDocument();
+    expect(screen.getByText('pesada.pdf')).toBeInTheDocument();
+    expect(screen.getByText(/El archivo es muy pesado/)).toBeInTheDocument();
+    expect(subir).toHaveBeenCalledTimes(3);
+    expect(subir).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ anticipoId: 'a1', nombre: 'taxi.png' }));
+  });
+
+  it('una foto HEIC del iPhone no se envía: explica cómo convertirla', async () => {
+    const subir = vi.fn();
+    montar(<SubirFactura anticipoId="a1" />, perfil({ id: 'u-ana' }), { gastos: { subir } as unknown as Api['gastos'] });
+    await userEvent.setup({ applyAccept: false }).upload(screen.getByLabelText('Fotos o PDF de las facturas'), archivo('IMG_0001.HEIC', 'image/heic'));
+    expect(await screen.findByText(/guárdela como JPG/)).toBeInTheDocument();
+    expect(subir).not.toHaveBeenCalled();
   });
 });

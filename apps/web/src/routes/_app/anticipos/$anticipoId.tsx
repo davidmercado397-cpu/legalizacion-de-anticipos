@@ -104,15 +104,13 @@ function DetalleAnticipo() {
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-semibold text-slate-700">Facturas</h2>
-            <div className="flex gap-2">
-              {puede(usuario, 'contabilidad') && (
-                <Boton variante="secundario" cargando={excel.isPending} onClick={() => void sinRechazo(descargar)()}>
-                  Excel de la legalización
-                </Boton>
-              )}
-              {propio && anticipo.status === 'approved' && <SubirFactura anticipoId={anticipo.id} />}
-            </div>
+            {puede(usuario, 'contabilidad') && (
+              <Boton variante="secundario" cargando={excel.isPending} onClick={() => void sinRechazo(descargar)()}>
+                Excel de la legalización
+              </Boton>
+            )}
           </div>
+          {propio && anticipo.status === 'approved' && <SubirFactura anticipoId={anticipo.id} />}
           <ListaGastos anticipoId={anticipo.id} gastos={anticipo.expenses} />
         </section>
       )}
