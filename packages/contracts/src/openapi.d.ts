@@ -2894,6 +2894,8 @@ export interface components {
             deductibility: components["schemas"]["Deductibility"] | null;
             /** Description */
             description: string | null;
+            /** Discount Amount */
+            discount_amount: string | null;
             /** Document Index */
             document_index: number;
             document_type: components["schemas"]["DocumentType"] | null;
@@ -3095,6 +3097,8 @@ export interface components {
             deductibility: components["schemas"]["Deductibility"] | null;
             /** Description */
             description: string | null;
+            /** Discount Amount */
+            discount_amount: string | null;
             /** Document Index */
             document_index: number;
             document_type: components["schemas"]["DocumentType"] | null;
@@ -3224,6 +3228,8 @@ export interface components {
             currency?: string | null;
             /** Description */
             description?: string | null;
+            /** Discount Amount */
+            discount_amount?: number | string | null;
             document_type?: components["schemas"]["DocumentType"] | null;
             /** Fiscal Id */
             fiscal_id?: string | null;

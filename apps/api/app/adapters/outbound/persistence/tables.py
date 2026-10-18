@@ -297,6 +297,7 @@ expenses = sa.Table(
     sa.Column("subtotal", MONEY),
     sa.Column("tax_amount", MONEY),
     sa.Column("tip_amount", MONEY),
+    sa.Column("discount_amount", MONEY),
     sa.Column("total", MONEY),
     sa.Column("fiscal_id", sa.String(120), index=True),
     sa.Column("buyer_tax_id", sa.String(40)),

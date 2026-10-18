@@ -479,6 +479,7 @@ class ExpenseOut(Model):
     tax_amount: Decimal | None
     taxes: list[dict[str, Any]]
     tip_amount: Decimal | None
+    discount_amount: Decimal | None
     total: Decimal | None
     fiscal_id: str | None
     buyer_tax_id: str | None
@@ -622,6 +623,7 @@ class ExpensePatch(BaseModel):
     tax_amount: Decimal | None = Field(default=None, max_digits=16, decimal_places=2)
     taxes: list[TaxIn] | None = Field(default=None, max_length=10, description="Desglose; el total de impuestos se recalcula")
     tip_amount: Decimal | None = Field(default=None, max_digits=16, decimal_places=2)
+    discount_amount: Decimal | None = Field(default=None, ge=0, max_digits=16, decimal_places=2)
     total: Decimal | None = Field(default=None, gt=0, max_digits=16, decimal_places=2)
     fiscal_id: str | None = Field(default=None, max_length=120)
     buyer_tax_id: str | None = Field(default=None, max_length=40)

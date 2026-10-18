@@ -39,6 +39,7 @@ const esquema = z.object({
   subtotal: decimal,
   tax_amount: decimal,
   tip_amount: decimal,
+  discount_amount: decimal,
   total: decimal,
   category: z.string(),
   description: z.string().trim(),
@@ -46,7 +47,7 @@ const esquema = z.object({
 });
 type Datos = z.infer<typeof esquema>;
 const CAMPOS = Object.keys(esquema.shape) as (keyof Datos)[];
-const NUMERICOS = new Set<keyof Datos>(['subtotal', 'tax_amount', 'tip_amount', 'total']);
+const NUMERICOS = new Set<keyof Datos>(['subtotal', 'tax_amount', 'tip_amount', 'discount_amount', 'total']);
 
 const aFormulario = (g: GastoDetalle): Datos =>
   Object.fromEntries(CAMPOS.map((c) => [c, (g[c] as string | null) ?? ''])) as Datos;
@@ -161,6 +162,7 @@ function Resumen({ gasto }: { gasto: GastoDetalle }) {
     ['Subtotal', formatoDinero(gasto.subtotal, gasto.currency)],
     ['Impuestos', formatoDinero(gasto.tax_amount, gasto.currency)],
     ['Propina', formatoDinero(gasto.tip_amount, gasto.currency)],
+    ['Descuento', formatoDinero(gasto.discount_amount, gasto.currency)],
     ['Medio de pago', etiqueta('medio', gasto.payment_method)],
     ['Total', formatoDinero(gasto.total, gasto.currency)],
     ['Justificación', gasto.justification ?? '—'],
@@ -261,6 +263,9 @@ function Formulario({ anticipo, gasto }: { anticipo: AnticipoDetalle; gasto: Gas
         </Campo>
         <Campo etiqueta="Propina" error={e.tip_amount?.message}>
           {(p) => <Entrada {...p} {...register('tip_amount')} inputMode="decimal" />}
+        </Campo>
+        <Campo etiqueta="Descuento" ayuda="Lo que la factura rebaja; el total ya lo tiene restado" error={e.discount_amount?.message}>
+          {(p) => <Entrada {...p} {...register('discount_amount')} inputMode="decimal" />}
         </Campo>
         <Campo etiqueta="Medio de pago" ayuda="Lo pagado con tarjeta se cruza con el extracto del banco">
           {(p) => (

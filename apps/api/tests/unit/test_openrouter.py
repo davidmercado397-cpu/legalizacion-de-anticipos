@@ -200,3 +200,29 @@ async def test_english_and_portuguese_invoices_keep_their_language_and_other_tax
     assert [t.type for t in english.taxes] == [TaxType.OTHER, TaxType.OTHER] and english.tax_amount == Decimal("16")
     assert portuguese.currency == "BRL" and portuguese.lines[0].description == "Pão de queijo"
     assert portuguese.tax_amount is None and portuguese.invoice_time is None  # hora inválida -> null, nunca un error
+
+
+@respx.mock
+async def test_a_discount_is_not_a_line_item() -> None:
+    def answer(lines: list[dict[str, object]], discount: object) -> dict[str, object]:
+        doc = {**ANSWER["documents"][0], "lines": lines, "discount_amount": discount}  # type: ignore[index]
+        return {"choices": [{"message": {"content": json.dumps({"legibility": "good", "documents": [doc]})}}]}
+
+    item = {"description": "MIGA PAN SUSANITA", "quantity": 6, "amount": 95700, "concept_code": None, "concept_confidence": None}
+    discount_line = {
+        "description": "Dto. Volumen",
+        "quantity": None,
+        "amount": -10632,
+        "concept_code": None,
+        "concept_confidence": None,
+    }
+    async with httpx.AsyncClient() as client:
+        # El modelo dejó el descuento como línea negativa: sale de las líneas y va al descuento.
+        respx.post(URL).mock(return_value=httpx.Response(200, json=answer([item, discount_line], None)))
+        doc = (await _extractor(client).extract(_request())).documents[0]
+        assert [line.description for line in doc.lines] == ["MIGA PAN SUSANITA"]
+        assert doc.discount_amount == Decimal("10632")
+        # Si además lo reportó en discount_amount, no se cuenta dos veces (y se guarda en positivo).
+        respx.post(URL).mock(return_value=httpx.Response(200, json=answer([item, discount_line], -12102)))
+        doc = (await _extractor(client).extract(_request())).documents[0]
+        assert len(doc.lines) == 1 and doc.discount_amount == Decimal("12102")

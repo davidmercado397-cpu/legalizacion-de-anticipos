@@ -53,17 +53,21 @@ class InvoiceVerifier:
     @staticmethod
     def _arithmetic(doc: InvoiceData) -> list[VerificationIssue]:
         issues: list[VerificationIssue] = []
+        tip = doc.tip_amount or Decimal(0)
+        discount = doc.discount_amount or Decimal(0)
         if doc.total is not None and doc.subtotal is not None and doc.tax_amount is not None:
-            expected = doc.subtotal + doc.tax_amount + (doc.tip_amount or Decimal(0))
-            # Algunos recibos imprimen un subtotal que ya incluye impuestos: se acepta cualquiera de las dos lecturas.
-            if not (_close(expected, doc.total) or _close(doc.subtotal + (doc.tip_amount or 0), doc.total)):
-                issues.append(VerificationIssue("arithmetic", "subtotal + taxes does not match the total"))
+            # Algunos recibos imprimen un subtotal que ya incluye impuestos, y otros uno que ya tiene restado el
+            # descuento: se acepta cualquiera de esas lecturas.
+            sums = (doc.subtotal + doc.tax_amount + tip, doc.subtotal + tip)
+            if not any(_close(s, doc.total) or _close(s - discount, doc.total) for s in sums):
+                issues.append(VerificationIssue("arithmetic", "subtotal + taxes - discount does not match the total"))
         amounts = [line.amount for line in doc.lines if line.amount is not None]
         if doc.itemized and amounts and doc.total is not None:
             lines_sum = sum(amounts, Decimal(0))
-            candidates = [doc.total, doc.subtotal, doc.total - (doc.tip_amount or Decimal(0))]
-            if not any(c is not None and _close(lines_sum, c) for c in candidates):
-                issues.append(VerificationIssue("lines_sum", "The line items do not add up to the total"))
+            # Las líneas van con su precio antes del descuento; el descuento se resta aparte.
+            candidates = [doc.total, doc.subtotal, doc.total - tip]
+            if not any(c is not None and (_close(lines_sum, c) or _close(lines_sum - discount, c)) for c in candidates):
+                issues.append(VerificationIssue("lines_sum", "The line items minus the discount do not add up to the total"))
         return issues
 
     @staticmethod

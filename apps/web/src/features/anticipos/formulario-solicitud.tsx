@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useNavigate } from '@tanstack/react-router';
 import { ApiError } from '@viaticos/client-api';
 import { useCategorias, useCompanias, usePresupuesto, useSesion, useSolicitarAnticipo } from '@viaticos/client-app';
 import type { Anticipo, Presupuesto } from '@viaticos/contracts';
@@ -53,6 +54,7 @@ export function FormularioSolicitud({ alCrear }: { alCrear: (anticipo: Anticipo)
   const companias = useCompanias();
   const presupuesto = usePresupuesto();
   const solicitar = useSolicitarAnticipo();
+  const navegar = useNavigate();
   const propias = (companias.data ?? []).filter((c) => usuario?.company_ids.includes(c.id));
 
   const { register, handleSubmit, formState, control, setValue } = useForm<Datos>({
@@ -68,6 +70,10 @@ export function FormularioSolicitud({ alCrear }: { alCrear: (anticipo: Anticipo)
   });
   const tramos = useFieldArray({ control, name: 'destinos' });
   const [compania, destinos, moneda, valor] = useWatch({ control, name: ['company_id', 'destinos', 'currency', 'amount'] });
+  const proposito = useWatch({ control, name: 'purpose' });
+  // Lo que la persona escribió (la compañía y la moneda las pone el formulario): solo eso pide confirmar al cancelar.
+  const conCambios =
+    destinos.length > 1 || destinos.some((d) => d.destination || d.start_date || d.end_date) || !!proposito?.trim() || !!valor.trim();
   const fechasCompletas = destinos.every((d) => d.start_date && d.end_date);
   const categorias = useCategorias(compania);
   const categoria = (codigo: string) => categorias.data?.find((c) => c.code === codigo)?.name ?? codigo;
@@ -227,9 +233,19 @@ export function FormularioSolicitud({ alCrear }: { alCrear: (anticipo: Anticipo)
       </Tarjeta>
 
       {solicitar.isError && <Alerta tono="peligro">{mensajeDeError(solicitar.error)}</Alerta>}
-      <Boton type="submit" cargando={solicitar.isPending}>
-        Enviar a aprobación
-      </Boton>
+      <div className="flex flex-wrap gap-2">
+        <Boton type="submit" cargando={solicitar.isPending}>
+          Enviar a aprobación
+        </Boton>
+        <Boton
+          variante="secundario"
+          onClick={() => {
+            if (!conCambios || window.confirm('¿Cancelar la solicitud? Lo que escribió no se guarda.')) void navegar({ to: '/anticipos' });
+          }}
+        >
+          Cancelar
+        </Boton>
+      </div>
     </form>
   );
 }

@@ -79,6 +79,7 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `DETAIL_SUBTOTAL` | Base: {amount} |
 | `DETAIL_TAX` | {label}{rate}: {amount} |
 | `DETAIL_TIP` | Propina: {amount} |
+| `DETAIL_DISCOUNT` | Descuento: -{amount} |
 | `DETAIL_TOTAL` | *Total: {amount}* |
 | `DETAIL_CONVERTED` | Equivale a {amount} (tasa {rate} del {day}) |
 | `DETAIL_ADVANCE` | 📌 Anticipo {label} · saldo al confirmar: {pending} |

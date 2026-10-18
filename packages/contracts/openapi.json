@@ -4383,6 +4383,18 @@
             ],
             "title": "Description"
           },
+          "discount_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Amount"
+          },
           "document_index": {
             "title": "Document Index",
             "type": "integer"
@@ -4840,6 +4852,7 @@
           "tax_amount",
           "taxes",
           "tip_amount",
+          "discount_amount",
           "total",
           "fiscal_id",
           "buyer_tax_id",
@@ -5241,6 +5254,18 @@
               }
             ],
             "title": "Description"
+          },
+          "discount_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Amount"
           },
           "document_index": {
             "title": "Document Index",
@@ -5692,6 +5717,7 @@
           "tax_amount",
           "taxes",
           "tip_amount",
+          "discount_amount",
           "total",
           "fiscal_id",
           "buyer_tax_id",
@@ -5803,6 +5829,22 @@
               }
             ],
             "title": "Description"
+          },
+          "discount_amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Amount"
           },
           "document_type": {
             "anyOf": [

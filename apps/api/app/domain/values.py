@@ -87,6 +87,7 @@ class InvoiceData:
     subtotal: Decimal | None = None
     tax_amount: Decimal | None = None  # suma de `taxes`
     tip_amount: Decimal | None = None
+    discount_amount: Decimal | None = None  # descuentos de la factura, en positivo; ya restados del total
     total: Decimal | None = None
     fiscal_id: str | None = None  # CUFE (CO/PA) o UUID (MX)
     buyer_tax_id: str | None = None  # NIT/RFC/RUC del adquiriente impreso en la factura

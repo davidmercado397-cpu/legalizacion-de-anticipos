@@ -127,6 +127,8 @@ def _amounts(e: Expense, fmt: NumberFormat, review: bool) -> str:
         rows.append(msg.DETAIL_TAX.format(label=label, rate=rate, amount=msg.money(_decimal(tax.get("amount")), None, fmt)))
     if e.tip_amount:
         rows.append(msg.DETAIL_TIP.format(amount=msg.money(e.tip_amount, None, fmt)))
+    if e.discount_amount:
+        rows.append(msg.DETAIL_DISCOUNT.format(amount=msg.money(e.discount_amount, None, fmt)))
     rows.append(msg.DETAIL_TOTAL.format(amount=msg.money(e.total, e.currency, fmt)))
     if e.exchange_rate is not None and e.amount_applied is not None and e.exchange_rate != 1:
         rows.append(

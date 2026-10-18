@@ -70,6 +70,10 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
   lectura mínima con las restricciones de proveedor reales). El error de OpenRouter lleva su motivo al log.
 - Diagnóstico de R2: `python -m scripts.check_storage`. Un fallo de R2 es `storage_unavailable` (502) con el
   código y mensaje del proveedor en el log, no un 500.
+- Descuentos (migración 0021, extracción v4): `expenses.discount_amount` en positivo y ya restado del total. Un
+  descuento no es una línea: el prompt v4 lo pide aparte y `_document` saca las líneas negativas que deje el
+  modelo. La verificación acepta el subtotal antes o después del descuento y resta el descuento a la suma de
+  líneas. El paso a v4 no se midió con el set de evaluación (no estaba disponible): medirlo antes de producción.
 - 3b, primera parte (migración 0013): sesión de WhatsApp (`whatsapp_sessions`: ventana de 24 h de
   Meta y conversación nueva tras `whatsapp.session_ttl_minutes`), presentador puro
   (`whatsapp_presenter.py`, con los límites de Meta y el formato de moneda de

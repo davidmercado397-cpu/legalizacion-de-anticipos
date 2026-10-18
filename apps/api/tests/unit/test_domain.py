@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
@@ -87,6 +88,33 @@ class TestVerification:
 
     def test_tip_is_accepted(self) -> None:
         doc = invoice(tip_amount=Decimal("4500"), total=Decimal("49500"), itemized=False)
+        assert self.verifier.verify(doc, TODAY) == []
+
+    def test_discount_is_subtracted_from_the_lines(self) -> None:
+        # Factura de Makro: las líneas suman 229.600, el descuento es 12.102 y el total pagado 217.498. El subtotal
+        # impreso (la base de IVA) ya viene con el descuento restado.
+        from app.domain.values import InvoiceLine
+
+        prices = ("12050", "41500", "95700", "16500", "56500", "7350")
+        doc = invoice(
+            subtotal=Decimal("202978"),
+            tax_amount=Decimal("14520"),
+            discount_amount=Decimal("12102"),
+            total=Decimal("217498"),
+            lines=tuple(InvoiceLine(f"Producto {i}", Decimal(p), Decimal(1)) for i, p in enumerate(prices)),
+        )
+        assert self.verifier.verify(doc, TODAY) == []
+        without_discount = {i.code for i in self.verifier.verify(replace(doc, discount_amount=None), TODAY)}
+        assert "lines_sum" in without_discount
+
+    def test_subtotal_before_the_discount_is_accepted(self) -> None:
+        doc = invoice(
+            subtotal=Decimal("100000"),
+            tax_amount=Decimal("0"),
+            discount_amount=Decimal("10000"),
+            total=Decimal("90000"),
+            itemized=False,
+        )
         assert self.verifier.verify(doc, TODAY) == []
 
     def test_wrong_nit_future_date_and_bad_cufe(self) -> None:

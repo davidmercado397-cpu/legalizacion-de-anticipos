@@ -55,6 +55,7 @@ _DOCUMENT_FIELDS: dict[str, Any] = {
     },
     "tax_amount": _NULLABLE_NUMBER,
     "tip_amount": _NULLABLE_NUMBER,
+    "discount_amount": _NULLABLE_NUMBER,
     "total": _NULLABLE_NUMBER,
     "fiscal_id": _NULLABLE_STRING,
     "country": _NULLABLE_STRING,
@@ -415,7 +416,7 @@ def _taxes(raw: Any) -> tuple[TaxItem, ...]:
 def _document(raw: dict[str, Any]) -> InvoiceData:
     """Mapeo defensivo: la salida del modelo es un dato no confiable y cada campo se valida aquí."""
     confidence = raw.get("confidence")
-    lines = tuple(
+    read_lines = [
         InvoiceLine(
             description=_text(line.get("description"), 300) or "",
             amount=_decimal(line.get("amount")),
@@ -425,7 +426,15 @@ def _document(raw: dict[str, Any]) -> InvoiceData:
         )
         for line in (raw.get("lines") or [])[:100]
         if isinstance(line, dict)
-    )
+    ]
+    # Un descuento no es un producto: si el modelo lo deja como línea negativa, sale de las líneas y va al
+    # descuento (sin contarlo dos veces si también lo reportó en discount_amount).
+    discount_lines = [line for line in read_lines if line.amount is not None and line.amount < 0]
+    lines = tuple(line for line in read_lines if line not in discount_lines)
+    discount = _decimal(raw.get("discount_amount"))
+    if discount is None and discount_lines:
+        discount = sum((-(line.amount or Decimal(0)) for line in discount_lines), Decimal(0))
+    discount = abs(discount) if discount else None
     currency = _text(raw.get("currency"), 3)
     country = _text(raw.get("country"), 2)
     taxes = _taxes(raw.get("taxes"))
@@ -443,6 +452,7 @@ def _document(raw: dict[str, Any]) -> InvoiceData:
         subtotal=_decimal(raw.get("subtotal")),
         tax_amount=tax_amount,
         tip_amount=_decimal(raw.get("tip_amount")),
+        discount_amount=discount,
         total=_decimal(raw.get("total")),
         fiscal_id=_text(raw.get("fiscal_id"), 120),
         buyer_tax_id=_text(raw.get("buyer_tax_id"), 40),

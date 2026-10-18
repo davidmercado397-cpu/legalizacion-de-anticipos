@@ -751,6 +751,7 @@ EDITABLE_INVOICE_FIELDS = (
     "subtotal",
     "tax_amount",
     "tip_amount",
+    "discount_amount",
     "total",
     "fiscal_id",
     "buyer_tax_id",
@@ -791,6 +792,7 @@ class Expense:
     subtotal: Decimal | None = None
     tax_amount: Decimal | None = None
     tip_amount: Decimal | None = None
+    discount_amount: Decimal | None = None
     total: Decimal | None = None
     fiscal_id: str | None = None
     buyer_tax_id: str | None = None
