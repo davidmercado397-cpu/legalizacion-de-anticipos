@@ -32,8 +32,9 @@ function PaginaLogin() {
     <main className="flex min-h-dvh items-center justify-center bg-gradient-to-b from-marca-50 to-slate-50 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <img src="/favicon.svg" alt="" className="mx-auto size-12" />
-          <h1 className="mt-3 text-2xl font-bold text-slate-900">Viáticos</h1>
+          <h1>
+            <img src="/marca/logo.svg" alt="nextv.ia" className="mx-auto h-14 w-auto" />
+          </h1>
           <p className="text-sm text-slate-600">Anticipos y legalización de gastos de viaje</p>
         </div>
         <FormularioLogin />

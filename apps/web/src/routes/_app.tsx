@@ -38,9 +38,9 @@ function Layout() {
     <div className="min-h-dvh">
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2">
-          <Link to="/" className="flex items-center gap-2 font-bold text-marca-800">
-            <img src="/favicon.svg" alt="" className="size-7" />
-            <span className="hidden sm:inline">Viáticos</span>
+          <Link to="/" aria-label="nextv.ia: inicio" className="flex shrink-0 items-center">
+            <img src="/marca/icono.svg" alt="" className="size-8 sm:hidden" />
+            <img src="/marca/logo.svg" alt="" className="hidden h-8 w-auto sm:block" />
           </Link>
           <nav aria-label="Principal" className="flex flex-1 gap-1 overflow-x-auto">
             {!pendiente && usuario?.role !== 'superadmin' && (
