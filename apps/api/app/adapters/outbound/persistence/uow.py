@@ -28,6 +28,7 @@ from app.adapters.outbound.persistence.repositories import (
     SqlTravelBudgetRateRepository,
     SqlTravelZoneRepository,
     SqlWhatsAppSessionRepository,
+    SqlWithdrawalRepository,
 )
 from app.domain import ports
 from app.domain.errors import ConflictError
@@ -70,6 +71,7 @@ class SqlAlchemyUnitOfWork:
         self.reports: ports.ReportRepository = SqlReportRepository(s)
         self.examples: ports.ExampleRepository = SqlExampleRepository(s)
         self.statements: ports.StatementRepository = SqlStatementRepository(s)
+        self.withdrawals: ports.WithdrawalRepository = SqlWithdrawalRepository(s)
         return self
 
     async def __aexit__(self, *exc: object) -> None:

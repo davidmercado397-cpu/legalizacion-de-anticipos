@@ -74,6 +74,14 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
   descuento no es una línea: el prompt v4 lo pide aparte y `_document` saca las líneas negativas que deje el
   modelo. La verificación acepta el subtotal antes o después del descuento y resta el descuento a la suma de
   líneas. El paso a v4 no se midió con el set de evaluación (no estaba disponible): medirlo antes de producción.
+- Moneda de la compañía y retiros (migración 0023, decisiones 9.x): un anticipo calculado en otra moneda (la del
+  destino) se entrega y se legaliza en la de la compañía (`advances.settlement_*`; `Advance.ledger_currency` /
+  `ledger_amount` mandan en el saldo, las conversiones de facturas, la conciliación, el Excel, WhatsApp y Siesa).
+  Estimado con la tasa del día al pedirlo; al desembolsar tesorería fija lo entregado. Retiros en el exterior
+  (`cash_withdrawals`, `application/withdrawals.py`): bolsas con la tasa oficial del día o la debitada; las facturas en
+  efectivo las gastan FIFO (`domain/withdrawals.py`, se recalcula todo el anticipo en cada cambio y se guarda en
+  `expenses.cash_allocations`); lo no cubierto va con la tasa del día y la regla `cash_without_withdrawal` lo manda a
+  revisión. La comisión es un gasto `withdrawal_fee` que se maneja desde el retiro.
 - 3b, primera parte (migración 0013): sesión de WhatsApp (`whatsapp_sessions`: ventana de 24 h de
   Meta y conversación nueva tras `whatsapp.session_ttl_minutes`), presentador puro
   (`whatsapp_presenter.py`, con los límites de Meta y el formato de moneda de

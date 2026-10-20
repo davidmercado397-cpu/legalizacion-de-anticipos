@@ -84,23 +84,29 @@ async def test_previous_month_close_policy(harness: Harness) -> None:
         headers=await harness.login(admin),
         json={"exchange_rate_policy": "previous_month_close"},
     )
-    harness.extractor.respond = lambda _r, _n: [invoice(currency="COP", total=Decimal("390000"), invoice_date=date(2026, 10, 13))]
+    # El anticipo en dólares se legaliza en pesos (la moneda de la compañía): la factura en USD se convierte
+    # con la TRM del cierre del mes anterior a la factura.
+    harness.extractor.respond = lambda _r, _n: [invoice(currency="USD", total=Decimal("100"), invoice_date=date(2026, 10, 13))]
     expense_id = await _upload(harness, emp_h)
     read = (await harness.client.get(f"/api/v1/expenses/{expense_id}", headers=emp_h)).json()
     assert read["exchange_rate_date"] == "2026-09-30" and read["exchange_rate_source"] == "trm"
     confirmed = await harness.client.post(f"/api/v1/expenses/{expense_id}/confirm", headers=emp_h, json={})
-    assert Decimal(confirmed.json()["amount_applied"]) == Decimal("100.00")
+    assert Decimal(confirmed.json()["amount_applied"]) == Decimal("390000.00")
 
 
-async def test_a_dollar_advance_also_shows_its_balance_in_pesos(harness: Harness) -> None:
+async def test_a_dollar_advance_is_delivered_and_legalized_in_pesos(harness: Harness) -> None:
     today = harness.container.clock.now().date()
     await _rates(harness, today - timedelta(days=10), 11, cop="4000", eur="0.8")
     _, emp_h, advance_id = await _setup(harness, currency="USD")
-    balance = (await harness.client.get(f"/api/v1/advances/{advance_id}", headers=emp_h)).json()["balance"]
-    assert balance["currency"] == "USD" and Decimal(balance["pending"]) == Decimal("4000000")
-    assert balance["functional"]["currency"] == "COP" and Decimal(balance["functional"]["pending"]) == Decimal("16000000000")
+    detail = (await harness.client.get(f"/api/v1/advances/{advance_id}", headers=emp_h)).json()
+    # Calculado en USD, se entrega y se legaliza en pesos: estimado con la TRM de hoy.
+    assert detail["currency"] == "USD" and detail["settlement_currency"] == "COP"
+    assert Decimal(detail["settlement_rate"]) == Decimal("4000")
+    balance = detail["balance"]
+    assert balance["currency"] == "COP" and Decimal(balance["pending"]) == Decimal("16000000000")
+    assert balance["functional"] is None
     mine = (await harness.client.get("/api/v1/me/balances", headers=emp_h)).json()["data"]
-    assert mine[0]["balance"]["functional"]["currency"] == "COP"
+    assert mine[0]["balance"]["currency"] == "COP"
 
 
 async def test_rates_endpoints_and_sync(harness: Harness) -> None:

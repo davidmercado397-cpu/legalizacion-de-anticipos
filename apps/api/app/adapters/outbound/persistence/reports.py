@@ -65,8 +65,11 @@ class SqlReportRepository:
                 _c.name,
                 _a.destination,
                 _a.status,
-                _a.currency,
-                _a.amount,
+                # Lo calculado en otra moneda se legaliza en la de la compañía (settlement_*).
+                sa.func.coalesce(_a.settlement_currency, _a.currency).label("currency"),
+                sa.case((_a.settlement_currency.is_(None), _a.amount), else_=sa.func.coalesce(_a.settlement_amount, 0)).label(
+                    "amount"
+                ),
                 sa.func.coalesce(applied.c.applied, 0).label("applied"),
                 _a.end_date,
                 _a.approved_at,
@@ -126,9 +129,10 @@ class SqlReportRepository:
                 _a.id,
                 _emp.full_name,
                 _c.name,
-                _a.currency,
+                sa.func.coalesce(_a.settlement_currency, _a.currency).label("currency"),
                 budget.c.category,
-                budget.c.budget,
+                # El presupuesto está en la moneda del cálculo; lo legalizado, en la de liquidación.
+                (budget.c.budget * sa.func.coalesce(_a.settlement_rate, 1)).label("budget"),
                 sa.func.coalesce(spent.c.spent, 0),
             )
             .select_from(

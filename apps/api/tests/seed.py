@@ -48,6 +48,8 @@ def seed_settings() -> list[dict[str, Any]]:
             rows[row["key"]] = dict(row)
         for key, value in getattr(module, "SETTING_UPDATES", {}).items():
             rows[key]["value"] = value
+        for key, value in getattr(module, "SETTING_MERGES", {}).items():
+            rows[key]["value"] = {**rows[key]["value"], **value}
         for row in getattr(module, "REMOVED_SETTINGS", []):
             rows.pop(row["key"], None)
     for key, value in TEST_VALUES.items():

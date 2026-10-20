@@ -258,6 +258,10 @@ advances = sa.Table(
     sa.Column("disbursed_by", sa.Uuid, sa.ForeignKey("employees.id")),
     sa.Column("disbursement_method", enum(DisbursementMethod)),
     sa.Column("disbursement_ref", sa.String(120)),
+    sa.Column("settlement_currency", sa.String(3)),
+    sa.Column("settlement_amount", MONEY),
+    sa.Column("settlement_rate", sa.Numeric(18, 8)),
+    sa.Column("settlement_rate_date", sa.Date),
     sa.Column("settlement_status", enum(SettlementStatus)),
     sa.Column("settled_at", TZ),
     sa.Column("settled_by", sa.Uuid, sa.ForeignKey("employees.id")),
@@ -344,6 +348,8 @@ expenses = sa.Table(
     sa.Column("bank_amount", MONEY),
     sa.Column("bank_currency", sa.String(3)),
     sa.Column("amount_before_bank", MONEY),
+    sa.Column("cash_allocations", pg.JSONB, nullable=False, server_default="[]"),
+    sa.Column("cash_uncovered", MONEY),
     sa.Column("created_at", TZ, nullable=False),
     sa.Column("updated_at", TZ, nullable=False),
     sa.UniqueConstraint("employee_id", "client_ref", name="uq_expenses_employee_client_ref"),
@@ -480,6 +486,27 @@ bank_statements = sa.Table(
     sa.Column("ai_cached_tokens", sa.Integer),
     sa.Column("ai_cost_usd", sa.Numeric(12, 6)),
     sa.UniqueConstraint("company_id", "file_sha256", name="uq_bank_statements_company_file"),
+)
+
+cash_withdrawals = sa.Table(
+    "cash_withdrawals",
+    metadata,
+    sa.Column("id", sa.Uuid, primary_key=True),
+    sa.Column("advance_id", sa.Uuid, sa.ForeignKey("advances.id", ondelete="CASCADE"), nullable=False, index=True),
+    sa.Column("employee_id", sa.Uuid, sa.ForeignKey("employees.id"), nullable=False),
+    sa.Column("withdrawn_on", sa.Date, nullable=False),
+    sa.Column("currency", sa.String(3), nullable=False),
+    sa.Column("amount", MONEY, nullable=False),
+    sa.Column("official_rate", sa.Numeric(18, 8)),
+    sa.Column("official_rate_date", sa.Date),
+    sa.Column("official_source", enum(ExchangeRateSource)),
+    sa.Column("debited_amount", MONEY),
+    sa.Column("fee_amount", MONEY),
+    sa.Column("fee_expense_id", sa.Uuid, sa.ForeignKey("expenses.id")),
+    sa.Column("note", sa.String(300)),
+    sa.Column("updated_by", sa.Uuid, sa.ForeignKey("employees.id")),
+    sa.Column("created_at", TZ, nullable=False),
+    sa.Column("updated_at", TZ, nullable=False),
 )
 
 statement_movements = sa.Table(

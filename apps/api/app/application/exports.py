@@ -69,9 +69,9 @@ class LegalizationExporter:
             ("Empleado", f"{owner.full_name} ({owner.email})"),
             ("Anticipo", f"{advance.label} · {advance.kind}"),
             ("Estado", str(advance.status)),
-            ("Entregado", msg.money(detail.balance.amount, advance.currency)),
-            ("Legalizado", msg.money(detail.balance.applied, advance.currency)),
-            ("Pendiente", msg.money(detail.balance.pending, advance.currency)),
+            ("Entregado", msg.money(detail.balance.amount, detail.balance.currency)),
+            ("Legalizado", msg.money(detail.balance.applied, detail.balance.currency)),
+            ("Pendiente", msg.money(detail.balance.pending, detail.balance.currency)),
         ]
         by_expense: dict[uuid.UUID, list[ExpenseLine]] = {}
         for line in lines:

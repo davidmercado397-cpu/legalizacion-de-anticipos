@@ -19,6 +19,7 @@ from app.domain.entities import (
     AuditEntry,
     BankStatement,
     BlockedConcept,
+    CashWithdrawal,
     Category,
     ClassificationExample,
     Company,
@@ -430,6 +431,13 @@ class StatementRepository(Protocol):
         ...
 
 
+class WithdrawalRepository(Protocol):
+    async def add(self, withdrawal: CashWithdrawal) -> None: ...
+    async def get(self, withdrawal_id: uuid.UUID) -> CashWithdrawal | None: ...
+    async def list_for_advance(self, advance_id: uuid.UUID) -> list[CashWithdrawal]: ...
+    async def delete(self, withdrawal: CashWithdrawal) -> None: ...
+
+
 class UnitOfWork(Protocol):
     companies: CompanyRepository
     employees: EmployeeRepository
@@ -454,6 +462,7 @@ class UnitOfWork(Protocol):
     reports: ReportRepository
     examples: ExampleRepository
     statements: StatementRepository
+    withdrawals: WithdrawalRepository
 
     async def __aenter__(self) -> UnitOfWork: ...
     async def __aexit__(self, *exc: object) -> None: ...

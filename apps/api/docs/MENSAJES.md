@@ -160,6 +160,7 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `receipt_not_signed` | El recibo de caja debe estar firmado por quien te vendió |
 | `missing_fiscal_id` | La factura electrónica no trae el CUFE (o código de validación): la revisará contabilidad |
 | `excessive_tip` | La propina ({tip}) supera la sugerida ({suggested}): el exceso no es reembolsable |
+| `cash_without_withdrawal` | {value} de este pago en efectivo no sale de ningún retiro registrado: va con la tasa del día y la revisa contabilidad |
 
 ## Advertencias de lectura
 
@@ -285,6 +286,10 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `expense_not_confirmable` | Este gasto no se puede confirmar porque está in_review. |
 | `missing_total_currency` | Para confirmar el gasto falta el total o la moneda. |
 | `converted_amount_required` | La factura está en USD y el anticipo en COP: indica el valor equivalente en COP. |
+| `settlement_amount_required` | No se pudo completar la acción. |
+| `withdrawal_rate_missing` | No se pudo completar la acción. |
+| `withdrawal_same_currency` | Ese retiro está en la misma moneda del anticipo: no hace falta registrarlo. |
+| `withdrawal_fee_expense` | Esta comisión es de un retiro: cámbiala o bórrala desde el retiro. |
 | `justification_required` | Este gasto necesita una justificación antes de confirmarlo. |
 | `policy_blocked` | Este gasto está bloqueado por la política de gastos. Puedes corregirlo, descartarlo o esperar la revisión de tu aprobador. |
 | `expense_not_reviewable` | Solo se revisan gastos confirmados o bloqueados por la política. |

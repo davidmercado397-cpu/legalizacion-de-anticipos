@@ -81,7 +81,7 @@ def _detail_text(view: ExpenseView, shown_lines: int) -> str:
     if view.advance is not None:
         template = msg.DETAIL_ADVANCE_BY_DATE if view.by_date else msg.DETAIL_ADVANCE
         blocks.append(
-            template.format(label=view.advance.label, pending=msg.money(view.pending_after, view.advance.currency, fmt))
+            template.format(label=view.advance.label, pending=msg.money(view.pending_after, view.advance.ledger_currency, fmt))
         )
     return "\n\n".join(b for b in blocks if b)
 
@@ -222,8 +222,8 @@ def expense_rows(expenses: list[Expense], fmt: NumberFormat) -> list[ListRow]:
 def submit_summary(advance: Advance, applied: Decimal, count: int, fmt: NumberFormat) -> str:
     return msg.SUBMIT_SUMMARY.format(
         label=advance.label,
-        applied=msg.money(applied, advance.currency, fmt),
-        amount=msg.money(advance.amount, advance.currency, fmt),
+        applied=msg.money(applied, advance.ledger_currency, fmt),
+        amount=msg.money(advance.ledger_amount, advance.ledger_currency, fmt),
         count=msg.expenses_count(count),
     )
 
@@ -254,8 +254,8 @@ def legalization_reminder(
         "name": first_name,
         "destination": advance.destination or advance.purpose,
         "end": short_date(advance.end_date),
-        "applied": msg.money(applied, advance.currency, fmt),
-        "amount": msg.money(advance.amount, advance.currency, fmt),
+        "applied": msg.money(applied, advance.ledger_currency, fmt),
+        "amount": msg.money(advance.ledger_amount, advance.ledger_currency, fmt),
     }
     text = msg.LEGALIZATION_REMINDER.format(**values)
     if pending_count:

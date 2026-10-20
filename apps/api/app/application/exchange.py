@@ -79,14 +79,14 @@ class ExchangeRateService:
     async def convert_expense(self, uow: UnitOfWork, expense: Expense, advance: Advance | None) -> None:
         """Deja la tasa automática del gasto hacia la moneda del anticipo (o la borra si no aplica).
         El usuario igual puede mandar su propio valor convertido al confirmar (tasa manual)."""
-        if advance is None or not expense.currency or expense.currency == advance.currency or expense.total is None:
+        if advance is None or not expense.currency or expense.currency == advance.ledger_currency or expense.total is None:
             expense.clear_conversion()
             return
         company = await uow.companies.get(advance.company_id)
         assert company is not None
         invoice_day = expense.invoice_date or local_date(self._clock.now(), company.timezone)
         conversion = await self.conversion(
-            uow, expense.currency, advance.currency, rate_day(invoice_day, company.exchange_rate_policy)
+            uow, expense.currency, advance.ledger_currency, rate_day(invoice_day, company.exchange_rate_policy)
         )
         if conversion is None:
             expense.clear_conversion()

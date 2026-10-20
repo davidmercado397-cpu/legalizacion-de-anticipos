@@ -18,6 +18,7 @@ from app.domain.entities import (
     AuditEntry,
     BankStatement,
     BlockedConcept,
+    CashWithdrawal,
     Category,
     ClassificationExample,
     Company,
@@ -683,6 +684,22 @@ class SqlStatementRepository(_Repo):
         c = t.statement_movements.c
         stmt = sa.select(c.expense_id).where(c.statement_id != statement_id, c.expense_id.in_(expense_ids))
         return {e for e in (await self._s.scalars(stmt)).all() if e is not None}
+
+
+class SqlWithdrawalRepository(_Repo):
+    async def add(self, withdrawal: CashWithdrawal) -> None:
+        self._s.add(withdrawal)
+
+    async def get(self, withdrawal_id: uuid.UUID) -> CashWithdrawal | None:
+        return await self._s.get(CashWithdrawal, withdrawal_id)
+
+    async def list_for_advance(self, advance_id: uuid.UUID) -> list[CashWithdrawal]:
+        c = t.cash_withdrawals.c
+        stmt = sa.select(CashWithdrawal).where(c.advance_id == advance_id).order_by(c.withdrawn_on, c.created_at)
+        return list((await self._s.scalars(stmt)).all())
+
+    async def delete(self, withdrawal: CashWithdrawal) -> None:
+        await self._s.delete(withdrawal)
 
 
 class SqlExampleRepository(_Repo):

@@ -53,6 +53,7 @@ class ExpenseSource(StrEnum):
     WHATSAPP = "whatsapp"
     APP = "app"
     BANK = "bank"  # cargo del extracto sin factura que la empresa asume (conciliación)
+    WITHDRAWAL_FEE = "withdrawal_fee"  # comisión de un retiro en el exterior (la registra el viajero o tesorería)
 
 
 class DocumentType(StrEnum):
@@ -129,6 +130,7 @@ class ExchangeRateSource(StrEnum):
     ECB = "ecb"  # tasa de referencia del Banco Central Europeo (vía Frankfurter)
     ECB_CROSS = "ecb_cross"  # cruce: moneda -> USD (BCE) -> COP (TRM)
     MANUAL = "manual"  # valor convertido que digitó el usuario o contabilidad
+    WITHDRAWAL = "withdrawal"  # pagado en efectivo con un retiro: la tasa del retiro (FIFO)
 
 
 class ExchangeRatePolicy(StrEnum):

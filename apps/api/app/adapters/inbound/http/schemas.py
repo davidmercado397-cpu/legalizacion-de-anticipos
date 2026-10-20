@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from app.application.messages import COLOMBIAN, escalation_text
 from app.application.whatsapp_presenter import finding_text
 from app.domain.budgets import TripLeg
-from app.domain.entities import Advance, AdvanceBalance, ApproverDelegation, Company, Employee, Expense
+from app.domain.entities import Advance, AdvanceBalance, ApproverDelegation, CashWithdrawal, Company, Employee, Expense
 from app.domain.enums import (
     AdvanceKind,
     AdvanceStatus,
@@ -441,6 +441,12 @@ class AdvanceOut(Model):
     disbursed_by: uuid.UUID | None
     disbursement_method: DisbursementMethod | None
     disbursement_ref: str | None
+    settlement_currency: str | None = Field(
+        description="Moneda en que se entrega y se legaliza si el anticipo se calculó en otra (la de la compañía)"
+    )
+    settlement_amount: Decimal | None = Field(description="Lo entregado en `settlement_currency` (estimado hasta desembolsar)")
+    settlement_rate: Decimal | None
+    settlement_rate_date: date | None
     settlement_status: SettlementStatus | None
     settled_at: datetime | None
     settled_by: uuid.UUID | None
@@ -458,6 +464,12 @@ class FileOut(BaseModel):
     mime_type: str | None
     expires_at: datetime
     thumbnail_url: str | None
+
+
+class CashDrawOut(BaseModel):
+    withdrawal_id: uuid.UUID
+    amount: Decimal
+    rate: Decimal
 
 
 class ExpenseOut(Model):
@@ -529,6 +541,8 @@ class ExpenseOut(Model):
     )
     bank_amount: Decimal | None = Field(description="Valor cobrado por el banco, en `bank_currency`")
     bank_currency: str | None
+    cash_allocations: list[CashDrawOut] = Field(description="Pagado en efectivo: qué parte salió de cada retiro y a qué tasa")
+    cash_uncovered: Decimal | None = Field(description="Parte en efectivo que ningún retiro cubre (va con la tasa del día)")
     amount_before_bank: Decimal | None = Field(description="Valor por la factura antes del ajuste del banco")
     file: FileOut | None = Field(default=None, description="URLs firmadas de corta duración del original y la miniatura")
 
@@ -548,6 +562,7 @@ class AdvanceDetailOut(AdvanceOut):
     company_timezone: str = Field(description="Las fechas vienen con el offset de esta zona")
     employee: OwnerOut
     expenses: list[ExpenseDetailOut]
+    withdrawals: list[WithdrawalOut] = Field(description="Retiros de efectivo en otra moneda (bolsas FIFO)")
 
 
 class TimelineEventOut(BaseModel):
@@ -583,6 +598,57 @@ class DisburseIn(BaseModel):
     method: DisbursementMethod
     reference: str | None = Field(default=None, max_length=120)
     disbursed_at: datetime | None = Field(default=None, description="Vacío = ahora")
+    amount: Decimal | None = Field(
+        default=None,
+        gt=0,
+        max_digits=16,
+        decimal_places=2,
+        description="Calculado en otra moneda: lo entregado en la de la compañía. Vacío = con la tasa del día",
+    )
+
+
+class WithdrawalIn(BaseModel):
+    withdrawn_on: date
+    currency: str = Field(min_length=3, max_length=3)
+    amount: Decimal = Field(gt=0, max_digits=16, decimal_places=2, description="Lo retirado, en `currency`")
+    debited_amount: Decimal | None = Field(
+        default=None, gt=0, max_digits=16, decimal_places=2, description="Lo que debitó el banco, en la moneda de legalización"
+    )
+    fee_amount: Decimal | None = Field(default=None, ge=0, max_digits=16, decimal_places=2, description="Comisión del retiro")
+    note: str | None = Field(default=None, max_length=300)
+
+
+class WithdrawalPatch(BaseModel):
+    """Solo cambia lo que viene. Tesorería solo puede cambiar lo debitado, la comisión y la nota."""
+
+    withdrawn_on: date | None = None
+    currency: str | None = Field(default=None, min_length=3, max_length=3)
+    amount: Decimal | None = Field(default=None, gt=0, max_digits=16, decimal_places=2)
+    debited_amount: Decimal | None = Field(default=None, gt=0, max_digits=16, decimal_places=2)
+    fee_amount: Decimal | None = Field(default=None, ge=0, max_digits=16, decimal_places=2)
+    note: str | None = Field(default=None, max_length=300)
+
+
+class WithdrawalOut(BaseModel):
+    id: uuid.UUID
+    withdrawn_on: date
+    currency: str
+    amount: Decimal
+    official_rate: Decimal | None = Field(description="Tasa oficial del día del retiro hacia la moneda de legalización")
+    official_rate_date: date | None
+    official_source: ExchangeRateSource | None
+    debited_amount: Decimal | None
+    fee_amount: Decimal | None
+    rate: Decimal | None = Field(description="La que se usa: la del banco si se conoce, si no la oficial")
+    value: Decimal | None = Field(description="Lo que costó el retiro en la moneda de legalización")
+    remaining: Decimal | None = Field(description="Lo que queda sin gastar, en `currency`")
+    note: str | None
+    updated_at: datetime
+
+    @classmethod
+    def of(cls, w: CashWithdrawal, remaining: Decimal | None = None) -> WithdrawalOut:
+        data = {f: getattr(w, f) for f in cls.model_fields if f != "remaining"}
+        return cls.model_validate({**data, "remaining": remaining})
 
 
 class SettleIn(BaseModel):

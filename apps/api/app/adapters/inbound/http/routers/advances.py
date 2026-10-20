@@ -27,6 +27,7 @@ from app.adapters.inbound.http.schemas import (
     ReturnSuggestionOut,
     SettleIn,
     TimelineEventOut,
+    WithdrawalOut,
     advance_out,
     expense_out,
     localize,
@@ -106,6 +107,7 @@ async def get_advance(advance_id: uuid.UUID, actor: CurrentEmployee, container: 
         company_timezone=view.company.timezone,
         employee=OwnerOut.model_validate(view.owner),
         expenses=expenses,
+        withdrawals=[WithdrawalOut.of(w.withdrawal, w.remaining) for w in detail.withdrawals],
     )
     return localize(out, view.company.timezone)
 
@@ -185,7 +187,7 @@ async def reopen(advance_id: uuid.UUID, body: RequiredNoteIn, actor: CurrentEmpl
 
 @router.post("/{advance_id}/disburse", response_model=AdvanceOut, summary="Record that treasury delivered the money")
 async def disburse(advance_id: uuid.UUID, body: DisburseIn, actor: CurrentEmployee, container: ContainerDep) -> AdvanceOut:
-    advance = await container.treasury.disburse(actor, advance_id, body.method, body.reference, body.disbursed_at)
+    advance = await container.treasury.disburse(actor, advance_id, body.method, body.reference, body.disbursed_at, body.amount)
     return await _out(container, advance)
 
 

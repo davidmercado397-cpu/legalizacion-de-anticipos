@@ -76,7 +76,9 @@ def _for_employee(
         case AdvanceEventType.CLOSED:
             pending = advance.balance(expenses).pending
             settlement = advance.settlement_status.value if advance.settlement_status else "none"
-            result = msg.NOTICE_SETTLEMENT.get(settlement, "").format(amount=msg.money(abs(pending), advance.currency, fmt))
+            result = msg.NOTICE_SETTLEMENT.get(settlement, "").format(
+                amount=msg.money(abs(pending), advance.ledger_currency, fmt)
+            )
             return Reply(_join(msg.NOTICE_CLOSED.format(**values), result)), msg.NOTICE_CLOSED_LINE.format(**values)
         case _:
             return Reply(msg.NOTICE_DISBURSED.format(**values)), msg.NOTICE_DISBURSED_LINE.format(**values)

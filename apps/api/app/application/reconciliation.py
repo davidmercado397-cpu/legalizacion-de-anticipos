@@ -402,7 +402,7 @@ class ReconciliationService:
         """Total de la factura en la moneda del extracto."""
         if expense.currency == currency:
             return expense.total
-        if currency == advance.currency:
+        if currency == advance.ledger_currency:
             return expense.invoice_amount
         if expense.total is None or expense.currency is None or expense.invoice_date is None:
             return None
@@ -410,9 +410,9 @@ class ReconciliationService:
         return conversion.apply(expense.total) if conversion else None
 
     async def _to_advance(self, uow: UnitOfWork, amount: Decimal, currency: str, advance: Advance, day: date) -> Decimal | None:
-        if currency == advance.currency:
+        if currency == advance.ledger_currency:
             return amount
-        conversion = await self._rates.conversion(uow, currency, advance.currency, day)
+        conversion = await self._rates.conversion(uow, currency, advance.ledger_currency, day)
         return conversion.apply(amount) if conversion else None
 
     async def _advance(

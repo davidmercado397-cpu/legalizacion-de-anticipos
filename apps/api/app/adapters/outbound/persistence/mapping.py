@@ -11,6 +11,7 @@ from app.domain.entities import (
     AuditEntry,
     BankStatement,
     BlockedConcept,
+    CashWithdrawal,
     Category,
     ClassificationExample,
     Company,
@@ -63,5 +64,6 @@ def start_mappers() -> None:
     mapper_registry.map_imperatively(WhatsAppSession, t.whatsapp_sessions)
     mapper_registry.map_imperatively(HeldNotice, t.whatsapp_held_notices)
     mapper_registry.map_imperatively(BankStatement, t.bank_statements)
+    mapper_registry.map_imperatively(CashWithdrawal, t.cash_withdrawals)
     mapper_registry.map_imperatively(StatementMovement, t.statement_movements)
     _started = True

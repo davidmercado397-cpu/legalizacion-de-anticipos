@@ -434,6 +434,31 @@
             ],
             "title": "Settled By"
           },
+          "settlement_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lo entregado en `settlement_currency` (estimado hasta desembolsar)",
+            "title": "Settlement Amount"
+          },
+          "settlement_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Moneda en que se entrega y se legaliza si el anticipo se calculó en otra (la de la compañía)",
+            "title": "Settlement Currency"
+          },
           "settlement_method": {
             "anyOf": [
               {
@@ -443,6 +468,30 @@
                 "type": "null"
               }
             ]
+          },
+          "settlement_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settlement Rate"
+          },
+          "settlement_rate_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settlement Rate Date"
           },
           "settlement_ref": {
             "anyOf": [
@@ -491,6 +540,14 @@
               }
             ],
             "title": "Submitted At"
+          },
+          "withdrawals": {
+            "description": "Retiros de efectivo en otra moneda (bolsas FIFO)",
+            "items": {
+              "$ref": "#/components/schemas/WithdrawalOut"
+            },
+            "title": "Withdrawals",
+            "type": "array"
           }
         },
         "required": [
@@ -532,6 +589,10 @@
           "disbursed_by",
           "disbursement_method",
           "disbursement_ref",
+          "settlement_currency",
+          "settlement_amount",
+          "settlement_rate",
+          "settlement_rate_date",
           "settlement_status",
           "settled_at",
           "settled_by",
@@ -541,7 +602,8 @@
           "balance",
           "company_timezone",
           "employee",
-          "expenses"
+          "expenses",
+          "withdrawals"
         ],
         "title": "AdvanceDetailOut",
         "type": "object"
@@ -1045,6 +1107,31 @@
             ],
             "title": "Settled By"
           },
+          "settlement_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lo entregado en `settlement_currency` (estimado hasta desembolsar)",
+            "title": "Settlement Amount"
+          },
+          "settlement_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Moneda en que se entrega y se legaliza si el anticipo se calculó en otra (la de la compañía)",
+            "title": "Settlement Currency"
+          },
           "settlement_method": {
             "anyOf": [
               {
@@ -1054,6 +1141,30 @@
                 "type": "null"
               }
             ]
+          },
+          "settlement_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settlement Rate"
+          },
+          "settlement_rate_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settlement Rate Date"
           },
           "settlement_ref": {
             "anyOf": [
@@ -1143,6 +1254,10 @@
           "disbursed_by",
           "disbursement_method",
           "disbursement_ref",
+          "settlement_currency",
+          "settlement_amount",
+          "settlement_rate",
+          "settlement_rate_date",
           "settlement_status",
           "settled_at",
           "settled_by",
@@ -1520,6 +1635,31 @@
             ],
             "title": "Settled By"
           },
+          "settlement_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lo entregado en `settlement_currency` (estimado hasta desembolsar)",
+            "title": "Settlement Amount"
+          },
+          "settlement_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Moneda en que se entrega y se legaliza si el anticipo se calculó en otra (la de la compañía)",
+            "title": "Settlement Currency"
+          },
           "settlement_method": {
             "anyOf": [
               {
@@ -1529,6 +1669,30 @@
                 "type": "null"
               }
             ]
+          },
+          "settlement_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settlement Rate"
+          },
+          "settlement_rate_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settlement Rate Date"
           },
           "settlement_ref": {
             "anyOf": [
@@ -1618,6 +1782,10 @@
           "disbursed_by",
           "disbursement_method",
           "disbursement_ref",
+          "settlement_currency",
+          "settlement_amount",
+          "settlement_rate",
+          "settlement_rate_date",
           "settlement_status",
           "settled_at",
           "settled_by",
@@ -2591,6 +2759,32 @@
         "title": "CashCapIn",
         "type": "object"
       },
+      "CashDrawOut": {
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "rate": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Rate",
+            "type": "string"
+          },
+          "withdrawal_id": {
+            "format": "uuid",
+            "title": "Withdrawal Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "withdrawal_id",
+          "amount",
+          "rate"
+        ],
+        "title": "CashDrawOut",
+        "type": "object"
+      },
       "CategoryIn": {
         "properties": {
           "accounting_account": {
@@ -3405,6 +3599,23 @@
       },
       "DisburseIn": {
         "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Calculado en otra moneda: lo entregado en la de la compañía. Vacío = con la tasa del día",
+            "title": "Amount"
+          },
           "disbursed_at": {
             "anyOf": [
               {
@@ -4175,7 +4386,8 @@
           "trm",
           "ecb",
           "ecb_cross",
-          "manual"
+          "manual",
+          "withdrawal"
         ],
         "title": "ExchangeRateSource",
         "type": "string"
@@ -4275,6 +4487,27 @@
               }
             ],
             "title": "Buyer Tax Id"
+          },
+          "cash_allocations": {
+            "description": "Pagado en efectivo: qué parte salió de cada retiro y a qué tasa",
+            "items": {
+              "$ref": "#/components/schemas/CashDrawOut"
+            },
+            "title": "Cash Allocations",
+            "type": "array"
+          },
+          "cash_uncovered": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Parte en efectivo que ningún retiro cubre (va con la tasa del día)",
+            "title": "Cash Uncovered"
           },
           "category": {
             "anyOf": [
@@ -4895,6 +5128,8 @@
           "bank_status",
           "bank_amount",
           "bank_currency",
+          "cash_allocations",
+          "cash_uncovered",
           "amount_before_bank",
           "lines"
         ],
@@ -5147,6 +5382,27 @@
               }
             ],
             "title": "Buyer Tax Id"
+          },
+          "cash_allocations": {
+            "description": "Pagado en efectivo: qué parte salió de cada retiro y a qué tasa",
+            "items": {
+              "$ref": "#/components/schemas/CashDrawOut"
+            },
+            "title": "Cash Allocations",
+            "type": "array"
+          },
+          "cash_uncovered": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Parte en efectivo que ningún retiro cubre (va con la tasa del día)",
+            "title": "Cash Uncovered"
           },
           "category": {
             "anyOf": [
@@ -5760,6 +6016,8 @@
           "bank_status",
           "bank_amount",
           "bank_currency",
+          "cash_allocations",
+          "cash_uncovered",
           "amount_before_bank"
         ],
         "title": "ExpenseOut",
@@ -6024,7 +6282,8 @@
         "enum": [
           "whatsapp",
           "app",
-          "bank"
+          "bank",
+          "withdrawal_fee"
         ],
         "title": "ExpenseSource",
         "type": "string"
@@ -8755,6 +9014,335 @@
         ],
         "title": "WhatsAppLinkStatus",
         "type": "string"
+      },
+      "WithdrawalIn": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "description": "Lo retirado, en `currency`",
+            "title": "Amount"
+          },
+          "currency": {
+            "maxLength": 3,
+            "minLength": 3,
+            "title": "Currency",
+            "type": "string"
+          },
+          "debited_amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lo que debitó el banco, en la moneda de legalización",
+            "title": "Debited Amount"
+          },
+          "fee_amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Comisión del retiro",
+            "title": "Fee Amount"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "withdrawn_on": {
+            "format": "date",
+            "title": "Withdrawn On",
+            "type": "string"
+          }
+        },
+        "required": [
+          "withdrawn_on",
+          "currency",
+          "amount"
+        ],
+        "title": "WithdrawalIn",
+        "type": "object"
+      },
+      "WithdrawalOut": {
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "debited_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Debited Amount"
+          },
+          "fee_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fee Amount"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "official_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Tasa oficial del día del retiro hacia la moneda de legalización",
+            "title": "Official Rate"
+          },
+          "official_rate_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Official Rate Date"
+          },
+          "official_source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExchangeRateSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "La que se usa: la del banco si se conoce, si no la oficial",
+            "title": "Rate"
+          },
+          "remaining": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lo que queda sin gastar, en `currency`",
+            "title": "Remaining"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lo que costó el retiro en la moneda de legalización",
+            "title": "Value"
+          },
+          "withdrawn_on": {
+            "format": "date",
+            "title": "Withdrawn On",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "withdrawn_on",
+          "currency",
+          "amount",
+          "official_rate",
+          "official_rate_date",
+          "official_source",
+          "debited_amount",
+          "fee_amount",
+          "rate",
+          "value",
+          "remaining",
+          "note",
+          "updated_at"
+        ],
+        "title": "WithdrawalOut",
+        "type": "object"
+      },
+      "WithdrawalPatch": {
+        "description": "Solo cambia lo que viene. Tesorería solo puede cambiar lo debitado, la comisión y la nota.",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "maxLength": 3,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "debited_amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Debited Amount"
+          },
+          "fee_amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fee Amount"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "withdrawn_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Withdrawn On"
+          }
+        },
+        "title": "WithdrawalPatch",
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -9976,6 +10564,64 @@
         "summary": "Void an approved advance without expenses",
         "tags": [
           "advances"
+        ]
+      }
+    },
+    "/api/v1/advances/{advance_id}/withdrawals": {
+      "post": {
+        "operationId": "create_withdrawal_api_v1_advances__advance_id__withdrawals_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "advance_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Advance Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawalIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WithdrawalOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "The traveler records a cash withdrawal in another currency",
+        "tags": [
+          "withdrawals"
         ]
       }
     },
@@ -14539,6 +15185,103 @@
         "summary": "Documents processed and AI cost of a month",
         "tags": [
           "reports"
+        ]
+      }
+    },
+    "/api/v1/withdrawals/{withdrawal_id}": {
+      "delete": {
+        "operationId": "delete_withdrawal_api_v1_withdrawals__withdrawal_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "withdrawal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Withdrawal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "The traveler deletes a withdrawal",
+        "tags": [
+          "withdrawals"
+        ]
+      },
+      "patch": {
+        "operationId": "update_withdrawal_api_v1_withdrawals__withdrawal_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "withdrawal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Withdrawal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawalPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WithdrawalOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Change a withdrawal (treasury: only the debited amount, the fee and the note)",
+        "tags": [
+          "withdrawals"
         ]
       }
     },

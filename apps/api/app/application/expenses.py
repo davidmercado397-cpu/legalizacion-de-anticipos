@@ -13,6 +13,7 @@ from app.application.exchange import ExchangeRateService
 from app.application.learning import LearningService
 from app.application.policies import PolicyEvaluator
 from app.application.settings import SettingsService, check_currency
+from app.application.withdrawals import WithdrawalService
 from app.domain.deductibility import DeductibilityBreakdown, breakdown
 from app.domain.entities import Advance, AuditEntry, Employee, Expense, ExpenseLine
 from app.domain.enums import Channel, Deductibility, ExpenseSource, ExpenseStatus, ReviewDecision
@@ -54,8 +55,10 @@ class ExpenseService:
         settings: SettingsService,
         rates: ExchangeRateService,
         learning: LearningService,
+        withdrawals: WithdrawalService | None = None,
     ) -> None:
         self._uow = uow
+        self._withdrawals = withdrawals
         self._settings = settings
         self._rates = rates
         self._learning = learning
@@ -228,6 +231,7 @@ class ExpenseService:
             expense.confirm(advance, self._clock.now(), amount_applied, justification)
             expense.confirmed_by = actor.id
             expense.resolve_return_mark(self._clock.now())
+            await self._reallocate_cash(uow, advance)
             await uow.audit.add(AuditEntry("expense_confirmed", "expense", str(expense.id), actor.id, channel))
             await uow.commit()
         return expense
@@ -237,8 +241,13 @@ class ExpenseService:
             expense = await self._owned(uow, actor, expense_id)
             if expense.advance_id and not await self._advance_editable(uow, expense.advance_id):
                 raise InvalidOperationError("The advance is already in review or closed", code="legalization_locked")
+            if expense.source == ExpenseSource.WITHDRAWAL_FEE:
+                raise InvalidOperationError("The fee belongs to a withdrawal", code="withdrawal_fee_expense")
             expense.discard(self._clock.now())
             expense.resolve_return_mark(self._clock.now())
+            advance = await uow.advances.get(expense.advance_id) if expense.advance_id else None
+            if advance is not None:
+                await self._reallocate_cash(uow, advance)
             await uow.audit.add(AuditEntry("expense_discarded", "expense", str(expense.id), actor.id, channel))
             await uow.commit()
         return expense
@@ -369,6 +378,12 @@ class ExpenseService:
         if expense.employee_id != actor.id:
             raise PermissionDeniedError("Only the owner can change this expense", code="owner_only")
         return expense
+
+    async def _reallocate_cash(self, uow: UnitOfWork, advance: Advance) -> None:
+        """Una factura en efectivo confirmada o descartada cambia lo que queda de cada retiro."""
+        if self._withdrawals is not None:
+            await uow.flush()
+            await self._withdrawals.reallocate(uow, advance)
 
     @staticmethod
     async def _require_open_advance(uow: UnitOfWork, employee_id: uuid.UUID) -> None:

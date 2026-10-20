@@ -256,6 +256,19 @@ class ExcessiveTipRule(PolicyRule):
         return [Finding(self.rule_type, action, "excessive_tip", detail)]
 
 
+class CashWithoutWithdrawalRule(PolicyRule):
+    """Pagado en efectivo en otra moneda sin un retiro registrado que lo cubra: se valoró con la tasa del día de
+    la factura en vez de la del retiro, así que contabilidad lo revisa (no frena al viajero)."""
+
+    rule_type = "cash_without_withdrawal"
+
+    def evaluate(self, ctx: PolicyContext, params: dict[str, Any], action: PolicyAction) -> list[Finding]:
+        uncovered = ctx.expense.cash_uncovered
+        if not uncovered or uncovered <= 0:
+            return []
+        return [Finding(self.rule_type, action, "cash_without_withdrawal", {"value": str(uncovered)})]
+
+
 class ItemizedRequiredRule(PolicyRule):
     rule_type = "itemized_required"
 
@@ -288,6 +301,7 @@ RULES: dict[str, PolicyRule] = {
         BuyerNotCompanyRule(),
         MissingFiscalIdRule(),
         ExcessiveTipRule(),
+        CashWithoutWithdrawalRule(),
         ItemizedRequiredRule(),
         LowConfidenceRule(),
     )

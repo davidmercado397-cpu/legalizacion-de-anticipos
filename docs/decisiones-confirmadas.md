@@ -101,3 +101,14 @@ están el flujo, los estados y el botón; falta conectar su API (credenciales y 
 | 8.7 | Sesión de 7 días aceptada | Sin cambios |
 | 8.8 | Usuarios gestionados por un administrador | Rol `admin` y pantalla de usuarios |
 | 8.9 | Facturas en otros idiomas | La IA las lee en español, inglés y portugués, sin traducirlas (ajuste del 16/10) |
+
+## 9. Moneda de la compañía y retiros en el exterior (20/10)
+
+| # | Decisión | En el sistema |
+|---|----------|---------------|
+| 9.1 | Cada compañía tiene su moneda local (COP, USD, MXN, EUR, BRL) y la elige el administrador al crearla | Lista de monedas soportadas en el formulario de compañías |
+| 9.2 | El anticipo se calcula en la moneda del destino (p. ej. BRL), pero la empresa lo entrega y lo liquida en su moneda | `settlement_currency`: estimado con la tasa del día al pedirlo; saldo, facturas y diferencia en la moneda de la compañía |
+| 9.3 | Al desembolsar, el valor en la moneda de la compañía sale con la tasa del día y tesorería lo puede cambiar | `POST /advances/{id}/disburse` con `amount` opcional |
+| 9.4 | El viajero registra cada retiro de efectivo en el exterior; cada retiro es una bolsa con la tasa oficial del día del retiro, o con lo que debitó el banco si se conoce | `cash_withdrawals`; las facturas en efectivo gastan los retiros en orden (FIFO) con la tasa de cada uno, y una factura puede salir de dos retiros |
+| 9.5 | Una factura en efectivo que ningún retiro cubre va con la tasa del día de la factura y la revisa contabilidad | Regla `cash_without_withdrawal` (acción `review`), no frena al viajero |
+| 9.6 | Lo debitado y la comisión del retiro casi nunca se conocen ese día: el viajero o tesorería los completan después, hasta que se cierra la legalización | Tesorería edita lo debitado y la comisión; la comisión cuenta como un gasto más en la moneda de la compañía |

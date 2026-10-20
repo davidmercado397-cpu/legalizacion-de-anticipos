@@ -347,6 +347,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/advances/{advance_id}/withdrawals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The traveler records a cash withdrawal in another currency */
+        post: operations["create_withdrawal_api_v1_advances__advance_id__withdrawals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ai-costs": {
         parameters: {
             query?: never;
@@ -1462,6 +1479,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/withdrawals/{withdrawal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** The traveler deletes a withdrawal */
+        delete: operations["delete_withdrawal_api_v1_withdrawals__withdrawal_id__delete"];
+        options?: never;
+        head?: never;
+        /** Change a withdrawal (treasury: only the debited amount, the fee and the note) */
+        patch: operations["update_withdrawal_api_v1_withdrawals__withdrawal_id__patch"];
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -1684,7 +1719,21 @@ export interface components {
             settled_at: string | null;
             /** Settled By */
             settled_by: string | null;
+            /**
+             * Settlement Amount
+             * @description Lo entregado en `settlement_currency` (estimado hasta desembolsar)
+             */
+            settlement_amount: string | null;
+            /**
+             * Settlement Currency
+             * @description Moneda en que se entrega y se legaliza si el anticipo se calculó en otra (la de la compañía)
+             */
+            settlement_currency: string | null;
             settlement_method: components["schemas"]["SettlementMethod"] | null;
+            /** Settlement Rate */
+            settlement_rate: string | null;
+            /** Settlement Rate Date */
+            settlement_rate_date: string | null;
             /** Settlement Ref */
             settlement_ref: string | null;
             settlement_status: components["schemas"]["SettlementStatus"] | null;
@@ -1693,6 +1742,11 @@ export interface components {
             status: components["schemas"]["AdvanceStatus"];
             /** Submitted At */
             submitted_at: string | null;
+            /**
+             * Withdrawals
+             * @description Retiros de efectivo en otra moneda (bolsas FIFO)
+             */
+            withdrawals: components["schemas"]["WithdrawalOut"][];
         };
         /** AdvanceIn */
         AdvanceIn: {
@@ -1848,7 +1902,21 @@ export interface components {
             settled_at: string | null;
             /** Settled By */
             settled_by: string | null;
+            /**
+             * Settlement Amount
+             * @description Lo entregado en `settlement_currency` (estimado hasta desembolsar)
+             */
+            settlement_amount: string | null;
+            /**
+             * Settlement Currency
+             * @description Moneda en que se entrega y se legaliza si el anticipo se calculó en otra (la de la compañía)
+             */
+            settlement_currency: string | null;
             settlement_method: components["schemas"]["SettlementMethod"] | null;
+            /** Settlement Rate */
+            settlement_rate: string | null;
+            /** Settlement Rate Date */
+            settlement_rate_date: string | null;
             /** Settlement Ref */
             settlement_ref: string | null;
             settlement_status: components["schemas"]["SettlementStatus"] | null;
@@ -1966,7 +2034,21 @@ export interface components {
             settled_at: string | null;
             /** Settled By */
             settled_by: string | null;
+            /**
+             * Settlement Amount
+             * @description Lo entregado en `settlement_currency` (estimado hasta desembolsar)
+             */
+            settlement_amount: string | null;
+            /**
+             * Settlement Currency
+             * @description Moneda en que se entrega y se legaliza si el anticipo se calculó en otra (la de la compañía)
+             */
+            settlement_currency: string | null;
             settlement_method: components["schemas"]["SettlementMethod"] | null;
+            /** Settlement Rate */
+            settlement_rate: string | null;
+            /** Settlement Rate Date */
+            settlement_rate_date: string | null;
             /** Settlement Ref */
             settlement_ref: string | null;
             settlement_status: components["schemas"]["SettlementStatus"] | null;
@@ -2342,6 +2424,18 @@ export interface components {
             /** Currency */
             currency: string;
         };
+        /** CashDrawOut */
+        CashDrawOut: {
+            /** Amount */
+            amount: string;
+            /** Rate */
+            rate: string;
+            /**
+             * Withdrawal Id
+             * Format: uuid
+             */
+            withdrawal_id: string;
+        };
         /** CategoryIn */
         CategoryIn: {
             /** Accounting Account */
@@ -2626,6 +2720,11 @@ export interface components {
         /** DisburseIn */
         DisburseIn: {
             /**
+             * Amount
+             * @description Calculado en otra moneda: lo entregado en la de la compañía. Vacío = con la tasa del día
+             */
+            amount?: number | string | null;
+            /**
              * Disbursed At
              * @description Vacío = ahora
              */
@@ -2867,7 +2966,7 @@ export interface components {
          * ExchangeRateSource
          * @enum {string}
          */
-        ExchangeRateSource: "trm" | "ecb" | "ecb_cross" | "manual";
+        ExchangeRateSource: "trm" | "ecb" | "ecb_cross" | "manual" | "withdrawal";
         /** ExpenseDetailOut */
         ExpenseDetailOut: {
             /** Advance Id */
@@ -2892,6 +2991,16 @@ export interface components {
             bank_status: components["schemas"]["BankStatus"] | null;
             /** Buyer Tax Id */
             buyer_tax_id: string | null;
+            /**
+             * Cash Allocations
+             * @description Pagado en efectivo: qué parte salió de cada retiro y a qué tasa
+             */
+            cash_allocations: components["schemas"]["CashDrawOut"][];
+            /**
+             * Cash Uncovered
+             * @description Parte en efectivo que ningún retiro cubre (va con la tasa del día)
+             */
+            cash_uncovered: string | null;
             /** Category */
             category: string | null;
             /** Client Ref */
@@ -3095,6 +3204,16 @@ export interface components {
             bank_status: components["schemas"]["BankStatus"] | null;
             /** Buyer Tax Id */
             buyer_tax_id: string | null;
+            /**
+             * Cash Allocations
+             * @description Pagado en efectivo: qué parte salió de cada retiro y a qué tasa
+             */
+            cash_allocations: components["schemas"]["CashDrawOut"][];
+            /**
+             * Cash Uncovered
+             * @description Parte en efectivo que ningún retiro cubre (va con la tasa del día)
+             */
+            cash_uncovered: string | null;
             /** Category */
             category: string | null;
             /** Client Ref */
@@ -3284,7 +3403,7 @@ export interface components {
          * ExpenseSource
          * @enum {string}
          */
-        ExpenseSource: "whatsapp" | "app" | "bank";
+        ExpenseSource: "whatsapp" | "app" | "bank" | "withdrawal_fee";
         /**
          * ExpenseStatus
          * @enum {string}
@@ -4297,6 +4416,102 @@ export interface components {
          * @enum {string}
          */
         WhatsAppLinkStatus: "none" | "pending" | "active";
+        /** WithdrawalIn */
+        WithdrawalIn: {
+            /**
+             * Amount
+             * @description Lo retirado, en `currency`
+             */
+            amount: number | string;
+            /** Currency */
+            currency: string;
+            /**
+             * Debited Amount
+             * @description Lo que debitó el banco, en la moneda de legalización
+             */
+            debited_amount?: number | string | null;
+            /**
+             * Fee Amount
+             * @description Comisión del retiro
+             */
+            fee_amount?: number | string | null;
+            /** Note */
+            note?: string | null;
+            /**
+             * Withdrawn On
+             * Format: date
+             */
+            withdrawn_on: string;
+        };
+        /** WithdrawalOut */
+        WithdrawalOut: {
+            /** Amount */
+            amount: string;
+            /** Currency */
+            currency: string;
+            /** Debited Amount */
+            debited_amount: string | null;
+            /** Fee Amount */
+            fee_amount: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Note */
+            note: string | null;
+            /**
+             * Official Rate
+             * @description Tasa oficial del día del retiro hacia la moneda de legalización
+             */
+            official_rate: string | null;
+            /** Official Rate Date */
+            official_rate_date: string | null;
+            official_source: components["schemas"]["ExchangeRateSource"] | null;
+            /**
+             * Rate
+             * @description La que se usa: la del banco si se conoce, si no la oficial
+             */
+            rate: string | null;
+            /**
+             * Remaining
+             * @description Lo que queda sin gastar, en `currency`
+             */
+            remaining: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Value
+             * @description Lo que costó el retiro en la moneda de legalización
+             */
+            value: string | null;
+            /**
+             * Withdrawn On
+             * Format: date
+             */
+            withdrawn_on: string;
+        };
+        /**
+         * WithdrawalPatch
+         * @description Solo cambia lo que viene. Tesorería solo puede cambiar lo debitado, la comisión y la nota.
+         */
+        WithdrawalPatch: {
+            /** Amount */
+            amount?: number | string | null;
+            /** Currency */
+            currency?: string | null;
+            /** Debited Amount */
+            debited_amount?: number | string | null;
+            /** Fee Amount */
+            fee_amount?: number | string | null;
+            /** Note */
+            note?: string | null;
+            /** Withdrawn On */
+            withdrawn_on?: string | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -5033,6 +5248,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdvanceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_withdrawal_api_v1_advances__advance_id__withdrawals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                advance_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WithdrawalIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithdrawalOut"];
                 };
             };
             /** @description Validation Error */
@@ -7618,6 +7868,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UsageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_withdrawal_api_v1_withdrawals__withdrawal_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                withdrawal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_withdrawal_api_v1_withdrawals__withdrawal_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                withdrawal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WithdrawalPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithdrawalOut"];
                 };
             };
             /** @description Validation Error */

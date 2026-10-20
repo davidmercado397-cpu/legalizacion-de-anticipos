@@ -24,6 +24,7 @@ from app.adapters.inbound.http.routers import (
     reports,
     statements,
     webhook,
+    withdrawals,
 )
 from app.adapters.inbound.http.routers import settings as settings_router
 from app.config import Settings, get_settings
@@ -102,7 +103,20 @@ def create_app(settings: Settings | None = None, overrides: Overrides | None = N
     app.include_router(webhook.router)
     prefix = settings.API_PREFIX
     # budgets va antes que advances: /advances/budget-preview no debe caer en /advances/{advance_id}.
-    routers = (auth, admin, policies, budgets, advances, statements, expenses, examples, exchange_rates, reports, settings_router)
+    routers = (
+        auth,
+        admin,
+        policies,
+        budgets,
+        advances,
+        statements,
+        withdrawals,
+        expenses,
+        examples,
+        exchange_rates,
+        reports,
+        settings_router,
+    )
     for router in (r.router for r in routers):
         app.include_router(router, prefix=prefix)
     logging.getLogger(__name__).info("API ready (env=%s)", settings.APP_ENV)

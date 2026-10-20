@@ -65,6 +65,7 @@ from app.application.whatsapp_flows import FlowDataExchange, FlowHandler, FlowLa
 from app.application.whatsapp_identity import WhatsAppIdentityService
 from app.application.whatsapp_menu import MenuHandler
 from app.application.whatsapp_notifier import WhatsAppNotifier, WhatsAppSessions
+from app.application.withdrawals import WithdrawalService
 from app.config import Settings
 from app.domain.ports import (
     Clock,
@@ -140,6 +141,7 @@ class Container:
     reconciliation: ReconciliationService
     flow_exchange: FlowDataExchange
     flow_crypto: FlowCrypto | None
+    withdrawals: WithdrawalService
     extras: dict[str, object] = field(default_factory=dict)
 
     async def close(self) -> None:
@@ -262,7 +264,8 @@ def build_container(settings: Settings, overrides: Overrides | None = None) -> C
     contexts = CompanyContextProvider(uow, versions, runtime)
     learning = LearningService(uow, access, clock, runtime, evaluator, contexts)
     events = AdvanceEvents()
-    advances = AdvanceService(uow, access, runtime, rates, budgets, clock, learning, events)
+    withdrawals = WithdrawalService(uow, access, clock, runtime, rates, evaluator)
+    advances = AdvanceService(uow, access, runtime, rates, budgets, clock, learning, events, withdrawals)
     policies = PolicyConfigService(uow, access, contexts, clock, runtime)
     expenses = ExpenseService(
         uow,
@@ -275,6 +278,7 @@ def build_container(settings: Settings, overrides: Overrides | None = None) -> C
         runtime,
         rates,
         learning,
+        withdrawals,
     )
     exporter = LegalizationExporter(uow, advances, OpenpyxlWriter())
     identity = WhatsAppIdentityService(
@@ -387,7 +391,7 @@ def build_container(settings: Settings, overrides: Overrides | None = None) -> C
         rates,
         budgets,
         LegalizationService(uow, advances, expenses),
-        TreasuryService(uow, access, clock, events),
+        TreasuryService(uow, access, clock, events, rates),
         contexts,
         ReportService(uow, access, runtime, clock),
         learning,
@@ -400,6 +404,7 @@ def build_container(settings: Settings, overrides: Overrides | None = None) -> C
         reconciliation,
         FlowDataExchange(uow, tokens, budgets, runtime),
         build_flow_crypto(settings),
+        withdrawals,
         {"storage": storage, "sender": sender, "reminders": reminders, "sessions": sessions, "tokens": tokens},
     )
 

@@ -270,6 +270,8 @@ FINDING_LABELS = {
     "receipt_not_signed": "El recibo de caja debe estar firmado por quien te vendió",
     "missing_fiscal_id": "La factura electrónica no trae el CUFE (o código de validación): la revisará contabilidad",
     "excessive_tip": "La propina ({tip}) supera la sugerida ({suggested}): el exceso no es reembolsable",
+    "cash_without_withdrawal": "{value} de este pago en efectivo no sale de ningún retiro registrado: va con la tasa del día "
+    "y la revisa contabilidad",
 }
 NEEDS_JUSTIFICATION_HINT = "✍️ Necesita una justificación antes de confirmarse"
 BLOCKED_HINT = "⛔ Bloqueado: lo revisará tu aprobador"
@@ -515,6 +517,10 @@ ERROR_MESSAGES: dict[str, ErrorText] = {
         "La factura está en {expense_currency} y el anticipo en {advance_currency}: indica el valor equivalente en "
         "{advance_currency}."
     ),
+    "settlement_amount_required": "No hay tasa de cambio del día: escribe cuánto se entregó en {currency}.",
+    "withdrawal_rate_missing": "No hay tasa de cambio para ese día: escribe cuánto te debitó el banco en {currency}.",
+    "withdrawal_same_currency": "Ese retiro está en la misma moneda del anticipo: no hace falta registrarlo.",
+    "withdrawal_fee_expense": "Esta comisión es de un retiro: cámbiala o bórrala desde el retiro.",
     "justification_required": "Este gasto necesita una justificación antes de confirmarlo.",
     "policy_blocked": (
         "Este gasto está bloqueado por la política de gastos. Puedes corregirlo, descartarlo o esperar la revisión de tu "
@@ -660,6 +666,7 @@ RETURN_SUGGESTIONS = {
     "receipt_not_signed": "El recibo debe estar firmado por quien te vendió.",
     "missing_fiscal_id": "La factura electrónica no trae el CUFE: confirma que sea una factura válida.",
     "excessive_tip": "La propina supera la sugerida: el exceso no se reembolsa.",
+    "cash_without_withdrawal": "Pagaste en efectivo sin un retiro que lo cubra: registra el retiro con el que pagaste.",
     "owner_concept_override": "Cambiaste el concepto de una línea marcada como no reembolsable: explica por qué.",
 }
 RECEIPT_FIELD_LABELS = {
@@ -752,4 +759,6 @@ RULE_DESCRIPTIONS = {
     "low_confidence": "La IA no está segura del proveedor, la fecha o el total.",
     "missing_fiscal_id": "Factura electrónica sin CUFE, UUID o chave de acesso: la decide contabilidad.",
     "excessive_tip": "Propina por encima de la sugerida (porcentaje del consumo); el exceso no es reembolsable.",
+    "cash_without_withdrawal": "Pago en efectivo en otra moneda que ningún retiro registrado cubre: va con la tasa del día "
+    "de la factura y lo decide contabilidad.",
 }

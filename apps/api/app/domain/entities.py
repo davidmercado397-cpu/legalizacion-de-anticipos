@@ -531,6 +531,13 @@ class Advance:
     disbursed_by: uuid.UUID | None = None
     disbursement_method: DisbursementMethod | None = None
     disbursement_ref: str | None = None
+    # Anticipo calculado en otra moneda (p. ej. BRL por el destino) que la compañía entrega y liquida en la suya:
+    # la legalización va en `settlement_currency`. Estimado al pedirlo con la tasa del día; al desembolsar queda
+    # lo que tesorería entregó. None = se legaliza en la moneda del anticipo (misma moneda que la compañía).
+    settlement_currency: str | None = None
+    settlement_amount: Decimal | None = None
+    settlement_rate: Decimal | None = None  # 1 unidad de la moneda del anticipo = esta cantidad en la de liquidación
+    settlement_rate_date: date | None = None
     settlement_status: SettlementStatus | None = None  # se fija al cerrar
     settled_at: datetime | None = None
     settled_by: uuid.UUID | None = None
@@ -697,10 +704,30 @@ class Advance:
         self.closed_at = self.closed_by = None
         self.decided_by, self.decided_at, self.decision_note = actor_id, now, note
 
+    @property
+    def ledger_currency(self) -> str:
+        """La moneda en que se legaliza y se liquida la diferencia."""
+        return self.settlement_currency or self.currency
+
+    @property
+    def ledger_amount(self) -> Decimal:
+        if self.settlement_currency is None:
+            return self.amount
+        return self.settlement_amount or Decimal(0)
+
+    def set_settlement(self, amount: Decimal, rate: Decimal, rate_date: date) -> None:
+        if amount <= 0:
+            raise InvalidOperationError("Settlement amount must be positive", code="negative_amount")
+        self.settlement_amount, self.settlement_rate, self.settlement_rate_date = amount, rate, rate_date
+
     def disburse(self, actor_id: uuid.UUID, method: DisbursementMethod, reference: str | None, when: datetime) -> None:
         self._require(AdvanceStatus.APPROVED, "disburse")
         if self.disbursed_at is not None:
             raise InvalidOperationError("Already disbursed", code="advance_already_disbursed")
+        if self.settlement_currency is not None and self.settlement_amount is None:
+            raise InvalidOperationError(
+                "Settlement amount required", code="settlement_amount_required", currency=self.settlement_currency
+            )
         self.disbursed_at, self.disbursed_by = when, actor_id
         self.disbursement_method, self.disbursement_ref = method, reference
 
@@ -726,8 +753,8 @@ class Advance:
     def balance(self, expenses: list[Expense]) -> AdvanceBalance:
         counted = [e for e in expenses if e.counts_against(self.id)]
         applied = sum((e.applied_net for e in counted), Decimal(0))
-        disbursed = self.amount if self.disbursed_at is not None else Decimal(0)
-        return AdvanceBalance(self.currency, self.amount, applied, len(counted), disbursed)
+        disbursed = self.ledger_amount if self.disbursed_at is not None else Decimal(0)
+        return AdvanceBalance(self.ledger_currency, self.ledger_amount, applied, len(counted), disbursed)
 
     def _require(self, status: AdvanceStatus, action: str) -> None:
         if self.status != status:
@@ -818,8 +845,8 @@ class Expense:
     ai_confidence: float | None = None
     ai_snapshot: dict[str, Any] | None = None  # lo que leyó la IA, separado de las ediciones del usuario
     field_sources: dict[str, str] = field(default_factory=dict)
-    amount_applied: Decimal | None = None  # valor en la moneda del anticipo
-    exchange_rate: Decimal | None = None  # 1 unidad de la moneda del gasto = esta cantidad en la del anticipo
+    amount_applied: Decimal | None = None  # valor en la moneda en que se legaliza el anticipo (ledger_currency)
+    exchange_rate: Decimal | None = None  # 1 unidad de la moneda del gasto = esta cantidad en la de legalización
     exchange_rate_source: ExchangeRateSource | None = None
     exchange_rate_date: date | None = None
     warnings: list[str] = field(default_factory=list)  # alertas de lectura (calidad de la IA)
@@ -852,6 +879,10 @@ class Expense:
     bank_amount: Decimal | None = None  # valor cobrado, en la moneda del extracto
     bank_currency: str | None = None
     amount_before_bank: Decimal | None = None  # valor por la factura, para volver a él si se deshace el cruce
+    # Pagado en efectivo en otra moneda: qué parte salió de cada retiro (domain/withdrawals.py) y cuánto no
+    # alcanzó a cubrirse con retiros (va con la tasa del día de la factura y queda para revisión).
+    cash_allocations: list[dict[str, Any]] = field(default_factory=list)
+    cash_uncovered: Decimal | None = None
     id: uuid.UUID = field(default_factory=uuid.uuid4)
     created_at: datetime = field(default_factory=utcnow)
     updated_at: datetime = field(default_factory=utcnow)
@@ -1049,12 +1080,12 @@ class Expense:
             self.clear_conversion()
         elif amount_applied is not None:
             self.amount_applied = amount_applied
-            if self.currency != advance.currency:
+            if self.currency != advance.ledger_currency:
                 self.exchange_rate = (amount_applied / self.total).quantize(Decimal("0.00000001"))
                 self.exchange_rate_source, self.exchange_rate_date = ExchangeRateSource.MANUAL, now.date()
             else:
                 self.clear_conversion()
-        elif self.currency == advance.currency:
+        elif self.currency == advance.ledger_currency:
             self.amount_applied = self.total
             self.clear_conversion()
         elif self.exchange_rate is None:
@@ -1062,7 +1093,7 @@ class Expense:
                 "Converted amount required",
                 code="converted_amount_required",
                 expense_currency=self.currency,
-                advance_currency=advance.currency,
+                advance_currency=advance.ledger_currency,
             )
         else:
             self.amount_applied = (self.total * self.exchange_rate).quantize(Decimal("0.01"))
@@ -1083,6 +1114,26 @@ class Expense:
     def apply_conversion(self, rate: Decimal, source: ExchangeRateSource, rate_date: date) -> None:
         """Tasa automática hacia la moneda del anticipo; el valor convertido se fija al confirmar."""
         self.exchange_rate, self.exchange_rate_source, self.exchange_rate_date = rate, source, rate_date
+
+    def apply_cash(
+        self,
+        allocations: list[dict[str, Any]],
+        uncovered: Decimal,
+        applied: tuple[Decimal, Decimal, ExchangeRateSource, date] | None,
+        now: datetime,
+    ) -> bool:
+        """Lo que salió de cada retiro. `applied` = (valor legalizado, tasa efectiva, origen, fecha); None deja el
+        valor como está (el empleado escribió el suyo, o no hay tasa). Devuelve si cambió algo."""
+        before = (self.cash_allocations, self.cash_uncovered, self.amount_applied, self.exchange_rate)
+        self.cash_allocations, self.cash_uncovered = allocations, (uncovered or None)
+        if applied is not None:
+            self.amount_applied, self.exchange_rate, self.exchange_rate_source, self.exchange_rate_date = applied
+            if self.review_status == ReviewStatus.ACCEPTED_PARTIAL:
+                self.non_reimbursable_amount = self._non_reimbursable_in_advance_currency()
+        changed = before != (self.cash_allocations, self.cash_uncovered, self.amount_applied, self.exchange_rate)
+        if changed:
+            self.touch(now)
+        return changed
 
     def clear_conversion(self) -> None:
         self.exchange_rate = self.exchange_rate_source = self.exchange_rate_date = None
@@ -1231,6 +1282,48 @@ class ExtractionAttempt:
     error: str | None = None
     id: uuid.UUID = field(default_factory=uuid.uuid4)
     created_at: datetime = field(default_factory=utcnow)
+
+
+@dataclass(eq=False)
+class CashWithdrawal:
+    """Un retiro de efectivo en otra moneda durante el viaje: una bolsa que las facturas pagadas en efectivo en
+    esa moneda van gastando en orden (FIFO), cada una con la tasa del retiro."""
+
+    advance_id: uuid.UUID
+    employee_id: uuid.UUID
+    withdrawn_on: date
+    currency: str
+    amount: Decimal  # lo retirado, en `currency`
+    official_rate: Decimal | None = None  # tasa oficial del día hacia la moneda de legalización
+    official_rate_date: date | None = None
+    official_source: ExchangeRateSource | None = None
+    debited_amount: Decimal | None = None  # lo que debitó el banco en la moneda de legalización (viajero o tesorería)
+    fee_amount: Decimal | None = None  # comisión del retiro, en la moneda de legalización
+    fee_expense_id: uuid.UUID | None = None  # la comisión cuenta como un gasto confirmado más
+    note: str | None = None
+    updated_by: uuid.UUID | None = None
+    id: uuid.UUID = field(default_factory=uuid.uuid4)
+    created_at: datetime = field(default_factory=utcnow)
+    updated_at: datetime = field(default_factory=utcnow)
+
+    def __post_init__(self) -> None:
+        self.currency = self.currency.upper()
+        if self.amount <= 0:
+            raise InvalidOperationError("Withdrawal amount must be positive", code="negative_amount")
+
+    @property
+    def rate(self) -> Decimal | None:
+        """La tasa con la que se valoran las facturas pagadas con este retiro: la del banco si se conoce."""
+        if self.debited_amount is not None:
+            return (self.debited_amount / self.amount).quantize(Decimal("0.00000001"))
+        return self.official_rate
+
+    @property
+    def value(self) -> Decimal | None:
+        """Lo que costó el retiro en la moneda de legalización."""
+        if self.debited_amount is not None:
+            return self.debited_amount
+        return None if self.official_rate is None else (self.amount * self.official_rate).quantize(Decimal("0.01"))
 
 
 @dataclass(eq=False)

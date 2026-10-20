@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from collections import defaultdict
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 from enum import StrEnum
@@ -18,6 +18,7 @@ from app.application.exchange import ExchangeRateService
 from app.application.learning import LearningService
 from app.application.reconciliation import unresolved_items
 from app.application.settings import SettingsService, check_currency
+from app.application.withdrawals import WithdrawalService, WithdrawalView
 from app.domain.approvals import Approver, build_route, escalation_reasons
 from app.domain.budgets import TripLeg
 from app.domain.entities import Advance, AdvanceBalance, AuditEntry, Company, Employee, Expense
@@ -69,6 +70,7 @@ class AdvanceDetail:
     balance: AdvanceBalance
     expenses: list[Expense]
     functional: FunctionalBalance | None = None
+    withdrawals: list[WithdrawalView] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -134,7 +136,9 @@ class AdvanceService:
         clock: Clock,
         learning: LearningService,
         events: AdvanceEvents,
+        withdrawals: WithdrawalService | None = None,
     ) -> None:
+        self._withdrawals = withdrawals
         self._events = events
         self._uow = uow
         self._clock = clock
@@ -204,6 +208,8 @@ class AdvanceService:
                 approval_steps=steps,
                 escalation_reasons=reasons,
             )
+            if currency != company.currency:
+                await self._estimate_settlement(uow, advance, company)
             await uow.advances.add(advance)
             await uow.audit.add(
                 AuditEntry(
@@ -217,6 +223,15 @@ class AdvanceService:
             await uow.commit()
         await self._events.emit(AdvanceEventType.REQUESTED, advance.id, actor.id)
         return advance
+
+    async def _estimate_settlement(self, uow: UnitOfWork, advance: Advance, company: Company) -> None:
+        """Calculado en otra moneda, se entrega y se legaliza en la de la compañía: el valor estimado con la tasa
+        de hoy (al desembolsar queda lo que tesorería entregó). Sin tasa, lo fija tesorería al desembolsar."""
+        advance.settlement_currency = company.currency
+        today = local_date(self._clock.now(), company.timezone)
+        conversion = await self._rates.conversion(uow, advance.currency, company.currency, today)
+        if conversion is not None and advance.amount > 0:
+            advance.set_settlement(conversion.apply(advance.amount), conversion.rate, conversion.day)
 
     async def _route(self, uow: UnitOfWork, requester: Employee, company_id: uuid.UUID, escalated: bool) -> list[dict[str, Any]]:
         """Jefe inmediato; si escala, también el jefe directivo (el jefe del jefe). Sin jefe, la gerencia."""
@@ -297,7 +312,8 @@ class AdvanceService:
             expenses = await uow.expenses.list_for_advance(advance_id)
             balance = advance.balance(expenses)
             functional = await self._functional(uow, advance, balance)
-        return AdvanceDetail(advance, balance, expenses, functional)
+            withdrawals = await self._withdrawals.views(uow, advance, expenses) if self._withdrawals else []
+        return AdvanceDetail(advance, balance, expenses, functional, withdrawals)
 
     async def open_balances(self, employee_id: uuid.UUID) -> list[OpenBalance]:
         async with self._uow() as uow:
@@ -311,7 +327,7 @@ class AdvanceService:
 
     async def _functional(self, uow: UnitOfWork, advance: Advance, balance: AdvanceBalance) -> FunctionalBalance | None:
         company: Company | None = await uow.companies.get(advance.company_id)
-        if company is None or company.currency == advance.currency:
+        if company is None or company.currency == advance.ledger_currency:
             return None
         conversion = await self._rates.to_functional(uow, advance, company)
         if conversion is None:
