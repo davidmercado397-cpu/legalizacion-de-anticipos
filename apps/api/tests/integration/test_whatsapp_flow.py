@@ -168,7 +168,9 @@ async def test_the_same_photo_twice_is_not_read_again(harness: Harness) -> None:
         )
         await harness.drain()
     assert len(harness.extractor.calls) == 1
-    assert harness.wa.of_kind("text")[-1].text.startswith("👍 Esta factura ya la tengo registrada (Restaurante El Cielo")
+    assert harness.wa.of_kind("text")[-1].text.startswith("⚠️ Esta factura ya la tengo registrada (Restaurante El Cielo")
+    # No se sumó: la reacción no puede ser la de un registro exitoso.
+    assert [r.text for r in harness.wa.of_kind("reaction") if r.extra == "wamid.D2"] == ["⏳", "⚠️"]
     expenses = {e["status"]: e for e in await _expenses(harness, emp_h)}
     assert set(expenses) == {"discarded", "extracted"}
     assert expenses["discarded"]["duplicate_of_id"] == expenses["extracted"]["id"]

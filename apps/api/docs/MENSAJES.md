@@ -85,7 +85,7 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `DETAIL_ADVANCE` | 📌 Anticipo {label} · saldo al confirmar: {pending} |
 | `DETAIL_ADVANCE_BY_DATE` | 📌 Por la fecha lo asigné a {label} · saldo al confirmar: {pending} |
 | `REVIEW_READING` | 👀 Es un recibo sin código QR: revisa que el total y la fecha estén bien leídos. |
-| `DUPLICATE_OWN` | 👍 Esta factura ya la tengo registrada ({what}), así que no la sumé otra vez. |
+| `DUPLICATE_OWN` | ⚠️ Esta factura ya la tengo registrada ({what}), así que no la sumé otra vez. |
 | `FLOW_CORRECT_TEXT` | ✏️ Corrige lo que haga falta y guarda: el gasto queda confirmado. |
 | `FLOW_CORRECT_CTA` | Corregir |
 | `FLOW_JUSTIFY_TEXT` | ✍️ Cuéntame por qué este gasto es del viaje y lo confirmo. |

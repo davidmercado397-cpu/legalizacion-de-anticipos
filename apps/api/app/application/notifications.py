@@ -126,5 +126,5 @@ def _reaction(expense: Expense) -> str:
     if expense.status in (ExpenseStatus.UNREADABLE, ExpenseStatus.FAILED):
         return msg.REACTION_ERROR
     if expense.duplicate_of_id is not None:
-        return msg.REACTION_OK
+        return msg.REACTION_WARNING  # no se sumó: no puede verse como un registro exitoso
     return msg.REACTION_WARNING if expense.warnings or expense.policy_findings else msg.REACTION_OK

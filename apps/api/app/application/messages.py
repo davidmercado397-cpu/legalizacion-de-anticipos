@@ -162,7 +162,7 @@ DETAIL_ADVANCE = "📌 Anticipo {label} · saldo al confirmar: {pending}"
 DETAIL_ADVANCE_BY_DATE = "📌 Por la fecha lo asigné a {label} · saldo al confirmar: {pending}"
 REVIEW_READING = "👀 Es un recibo sin código QR: revisa que el total y la fecha estén bien leídos."
 TAX_LABELS = {"iva": "IVA", "inc": "Impoconsumo", "ieps": "IEPS", "itbms": "ITBMS", "other": "Otro impuesto"}
-DUPLICATE_OWN = "👍 Esta factura ya la tengo registrada ({what}), así que no la sumé otra vez."
+DUPLICATE_OWN = "⚠️ Esta factura ya la tengo registrada ({what}), así que no la sumé otra vez."
 # WhatsApp Flows (formularios). El llamado a la acción: máximo 30 caracteres y sin emojis.
 FLOW_CORRECT_TEXT = "✏️ Corrige lo que haga falta y guarda: el gasto queda confirmado."
 FLOW_CORRECT_CTA = "Corregir"
