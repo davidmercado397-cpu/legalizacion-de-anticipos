@@ -14621,6 +14621,26 @@
           "webhook"
         ]
       }
+    },
+    "/webhooks/whatsapp/flows": {
+      "post": {
+        "description": "Códigos que Meta entiende: 421 = no se pudo descifrar (vuelve a leer la llave pública), 427 = el\ntoken del Flow ya no sirve (cierra el formulario). Sin llave configurada, 503.",
+        "operationId": "flow_data_webhooks_whatsapp_flows_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "WhatsApp Flows data endpoint (encrypted)",
+        "tags": [
+          "webhook"
+        ]
+      }
     }
   }
 }

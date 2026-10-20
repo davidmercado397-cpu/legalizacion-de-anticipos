@@ -264,13 +264,21 @@ El adaptador real aún no existe: sin él, todo queda «pendiente» con el aviso
      la ventana no se avisa (queda en el log).
 
 4. **WhatsApp Flows** (formularios). Los JSON versionados están en `whatsapp_flows/` (Flow JSON
-   7.3, sin endpoint de datos):
+   7.3; solo el de solicitar anticipo usa endpoint de datos):
    - `expense_correction.json`: corregir un gasto ([✏️ Corregir]) con los mismos campos del formulario de
      la app (tipo de documento, moneda, subtotal, impuestos, propina, descuento, medio de pago, descripción
      y firma del recibo); al guardar queda confirmado.
    - `justification.json`: justificar un gasto que la política lo pide ([✍️ Justificar]).
-   - `advance_request.json`: solicitar un anticipo (➕ en el menú); con el valor vacío se usa el
-     calculado con las tarifas de viaje.
+   - `advance_request.json`: solicitar un anticipo (➕ en el menú) en dos pantallas: el viaje y, con
+     [Calcular valor], el valor ya calculado con las tarifas de viaje (se puede cambiar justificándolo).
+     La segunda pantalla la arma el endpoint de datos `https://<dominio>/webhooks/whatsapp/flows`:
+     1. `python -m scripts.flows_public_key --generar` y pegar la línea en `WHATSAPP_FLOWS_PRIVATE_KEY`
+        (secreta; si se cifra con clave, esta va en `WHATSAPP_FLOWS_PRIVATE_KEY_PASSPHRASE`).
+     2. Reiniciar la API y `python -m scripts.flows_public_key` para registrar la llave pública en el
+        número de WhatsApp (se repite si cambia la llave).
+     3. En el Flow, *Endpoint* → URL del endpoint, revisar la verificación de estado y publicar.
+     Las peticiones van firmadas (mismo App Secret del webhook) y cifradas (RSA-OAEP + AES-GCM); el
+     token del Flow dice quién pide. Sin llave el endpoint responde 503 y el Flow no se puede publicar.
 
    En WhatsApp Manager → Flows: crear cada Flow, pegar su JSON, publicarlo y guardar su ID en
    `whatsapp.flow_expense_correction_id`, `whatsapp.flow_justification_id` y

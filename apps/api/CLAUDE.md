@@ -92,10 +92,14 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
   Pendientes, Mis gastos, Enviar legalización, Por aprobar con `AdvanceService.decision_queue`) y
   cierre por inactividad con un solo recordatorio (`WhatsAppSessions.close_idle`).
 - 3b, WhatsApp Flows (migración 0014, `whatsapp_flows.py`): corregir, justificar y solicitar anticipo
-  con los JSON de `whatsapp_flows/` (sin endpoint de datos; respuesta `nfm_reply`). El token del Flow
+  con los JSON de `whatsapp_flows/` (respuesta final por `nfm_reply`). El token del Flow
   (JWT `typ=flow`, `FLOW_TOKEN_TTL_MINUTES`) dice quién, para qué y sobre qué registro; responde solo
   si coincide con el remitente. Sin el ID del Flow configurado, el bot remite a la app. El de corregir tiene los
   campos del formulario web (moneda en lista, de `operation.supported_currencies`, que `/me` también expone).
+  El de solicitar anticipo es el único con endpoint de datos (`POST /webhooks/whatsapp/flows`, `FlowDataExchange`):
+  la pantalla del viaje hace `data_exchange` y el endpoint abre AMOUNT con el valor de `TravelBudgetService.preview`.
+  Cifrado en `adapters/inbound/whatsapp/flow_crypto.py` (`WHATSAPP_FLOWS_PRIVATE_KEY`, la pública se registra con
+  `python -m scripts.flows_public_key`); 421 si no descifra, 427 si el token no sirve (control W7).
 - 3b, avisos de estado: `AdvanceService` y `TreasuryService` emiten `AdvanceEvents` después del commit
   (Observer mínimo); `StatusNotices` avisa al empleado (aprobado con razón social y NIT, rechazado,
   anulado, entregado, devuelto con marcas, cerrado con el resultado) y al aprobador (enviada o

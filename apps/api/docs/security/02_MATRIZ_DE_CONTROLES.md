@@ -60,6 +60,7 @@ Estados: ✅ implementado · 🟡 parcial · 📅 planificado · — no aplica.
 | W3 | Idempotencia: un evento repetido por Meta se procesa una sola vez | V11 | 8.20 | ✅ | `test_duplicate_webhook_is_processed_once` |
 | W4 | Un número no registrado no crea nada (ni descarga el archivo ni gasta IA) y **no recibe información** de la empresa | V4, V8 | 5.34 | ✅ | `test_unknown_number_gets_no_expense_and_a_contact_request` |
 | W5 | Vinculación por identificador de Meta (BSUID) confirmada por el propio usuario; el nombre de usuario de WhatsApp nunca se usa como identidad | V2 | 5.16 | ✅ | `app/application/whatsapp_identity.py` |
+| W7 | El endpoint de datos de los Flows solo atiende peticiones con la firma de Meta, cifradas con la llave del negocio (RSA-OAEP + AES-GCM; la privada solo en el entorno) y con un token de Flow vigente para solicitar anticipo de un empleado activo; si no, 403/421/427 sin datos | V9, V3, V13 | 8.20, 8.24 | ✅ | `app/adapters/inbound/whatsapp/flow_crypto.py`; `app/adapters/inbound/http/routers/webhook.py`; `tests/security/test_whatsapp_flow_endpoint.py` |
 | W6 | La respuesta de un formulario (WhatsApp Flow) solo actúa con un token firmado, vigente (`FLOW_TOKEN_TTL_MINUTES`) y emitido para quien responde; en el chat cada quien abre formularios solo de sus propios gastos | V3, V4 | 5.15, 8.5 | ✅ | `app/application/whatsapp_flows.py`; `tests/security/test_whatsapp_flows.py`; `tests/unit/test_whatsapp_client.py::test_flow_token_carries_who_what_and_expires` |
 
 ## Archivos y datos

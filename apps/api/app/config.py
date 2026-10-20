@@ -63,6 +63,10 @@ class Settings(BaseSettings):
     WHATSAPP_ACCESS_TOKEN: str = ""
     WHATSAPP_PHONE_NUMBER_ID: str = ""
     GRAPH_API_VERSION: str = "v24.0"
+    # Llave privada RSA (PEM) del endpoint de datos de los Flows; su pública se registra en Meta con
+    # `python -m scripts.flows_public_key`. Vacía = el Flow de solicitar anticipo no se puede publicar.
+    WHATSAPP_FLOWS_PRIVATE_KEY: str = ""
+    WHATSAPP_FLOWS_PRIVATE_KEY_PASSPHRASE: str = ""
     WEBHOOK_MAX_BODY_BYTES: int = 1_000_000
 
     # --- IA (OpenRouter) ---

@@ -1,8 +1,9 @@
 """WhatsApp Flows (formularios de Meta) para corregir y justificar un gasto y para solicitar un anticipo.
 
-Los Flows se publican en WhatsApp Manager desde `whatsapp_flows/*.json` y no tienen endpoint de datos:
-los datos van precargados al abrirlos y la respuesta llega como un mensaje (`nfm_reply`). Lo que
-identifica la respuesta es el token firmado: quién lo abrió, para qué y sobre qué registro."""
+Los Flows se publican en WhatsApp Manager desde `whatsapp_flows/*.json`: los datos van precargados al
+abrirlos y la respuesta llega como un mensaje (`nfm_reply`). Solo el de solicitar anticipo usa el endpoint
+de datos (`FlowDataExchange`), para mostrar el valor calculado con las tarifas antes de enviarlo. Lo que
+identifica cada respuesta es el token firmado: quién lo abrió, para qué y sobre qué registro."""
 
 from __future__ import annotations
 
@@ -14,6 +15,7 @@ from typing import Any
 
 from app.application import messages as msg
 from app.application.advances import AdvanceRequest, AdvanceService
+from app.application.budgets import TravelBudgetService, TripQuery
 from app.application.expenses import ExpenseService
 from app.application.notifications import ExpenseNotifier
 from app.application.settings import SettingsService
@@ -22,8 +24,8 @@ from app.application.whatsapp_events import InboundMessage, MessageKind
 from app.application.whatsapp_presenter import finding_text
 from app.domain.entities import Employee, Expense
 from app.domain.enums import AdvanceKind, Channel, DocumentType, PaymentMethod, PolicyAction
-from app.domain.errors import AuthenticationError, JustificationRequiredError, NotFoundError
-from app.domain.ports import Clock, FlowMessage, MessageSender, TokenService, UnitOfWorkFactory
+from app.domain.errors import AuthenticationError, DomainError, JustificationRequiredError, NotFoundError
+from app.domain.ports import Clock, FlowMessage, MessageSender, TokenService, UnitOfWork, UnitOfWorkFactory
 from app.domain.values import WhatsAppAddress
 
 logger = logging.getLogger(__name__)
@@ -125,16 +127,9 @@ class FlowLauncher:
         if not current.whatsapp_flow_advance_request_id:
             return msg.REQUEST_IN_APP
         async with self._uow() as uow:
-            companies = [c for c in await uow.companies.find(list(employee.company_ids)) if c.active]
-        if not companies:
+            data = await _request_data(uow, employee)
+        if data is None:
             return msg.REQUEST_IN_APP
-        data = {
-            "companies": [{"id": str(c.id), "title": c.name} for c in companies],
-            "company_id": str(companies[0].id),
-            "kinds": [{"id": kind, "title": label} for kind, label in msg.ADVANCE_KIND_LABELS.items()],
-            "currencies": [{"id": code, "title": code} for code in current.supported_currencies],
-            "currency": companies[0].currency,
-        }
         await self._open(
             to,
             employee,
@@ -172,6 +167,104 @@ class FlowLauncher:
     async def _summary(self, expense: Expense) -> str:
         fmt = await self._notifier.number_format(expense.company_id)
         return " · ".join(p for p in (expense.vendor_name, msg.money(expense.total, expense.currency, fmt)) if p)
+
+
+TRIP_FIELDS = ("company_id", "destination", "purpose", "start_date", "end_date", "kind")
+
+
+class FlowDataExchange:
+    """Endpoint de datos del Flow de solicitar anticipo: con el viaje que escribió el empleado calcula el
+    valor con las tarifas (el mismo cálculo de la app) y abre la pantalla del valor con ese dato ya escrito.
+    Un token inválido o vencido es `AuthenticationError`: el endpoint responde 427 y Meta cierra el Flow."""
+
+    def __init__(
+        self, uow: UnitOfWorkFactory, tokens: TokenService, budgets: TravelBudgetService, settings: SettingsService
+    ) -> None:
+        self._uow = uow
+        self._tokens = tokens
+        self._budgets = budgets
+        self._settings = settings
+
+    async def handle(self, request: dict[str, Any]) -> dict[str, Any]:
+        if request.get("action") == "ping":
+            return {"data": {"status": "active"}}
+        data = request.get("data") or {}
+        if "error" in data:  # el cliente no pudo mostrar la respuesta anterior: Meta solo pide acuse
+            logger.warning("WhatsApp Flow reported an error: %s", data.get("error"))
+            return {"data": {"acknowledged": True}}
+        employee = await self._employee(str(request.get("flow_token") or ""))
+        if request.get("action") == "data_exchange" and request.get("screen") == "REQUEST":
+            return await self._amount_screen(employee, data)
+        return await self._request_screen(employee)
+
+    async def _employee(self, token: str) -> Employee:
+        claims = self._tokens.decode_flow_token(token)
+        if claims.purpose != ADVANCE_REQUEST:
+            raise AuthenticationError("Flow token for another form")
+        async with self._uow() as uow:
+            employee = await uow.employees.get(claims.employee_id)
+        if employee is None or not employee.active:
+            raise AuthenticationError("Flow token of an inactive employee")
+        return employee
+
+    async def _amount_screen(self, employee: Employee, data: dict[str, Any]) -> dict[str, Any]:
+        try:
+            company_id = uuid.UUID(str(data.get("company_id")))
+            start, end = _text(data, "start_date"), _text(data, "end_date")
+            query = TripQuery(
+                company_id,
+                _text(data, "destination"),
+                date.fromisoformat(start) if start else None,
+                date.fromisoformat(end) if end else None,
+            )
+        except ValueError:
+            return await self._request_screen(employee, msg.FLOW_INVALID)
+        try:
+            budget = await self._budgets.preview(employee, query)
+        except NotFoundError as exc:
+            if exc.entity != "travel budget":
+                return await self._request_screen(employee, msg.error_message(exc.code, exc.params))
+            budget = None  # sin tarifas para el destino: el empleado escribe el valor
+        except DomainError as exc:
+            return await self._request_screen(employee, msg.error_message(exc.code, exc.params))
+        current = await self._settings.current()
+        async with self._uow() as uow:
+            company = await uow.companies.get(company_id)
+        assert company is not None  # el cálculo ya verificó que trabaja en ella
+        currency = budget.currency if budget else company.currency
+        currencies = list(dict.fromkeys([*current.supported_currencies, currency]))
+        if budget:
+            fmt = msg.NumberFormat.of((current.country_defaults.get(company.country) or {}).get("number_format"))
+            summary = msg.FLOW_BUDGET.format(amount=msg.money(budget.total, budget.currency, fmt))
+        else:
+            summary = msg.FLOW_NO_BUDGET
+        screen = {
+            **{name: str(data.get(name) or "") for name in TRIP_FIELDS},
+            "summary": summary,
+            "currencies": [{"id": code, "title": code} for code in currencies],
+            "currency": currency,
+            "amount": _plain(budget.total) if budget else "",
+        }
+        return {"screen": "AMOUNT", "data": screen}
+
+    async def _request_screen(self, employee: Employee, error: str | None = None) -> dict[str, Any]:
+        async with self._uow() as uow:
+            data = await _request_data(uow, employee) or {}
+        if error:
+            data["error_message"] = error
+        return {"screen": "REQUEST", "data": data}
+
+
+async def _request_data(uow: UnitOfWork, employee: Employee) -> dict[str, Any] | None:
+    """Datos de la primera pantalla del Flow de solicitar anticipo; None si no trabaja en ninguna compañía activa."""
+    companies = [c for c in await uow.companies.find(list(employee.company_ids)) if c.active]
+    if not companies:
+        return None
+    return {
+        "companies": [{"id": str(c.id), "title": c.name} for c in companies],
+        "company_id": str(companies[0].id),
+        "kinds": [{"id": kind, "title": label} for kind, label in msg.ADVANCE_KIND_LABELS.items()],
+    }
 
 
 class FlowHandler(Handler):

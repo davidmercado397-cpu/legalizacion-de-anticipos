@@ -90,7 +90,9 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `FLOW_CORRECT_CTA` | Corregir |
 | `FLOW_JUSTIFY_TEXT` | ✍️ Cuéntame por qué este gasto es del viaje y lo confirmo. |
 | `FLOW_JUSTIFY_CTA` | Justificar |
-| `FLOW_REQUEST_TEXT` | ➕ Completa los datos del viaje. Si dejas el valor vacío, uso el calculado con las tarifas. |
+| `FLOW_REQUEST_TEXT` | ➕ Completa los datos del viaje y te muestro el valor calculado con las tarifas de viaje. |
+| `FLOW_BUDGET` | 💰 Valor calculado con las tarifas de viaje: {amount}. Si pides otro valor, explica por qué. |
+| `FLOW_NO_BUDGET` | No hay tarifas de viaje para este destino: escribe el valor del anticipo. |
 | `FLOW_REQUEST_CTA` | Solicitar anticipo |
 | `FLOW_EXPIRED` | ⌛ Ese formulario venció. Ábrelo de nuevo desde el menú. |
 | `FLOW_INVALID` | No pude leer los datos del formulario. Ábrelo de nuevo y revísalos. |

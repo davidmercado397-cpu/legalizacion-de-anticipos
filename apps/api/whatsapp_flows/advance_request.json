@@ -1,11 +1,11 @@
 {
   "version": "7.3",
+  "data_api_version": "3.0",
+  "routing_model": {"REQUEST": ["AMOUNT"], "AMOUNT": []},
   "screens": [
     {
       "id": "REQUEST",
       "title": "Solicitar anticipo",
-      "terminal": true,
-      "success": true,
       "data": {
         "companies": {
           "type": "array",
@@ -21,7 +21,40 @@
             {"id": "reloadable_card", "title": "Tarjeta recargable"},
             {"id": "corporate_card", "title": "Tarjeta corporativa"}
           ]
-        },
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {"type": "Dropdown", "name": "company_id", "label": "Compañía", "required": true,
+           "data-source": "${data.companies}", "init-value": "${data.company_id}"},
+          {"type": "TextInput", "name": "destination", "label": "Destino", "input-type": "text", "required": true},
+          {"type": "TextInput", "name": "purpose", "label": "Motivo del viaje", "input-type": "text", "required": true},
+          {"type": "DatePicker", "name": "start_date", "label": "Fecha de salida", "required": true},
+          {"type": "DatePicker", "name": "end_date", "label": "Fecha de regreso", "required": true},
+          {"type": "Dropdown", "name": "kind", "label": "Cómo recibes el dinero", "required": true,
+           "data-source": "${data.kinds}", "init-value": "cash"},
+          {"type": "Footer", "label": "Calcular valor",
+           "on-click-action": {"name": "data_exchange", "payload": {
+             "company_id": "${form.company_id}", "destination": "${form.destination}", "purpose": "${form.purpose}",
+             "start_date": "${form.start_date}", "end_date": "${form.end_date}", "kind": "${form.kind}"}}}
+        ]
+      }
+    },
+    {
+      "id": "AMOUNT",
+      "title": "Valor del anticipo",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "company_id": {"type": "string", "__example__": "c1"},
+        "destination": {"type": "string", "__example__": "Medellín"},
+        "purpose": {"type": "string", "__example__": "Visita de obra"},
+        "start_date": {"type": "string", "__example__": "2026-11-03"},
+        "end_date": {"type": "string", "__example__": "2026-11-05"},
+        "kind": {"type": "string", "__example__": "cash"},
+        "summary": {"type": "string",
+                    "__example__": "💰 Valor calculado con las tarifas de viaje: $450.000 COP. Si pides otro valor, explica por qué."},
         "currencies": {
           "type": "array",
           "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
@@ -33,29 +66,23 @@
             {"id": "MXN", "title": "MXN"}
           ]
         },
-        "currency": {"type": "string", "__example__": "COP"}
+        "currency": {"type": "string", "__example__": "COP"},
+        "amount": {"type": "string", "__example__": "450000"}
       },
       "layout": {
         "type": "SingleColumnLayout",
         "children": [
-          {"type": "Dropdown", "name": "company_id", "label": "Compañía", "required": true,
-           "data-source": "${data.companies}", "init-value": "${data.company_id}"},
-          {"type": "TextInput", "name": "destination", "label": "Destino", "input-type": "text", "required": true},
-          {"type": "TextInput", "name": "purpose", "label": "Motivo del viaje", "input-type": "text", "required": true},
-          {"type": "DatePicker", "name": "start_date", "label": "Fecha de salida", "required": true},
-          {"type": "DatePicker", "name": "end_date", "label": "Fecha de regreso", "required": true},
-          {"type": "Dropdown", "name": "kind", "label": "Tipo", "required": true,
-           "data-source": "${data.kinds}", "init-value": "cash"},
+          {"type": "TextBody", "text": "${data.summary}"},
           {"type": "Dropdown", "name": "currency", "label": "Moneda", "required": true,
            "data-source": "${data.currencies}", "init-value": "${data.currency}"},
-          {"type": "TextInput", "name": "amount", "label": "Valor", "input-type": "number", "required": false,
-           "helper-text": "Déjalo vacío para usar el valor calculado con las tarifas de viaje"},
+          {"type": "TextInput", "name": "amount", "label": "Valor", "input-type": "number", "required": true,
+           "init-value": "${data.amount}"},
           {"type": "TextArea", "name": "justification", "label": "Justificación", "required": false,
            "helper-text": "Solo si pides un valor distinto al calculado"},
           {"type": "Footer", "label": "Solicitar",
            "on-click-action": {"name": "complete", "payload": {
-             "company_id": "${form.company_id}", "destination": "${form.destination}", "purpose": "${form.purpose}",
-             "start_date": "${form.start_date}", "end_date": "${form.end_date}", "kind": "${form.kind}",
+             "company_id": "${data.company_id}", "destination": "${data.destination}", "purpose": "${data.purpose}",
+             "start_date": "${data.start_date}", "end_date": "${data.end_date}", "kind": "${data.kind}",
              "currency": "${form.currency}", "amount": "${form.amount}", "justification": "${form.justification}"}}}
         ]
       }

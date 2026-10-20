@@ -13,6 +13,7 @@ import httpx
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from app.adapters.inbound.whatsapp.flow_crypto import FlowCrypto
 from app.adapters.outbound.documents import PillowDocumentPreparer, ZxingQrDecoder
 from app.adapters.outbound.excel import OpenpyxlWriter
 from app.adapters.outbound.exchange_rates import EcbProvider, TrmProvider
@@ -59,7 +60,7 @@ from app.application.whatsapp_bot import (
     ReplyHandler,
     WhatsAppBot,
 )
-from app.application.whatsapp_flows import FlowHandler, FlowLauncher
+from app.application.whatsapp_flows import FlowDataExchange, FlowHandler, FlowLauncher
 from app.application.whatsapp_identity import WhatsAppIdentityService
 from app.application.whatsapp_menu import MenuHandler
 from app.application.whatsapp_notifier import WhatsAppNotifier, WhatsAppSessions
@@ -134,6 +135,8 @@ class Container:
     audit: AuditService
     erp: ErpService
     reconciliation: ReconciliationService
+    flow_exchange: FlowDataExchange
+    flow_crypto: FlowCrypto | None
     extras: dict[str, object] = field(default_factory=dict)
 
     async def close(self) -> None:
@@ -158,6 +161,12 @@ def build_extractor(settings: Settings, http: httpx.AsyncClient) -> InvoiceExtra
     return OpenRouterInvoiceExtractor(
         http, settings.OPENROUTER_BASE_URL, settings.OPENROUTER_API_KEY, PROMPT_DIR, settings.OPENROUTER_TIMEOUT_SECONDS
     )
+
+
+def build_flow_crypto(settings: Settings) -> FlowCrypto | None:
+    if not settings.WHATSAPP_FLOWS_PRIVATE_KEY:
+        return None
+    return FlowCrypto(settings.WHATSAPP_FLOWS_PRIVATE_KEY, settings.WHATSAPP_FLOWS_PRIVATE_KEY_PASSPHRASE)
 
 
 def build_container(settings: Settings, overrides: Overrides | None = None) -> Container:
@@ -381,6 +390,8 @@ def build_container(settings: Settings, overrides: Overrides | None = None) -> C
         AuditService(uow, access),
         erp,
         reconciliation,
+        FlowDataExchange(uow, tokens, budgets, runtime),
+        build_flow_crypto(settings),
         {"storage": storage, "sender": sender, "reminders": reminders, "sessions": sessions, "tokens": tokens},
     )
 

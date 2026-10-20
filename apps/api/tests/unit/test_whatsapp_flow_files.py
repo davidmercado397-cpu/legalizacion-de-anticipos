@@ -6,14 +6,15 @@ from __future__ import annotations
 import json
 import pathlib
 import re
+from typing import Any
 
 import pytest
 
 from app.application import messages as msg
-from app.application.whatsapp_flows import BY_ADVANCE
+from app.application.whatsapp_flows import BY_ADVANCE, TRIP_FIELDS
 
 FLOWS = pathlib.Path(__file__).resolve().parents[2] / "whatsapp_flows"
-# archivo -> (pantalla que abre FlowLauncher, campos que leen los casos de uso)
+# archivo -> (pantalla que abre FlowLauncher, campos de la respuesta final que leen los casos de uso)
 EXPECTED = {
     "expense_correction.json": (
         "CORRECT",
@@ -47,15 +48,27 @@ EXPECTED = {
 def test_flow_file_matches_the_code(name: str) -> None:
     flow = json.loads((FLOWS / name).read_text())
     screen_id, fields = EXPECTED[name]
-    assert flow["version"] == "7.3"
-    [screen] = flow["screens"]
-    assert screen["id"] == screen_id and screen["terminal"] is True
-    declared = set(screen["data"])
-    used = set(re.findall(r"\$\{data\.(\w+)\}", json.dumps(screen["layout"])))
-    assert used <= declared and all("__example__" in spec for spec in screen["data"].values())
-    footer = next(c for c in screen["layout"]["children"] if c["type"] == "Footer")
-    assert footer["on-click-action"]["name"] == "complete"
-    assert set(footer["on-click-action"]["payload"]) == fields
+    assert flow["version"] == "7.3" and flow["screens"][0]["id"] == screen_id
+    for screen in flow["screens"]:
+        declared = set(screen["data"])
+        used = set(re.findall(r"\$\{data\.(\w+)\}", json.dumps(screen["layout"])))
+        assert used <= declared and all("__example__" in spec for spec in screen["data"].values())
+    [terminal] = [s for s in flow["screens"] if s.get("terminal")]
+    assert set(_footer(terminal)["payload"]) == fields and _footer(terminal)["name"] == "complete"
+
+
+def test_the_advance_request_asks_the_endpoint_for_the_calculated_amount() -> None:
+    """La primera pantalla manda el viaje al endpoint (FlowDataExchange) y este abre AMOUNT con sus datos."""
+    flow = json.loads((FLOWS / "advance_request.json").read_text())
+    request, amount = flow["screens"]
+    assert flow["data_api_version"] == "3.0" and flow["routing_model"] == {"REQUEST": ["AMOUNT"], "AMOUNT": []}
+    assert _footer(request)["name"] == "data_exchange" and set(_footer(request)["payload"]) == set(TRIP_FIELDS)
+    assert amount["id"] == "AMOUNT" and set(amount["data"]) == {*TRIP_FIELDS, "summary", "currencies", "currency", "amount"}
+
+
+def _footer(screen: dict[str, Any]) -> dict[str, Any]:
+    action: dict[str, Any] = next(c for c in screen["layout"]["children"] if c["type"] == "Footer")["on-click-action"]
+    return action
 
 
 def _example_ids(name: str, key: str) -> list[str]:

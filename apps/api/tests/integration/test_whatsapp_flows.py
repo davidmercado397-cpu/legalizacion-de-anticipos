@@ -113,7 +113,9 @@ async def test_request_an_advance_with_the_flow(harness: Harness) -> None:
     await _configure_flows(harness)
     await juan.tap("menu:request")
     flow = _flow(juan)
-    assert flow.screen == "REQUEST" and flow.data["currency"] == "COP" and flow.data["companies"][0]["title"] == "Forsa Colombia"
+    assert flow.screen == "REQUEST" and flow.data["companies"][0]["title"] == "Forsa Colombia"
+    assert juan.last("flow").text == "➕ Completa los datos del viaje y te muestro el valor calculado con las tarifas de viaje."
+    # La moneda y el valor van en la segunda pantalla, que arma el endpoint de datos; la respuesta final trae todo.
 
     response = {
         "flow_token": flow.token,

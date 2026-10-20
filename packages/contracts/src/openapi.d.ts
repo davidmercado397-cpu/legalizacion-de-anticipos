@@ -1514,6 +1514,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/webhooks/whatsapp/flows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * WhatsApp Flows data endpoint (encrypted)
+         * @description Códigos que Meta entiende: 421 = no se pudo descifrar (vuelve a leer la llave pública), 427 = el
+         *     token del Flow ya no sirve (cierra el formulario). Sin llave configurada, 503.
+         */
+        post: operations["flow_data_webhooks_whatsapp_flows_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -7673,6 +7694,26 @@ export interface operations {
         };
     };
     receive_webhooks_whatsapp_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    flow_data_webhooks_whatsapp_flows_post: {
         parameters: {
             query?: never;
             header?: never;
