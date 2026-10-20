@@ -219,6 +219,12 @@ describe('SeccionRetiros', () => {
     expect(screen.getByText(/Quedan/)).toHaveTextContent('300');
   });
 
+  it('un anticipo anterior (sin moneda de liquidación) también acepta retiros', () => {
+    const anterior = anticipo({ status: 'approved', currency: 'USD', withdrawals: [] } as Partial<AnticipoDetalle>);
+    montar(<SeccionRetiros anticipo={anterior} />, perfil({ id: 'u-ana', role: 'employee' }));
+    expect(screen.getByRole('button', { name: 'Registrar retiro' })).toBeInTheDocument();
+  });
+
   it('tesorería solo completa lo debitado y la comisión', () => {
     montar(<SeccionRetiros anticipo={enBrl} />, perfil({ id: 'u-tomas', role: 'treasury' }));
     expect(screen.getByRole('button', { name: 'Registrar lo debitado y la comisión' })).toBeInTheDocument();

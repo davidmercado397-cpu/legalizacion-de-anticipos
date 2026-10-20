@@ -24,7 +24,8 @@ export function SeccionRetiros({ anticipo }: { anticipo: AnticipoDetalle }) {
   const tesoreria = puede(usuario, 'tesoreria') && !propio && (anticipo.status === 'approved' || anticipo.status === 'in_review');
   const [nuevo, setNuevo] = useState(false);
   const moneda = anticipo.balance.currency;
-  const visible = anticipo.withdrawals.length > 0 || (propio && abierto && !!anticipo.settlement_currency);
+  // Cualquier anticipo abierto del viajero acepta retiros, también los creados antes de la moneda de liquidación.
+  const visible = anticipo.withdrawals.length > 0 || (propio && abierto);
   if (!visible) return null;
 
   return (
