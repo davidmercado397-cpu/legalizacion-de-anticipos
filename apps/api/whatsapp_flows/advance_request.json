@@ -10,18 +10,28 @@
         "companies": {
           "type": "array",
           "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
-          "__example__": [{"id": "c1", "title": "Forsa Colombia"}]
+          "__example__": [{"id": "c1", "title": "Forsa Colombia"}, {"id": "c2", "title": "Forsa Panamá"}]
         },
         "company_id": {"type": "string", "__example__": "c1"},
         "kinds": {
           "type": "array",
           "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
-          "__example__": [{"id": "cash", "title": "Efectivo"}]
+          "__example__": [
+            {"id": "cash", "title": "Efectivo"},
+            {"id": "reloadable_card", "title": "Tarjeta recargable"},
+            {"id": "corporate_card", "title": "Tarjeta corporativa"}
+          ]
         },
         "currencies": {
           "type": "array",
           "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
-          "__example__": [{"id": "COP", "title": "COP"}]
+          "__example__": [
+            {"id": "COP", "title": "COP"},
+            {"id": "USD", "title": "USD"},
+            {"id": "EUR", "title": "EUR"},
+            {"id": "BRL", "title": "BRL"},
+            {"id": "MXN", "title": "MXN"}
+          ]
         },
         "currency": {"type": "string", "__example__": "COP"}
       },

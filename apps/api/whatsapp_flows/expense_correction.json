@@ -11,13 +11,27 @@
         "document_types": {
           "type": "array",
           "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
-          "__example__": [{"id": "electronic_invoice", "title": "Factura electrónica"}]
+          "__example__": [
+            {"id": "electronic_invoice", "title": "Factura electrónica"},
+            {"id": "pos_ticket", "title": "Tiquete POS"},
+            {"id": "cash_receipt", "title": "Recibo de caja"},
+            {"id": "other", "title": "Otro"}
+          ]
         },
         "document_type": {"type": "string", "__example__": "electronic_invoice"},
         "categories": {
           "type": "array",
           "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
-          "__example__": [{"id": "meals", "title": "Alimentación"}]
+          "__example__": [
+            {"id": "lodging", "title": "Hospedaje"},
+            {"id": "meals", "title": "Alimentación"},
+            {"id": "transport", "title": "Transporte"},
+            {"id": "laundry", "title": "Lavandería"},
+            {"id": "airport_tax", "title": "Impuesto aeroportuario"},
+            {"id": "fuel", "title": "Combustible"},
+            {"id": "tolls", "title": "Peajes"},
+            {"id": "other", "title": "Otro"}
+          ]
         },
         "category": {"type": "string", "__example__": "meals"},
         "vendor_name": {"type": "string", "__example__": "Restaurante El Cielo"},
@@ -27,7 +41,13 @@
         "currencies": {
           "type": "array",
           "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
-          "__example__": [{"id": "COP", "title": "COP"}]
+          "__example__": [
+            {"id": "COP", "title": "COP"},
+            {"id": "USD", "title": "USD"},
+            {"id": "EUR", "title": "EUR"},
+            {"id": "BRL", "title": "BRL"},
+            {"id": "MXN", "title": "MXN"}
+          ]
         },
         "currency": {"type": "string", "__example__": "COP"},
         "total": {"type": "string", "__example__": "45000"},
@@ -38,7 +58,12 @@
         "payment_methods": {
           "type": "array",
           "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
-          "__example__": [{"id": "advance", "title": "Según el anticipo"}]
+          "__example__": [
+            {"id": "advance", "title": "Según el anticipo"},
+            {"id": "card", "title": "Tarjeta"},
+            {"id": "cash", "title": "Efectivo"},
+            {"id": "transfer", "title": "Transferencia"}
+          ]
         },
         "payment_method": {"type": "string", "__example__": "advance"},
         "description": {"type": "string", "__example__": "Almuerzo con el cliente"},

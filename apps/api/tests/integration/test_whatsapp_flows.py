@@ -63,6 +63,10 @@ async def test_the_correction_flow_edits_every_field_of_the_web_form(harness: Ha
     assert flow.data["payment_method"] == "advance" and flow.data["description"] == "Almuerzo"
     assert flow.data["receipt_signed"] is False
     assert {"id": "unset", "title": "Sin definir"} not in flow.data["document_types"]
+    assert [d["id"] for d in flow.data["document_types"]] == ["electronic_invoice", "pos_ticket", "cash_receipt", "other"]
+    assert [m["id"] for m in flow.data["payment_methods"]] == ["advance", "card", "cash", "transfer"]
+    assert [c["id"] for c in flow.data["currencies"]] == ["COP", "USD", "EUR", "BRL", "MXN"]
+    assert len(flow.data["categories"]) > 1
 
     response = {
         **flow.data,
