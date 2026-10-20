@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FiltrosAnticipos } from '@viaticos/client-api';
-import type { Anticipo, Desembolso, Devolucion, Liquidacion, SolicitudAnticipo, Viaje } from '@viaticos/contracts';
+import type { Anticipo, CambioRetiro, Desembolso, Devolucion, Liquidacion, NuevoRetiro, SolicitudAnticipo, Viaje } from '@viaticos/contracts';
 import { useApi } from '../contexto';
 
 export const clavesAnticipos = {
@@ -114,6 +114,24 @@ export function useSugerenciasDevolucion(id: string, activa: boolean) {
     queryKey: [...clavesAnticipos.detalle(id), 'sugerencias'],
     queryFn: () => api.anticipos.sugerenciasDevolucion(id),
     enabled: activa,
+  });
+}
+
+type AccionRetiro = { tipo: 'registrar'; datos: NuevoRetiro } | { tipo: 'cambiar'; id: string; cambios: CambioRetiro } | { tipo: 'borrar'; id: string };
+
+/** Registrar, corregir (tesorería: lo debitado y la comisión) o borrar un retiro de efectivo. */
+export function useRetiro(anticipoId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (accion: AccionRetiro): Promise<unknown> => {
+      const a = api.anticipos;
+      if (accion.tipo === 'registrar') return a.registrarRetiro(anticipoId, accion.datos);
+      if (accion.tipo === 'cambiar') return a.cambiarRetiro(accion.id, accion.cambios);
+      return a.borrarRetiro(accion.id);
+    },
+    // Un retiro cambia el valor de las facturas en efectivo del anticipo: se recarga el detalle completo.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: clavesAnticipos.todos }),
   });
 }
 

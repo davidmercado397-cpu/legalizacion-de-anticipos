@@ -270,7 +270,7 @@ FINDING_LABELS = {
     "receipt_not_signed": "El recibo de caja debe estar firmado por quien te vendió",
     "missing_fiscal_id": "La factura electrónica no trae el CUFE (o código de validación): la revisará contabilidad",
     "excessive_tip": "La propina ({tip}) supera la sugerida ({suggested}): el exceso no es reembolsable",
-    "cash_without_withdrawal": "{value} de este pago en efectivo no sale de ningún retiro registrado: va con la tasa del día "
+    "cash_without_withdrawal": "Parte de este pago en efectivo no sale de ningún retiro registrado: va con la tasa del día "
     "y la revisa contabilidad",
 }
 NEEDS_JUSTIFICATION_HINT = "✍️ Necesita una justificación antes de confirmarse"
@@ -642,6 +642,9 @@ TIMELINE_LABELS = {
     "erp_legalization_failed": "Siesa no recibió la legalización",
     "statement_uploaded": "Extracto de la tarjeta cargado",
     "statement_movement_decided": "Cruce con el extracto revisado",
+    "withdrawal_created": "Retiro de efectivo registrado",
+    "withdrawal_updated": "Retiro de efectivo corregido",
+    "withdrawal_deleted": "Retiro de efectivo borrado",
 }
 
 # Comentario sugerido al devolver una legalización, por hallazgo o advertencia del gasto.

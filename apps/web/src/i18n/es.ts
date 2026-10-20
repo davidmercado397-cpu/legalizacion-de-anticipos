@@ -114,6 +114,7 @@ export const es: Record<string, string> = {
   'regla.low_confidence': 'Lectura con baja confianza',
   'regla.missing_fiscal_id': 'Factura electrónica sin CUFE',
   'regla.excessive_tip': 'Propina mayor a la sugerida',
+  'regla.cash_without_withdrawal': 'Efectivo sin retiro registrado',
 
   'parametro.min_confidence': 'Confianza mínima (0 a 1)',
   'parametro.days_before': 'Días aceptados antes de la salida',

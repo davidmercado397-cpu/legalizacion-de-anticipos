@@ -3,14 +3,17 @@ import type {
   Anticipo,
   AnticipoDetalle,
   AnticipoResumen,
+  CambioRetiro,
   Desembolso,
   Devolucion,
   EstadoAnticipo,
   EventoLinea,
   Liquidacion,
   Lista,
+  NuevoRetiro,
   Pagina,
   Presupuesto,
+  Retiro,
   SaldoAbierto,
   SolicitudAnticipo,
   SugerenciaDevolucion,
@@ -50,6 +53,10 @@ export interface AnticiposApi {
   siesaAnticipo(id: string): Promise<Anticipo>;
   siesaLegalizacion(id: string): Promise<Anticipo>;
   excel(id: string): Promise<{ archivo: Blob; nombre: string }>;
+  /** Retiros de efectivo en otra moneda: cada uno es una bolsa con su tasa (FIFO). */
+  registrarRetiro(id: string, datos: NuevoRetiro): Promise<Retiro>;
+  cambiarRetiro(retiroId: string, cambios: CambioRetiro): Promise<Retiro>;
+  borrarRetiro(retiroId: string): Promise<void>;
 }
 
 const nombreArchivo = (disposicion: unknown, porDefecto: string) =>
@@ -82,6 +89,11 @@ export const crearAnticiposApi = (http: AxiosInstance): AnticiposApi => {
     excel: async (id) => {
       const respuesta = await http.get<Blob>(`/advances/${id}/legalization.xlsx`, { responseType: 'blob' });
       return { archivo: respuesta.data, nombre: nombreArchivo(respuesta.headers['content-disposition'], 'legalizacion.xlsx') };
+    },
+    registrarRetiro: async (id, datos) => (await http.post<Retiro>(`/advances/${id}/withdrawals`, datos)).data,
+    cambiarRetiro: async (retiroId, cambios) => (await http.patch<Retiro>(`/withdrawals/${retiroId}`, cambios)).data,
+    borrarRetiro: async (retiroId) => {
+      await http.delete(`/withdrawals/${retiroId}`);
     },
   };
 };

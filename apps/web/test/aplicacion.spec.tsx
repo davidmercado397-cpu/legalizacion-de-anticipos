@@ -7,6 +7,7 @@ import type { AnticipoDetalle, GastoDetalle } from '@viaticos/contracts';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { PanelAcciones } from '../src/features/anticipos/panel-acciones';
+import { SeccionRetiros } from '../src/features/anticipos/retiros';
 import { EditorGasto } from '../src/features/gastos/editor-gasto';
 import { SubirFactura } from '../src/features/gastos/subir-factura';
 import { FormularioLogin } from '../src/features/sesion/formulario-login';
@@ -26,6 +27,7 @@ const anticipo = (cambios: Partial<AnticipoDetalle> = {}): AnticipoDetalle =>
     settlement_status: null,
     balance: { currency: 'COP', amount: '600000.00', applied: '0', pending: '600000.00', disbursed: '0', expenses_count: 0 },
     expenses: [],
+    withdrawals: [],
     approval_steps: [],
     escalation_reasons: [],
     ...cambios,
@@ -163,6 +165,8 @@ describe('EditorGasto', () => {
       file: null,
       last_error: null,
       currency: 'COP',
+      cash_allocations: [],
+      cash_uncovered: null,
       ...cambios,
     }) as GastoDetalle;
   const aprobado = anticipo({ status: 'approved' });
@@ -180,5 +184,45 @@ describe('EditorGasto', () => {
   it('a quien no es el dueño no le ofrece descartar', () => {
     montar(<EditorGasto anticipo={aprobado} gasto={gasto({})} />, perfil({ id: 'u-jefe' }));
     expect(screen.queryByRole('button', { name: 'Descartar esta factura' })).not.toBeInTheDocument();
+  });
+});
+
+describe('SeccionRetiros', () => {
+  const retiro = {
+    id: 'r1',
+    withdrawn_on: '2026-10-14',
+    currency: 'BRL',
+    amount: '500.00',
+    official_rate: '800',
+    official_rate_date: '2026-10-14',
+    official_source: 'ecb_cross',
+    debited_amount: null,
+    fee_amount: null,
+    rate: '800',
+    value: '400000.00',
+    remaining: '300.00',
+    note: null,
+    updated_at: '2026-10-14T12:00:00Z',
+  } as const;
+  const enBrl = anticipo({
+    status: 'approved',
+    currency: 'BRL',
+    settlement_currency: 'COP',
+    balance: { currency: 'COP', amount: '2400000', applied: '0', pending: '2400000', disbursed: '0', expenses_count: 0 },
+    withdrawals: [retiro],
+  } as Partial<AnticipoDetalle>);
+
+  it('el viajero registra y corrige sus retiros; ve cuánto queda de cada uno', () => {
+    montar(<SeccionRetiros anticipo={enBrl} />, perfil({ id: 'u-ana', role: 'employee' }));
+    expect(screen.getByRole('button', { name: 'Registrar retiro' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Corregir' })).toBeInTheDocument();
+    expect(screen.getByText(/Quedan/)).toHaveTextContent('300');
+  });
+
+  it('tesorería solo completa lo debitado y la comisión', () => {
+    montar(<SeccionRetiros anticipo={enBrl} />, perfil({ id: 'u-tomas', role: 'treasury' }));
+    expect(screen.getByRole('button', { name: 'Registrar lo debitado y la comisión' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Registrar retiro' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Borrar' })).not.toBeInTheDocument();
   });
 });

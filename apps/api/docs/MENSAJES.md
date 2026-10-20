@@ -160,7 +160,7 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `receipt_not_signed` | El recibo de caja debe estar firmado por quien te vendió |
 | `missing_fiscal_id` | La factura electrónica no trae el CUFE (o código de validación): la revisará contabilidad |
 | `excessive_tip` | La propina ({tip}) supera la sugerida ({suggested}): el exceso no es reembolsable |
-| `cash_without_withdrawal` | {value} de este pago en efectivo no sale de ningún retiro registrado: va con la tasa del día y la revisa contabilidad |
+| `cash_without_withdrawal` | Parte de este pago en efectivo no sale de ningún retiro registrado: va con la tasa del día y la revisa contabilidad |
 
 ## Advertencias de lectura
 

@@ -15,7 +15,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { etiqueta } from '../../i18n';
 import { mensajeDeError } from '../../lib/errores';
-import { formatoDinero } from '../../lib/formato';
+import { formatoDinero, formatoFechaCalendario } from '../../lib/formato';
 import { opcionesDeMoneda } from '../../lib/monedas';
 import { puede } from '../../lib/roles';
 import { Boton } from '../../ui/boton';
@@ -99,6 +99,7 @@ export function EditorGasto({ anticipo, gasto }: { anticipo: AnticipoDetalle; ga
           </Alerta>
         )}
         <Hallazgos gasto={gasto} />
+        <OrigenEfectivo anticipo={anticipo} gasto={gasto} />
         {editable ? <Formulario anticipo={anticipo} gasto={gasto} /> : <Resumen gasto={gasto} />}
         <Lineas gasto={gasto} companiaId={anticipo.company_id} editable={editable || revisa} />
         {revisa && (gasto.review_status === 'pending' || gasto.status === 'confirmed') && <Revision gasto={gasto} />}
@@ -136,6 +137,32 @@ function Foto({ gasto }: { gasto: GastoDetalle }) {
 }
 
 const TONO_ACCION: Record<string, 'peligro' | 'aviso' | 'info'> = { block: 'peligro', require_justification: 'aviso', review: 'aviso' };
+
+/** Pagado en efectivo en otra moneda: de qué retiros salió y con qué tasa se legaliza (decisión 9.4). */
+function OrigenEfectivo({ anticipo, gasto }: { anticipo: AnticipoDetalle; gasto: GastoDetalle }) {
+  if (gasto.cash_allocations.length === 0 && !gasto.cash_uncovered) return null;
+  const fecha = (id: string) => anticipo.withdrawals.find((r) => r.id === id)?.withdrawn_on;
+  const tasa = (valor: string) => Number(valor).toLocaleString('es-CO', { maximumFractionDigits: 2 });
+  return (
+    <Alerta tono="info" titulo="Pagado en efectivo">
+      <ul className="list-disc space-y-0.5 pl-5">
+        {gasto.cash_allocations.map((d) => (
+          <li key={d.withdrawal_id}>
+            {formatoDinero(d.amount, gasto.currency)} del retiro del {formatoFechaCalendario(fecha(d.withdrawal_id))}, a {tasa(d.rate)}
+          </li>
+        ))}
+        {gasto.cash_uncovered && (
+          <li>{formatoDinero(gasto.cash_uncovered, gasto.currency)} sin un retiro que lo cubra: va con la tasa del día de la factura</li>
+        )}
+      </ul>
+      {gasto.amount_applied && (
+        <p className="mt-1">
+          Se legaliza por {formatoDinero(gasto.amount_applied, anticipo.balance.currency)}.
+        </p>
+      )}
+    </Alerta>
+  );
+}
 
 function Hallazgos({ gasto }: { gasto: GastoDetalle }) {
   const lista = hallazgos(gasto);
@@ -200,7 +227,9 @@ function Formulario({ anticipo, gasto }: { anticipo: AnticipoDetalle; gasto: Gas
   const [convertido, setConvertido] = useState('');
   // Si declara la firma, ese hallazgo desaparece al confirmar y no pide justificación.
   const pideJustificacion = hallazgos(gasto).some((h) => h.action === 'require_justification' && !(firmado && h.code === 'receipt_not_signed'));
-  const otraMoneda = !!gasto.currency && gasto.currency !== anticipo.currency;
+  // Se legaliza en la moneda de liquidación (la de la compañía si el anticipo se calculó en otra).
+  const monedaLegal = anticipo.balance.currency;
+  const otraMoneda = !!gasto.currency && gasto.currency !== monedaLegal;
   const pideConvertido = otraMoneda && !gasto.exchange_rate;
   const error = corregir.error ?? confirmar.error ?? descartar.error;
 
@@ -297,12 +326,14 @@ function Formulario({ anticipo, gasto }: { anticipo: AnticipoDetalle; gasto: Gas
         </Campo>
         {otraMoneda && (
           <Campo
-            etiqueta={`Valor en ${anticipo.currency}`}
+            etiqueta={`Valor en ${monedaLegal}`}
             className="sm:col-span-2"
             ayuda={
-              gasto.exchange_rate
-                ? `Se convierte con la tasa ${gasto.exchange_rate} del ${gasto.exchange_rate_date}. Escríbalo solo si su banco cobró otro valor.`
-                : 'No hay tasa automática para esta moneda: escriba cuánto le costó en la moneda del anticipo.'
+              gasto.exchange_rate_source === 'withdrawal'
+                ? `Pagado en efectivo con sus retiros: tasa ${Number(gasto.exchange_rate).toLocaleString('es-CO', { maximumFractionDigits: 2 })}. Déjelo vacío para usar la del retiro.`
+                : gasto.exchange_rate
+                  ? `Se convierte con la tasa ${gasto.exchange_rate} del ${gasto.exchange_rate_date}. Escríbalo solo si su banco cobró otro valor.`
+                  : `No hay tasa automática para esta moneda: escriba cuánto le costó en ${monedaLegal}.`
             }
           >
             {(p) => <Entrada {...p} value={convertido} onChange={(ev) => setConvertido(ev.target.value)} inputMode="decimal" required={pideConvertido} />}

@@ -43,6 +43,9 @@ export type Devolucion = S['ReturnIn'];
 export type SugerenciaDevolucion = S['ReturnSuggestionOut'];
 export type Desembolso = S['DisburseIn'];
 export type MetodoDesembolso = S['DisbursementMethod'];
+export type Retiro = S['WithdrawalOut'];
+export type NuevoRetiro = S['WithdrawalIn'];
+export type CambioRetiro = S['WithdrawalPatch'];
 export type Liquidacion = S['SettleIn'];
 export type MetodoLiquidacion = S['SettlementMethod'];
 

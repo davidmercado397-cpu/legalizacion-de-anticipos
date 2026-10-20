@@ -66,14 +66,24 @@ TRAVEL_ZONES: dict[str, tuple[list[str], str, dict[str, tuple[BudgetUnit, str, s
             "airport_tax": (BudgetUnit.PER_TRIP, "50", "50"),
         },
     ),
+    # Brasil y México en su moneda: el anticipo se calcula en BRL o MXN y se entrega y legaliza en pesos (decisión 9.2).
     "Brasil": (
         ["Brasil", "São Paulo", "Rio de Janeiro", "Brasilia", "BR"],
-        "USD",
+        "BRL",
         {
-            "lodging": (BudgetUnit.PER_NIGHT, "150", "120"),
-            "meals": (BudgetUnit.PER_DAY, "60", "50"),
-            "transport": (BudgetUnit.PER_DAY, "30", "25"),
-            "airport_tax": (BudgetUnit.PER_TRIP, "40", "40"),
+            "lodging": (BudgetUnit.PER_NIGHT, "750", "600"),
+            "meals": (BudgetUnit.PER_DAY, "300", "250"),
+            "transport": (BudgetUnit.PER_DAY, "150", "125"),
+            "airport_tax": (BudgetUnit.PER_TRIP, "200", "200"),
+        },
+    ),
+    "México": (
+        ["México", "Ciudad de México", "Monterrey", "Guadalajara", "Cancún", "MX"],
+        "MXN",
+        {
+            "lodging": (BudgetUnit.PER_NIGHT, "2700", "2100"),
+            "meals": (BudgetUnit.PER_DAY, "1100", "900"),
+            "transport": (BudgetUnit.PER_DAY, "550", "450"),
         },
     ),
     "Panamá": (

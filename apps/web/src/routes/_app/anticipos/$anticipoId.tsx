@@ -3,6 +3,7 @@ import { useAnticipo, useDescargarExcel, useSesion } from '@viaticos/client-app'
 import { EstadoSiesa, InsigniaAnticipo, ResumenSaldo } from '../../../features/anticipos/componentes';
 import { LineaDeTiempo } from '../../../features/anticipos/linea-tiempo';
 import { PanelAcciones } from '../../../features/anticipos/panel-acciones';
+import { SeccionRetiros } from '../../../features/anticipos/retiros';
 import { RutaAprobacion } from '../../../features/anticipos/ruta-aprobacion';
 import { SeccionConciliacion } from '../../../features/conciliacion/conciliacion';
 import { ListaGastos } from '../../../features/gastos/componentes';
@@ -65,6 +66,23 @@ function DetalleAnticipo() {
           </ol>
         )}
         <ResumenSaldo saldo={anticipo.balance} />
+        {anticipo.settlement_currency && (
+          <p className="text-sm text-slate-600">
+            Calculado en {anticipo.currency}: {formatoDinero(anticipo.amount, anticipo.currency)}.{' '}
+            {anticipo.settlement_amount ? (
+              <>
+                {anticipo.disbursed_at ? 'Se entregó' : 'Se entrega'} en {anticipo.settlement_currency}:{' '}
+                {formatoDinero(anticipo.settlement_amount, anticipo.settlement_currency)} (tasa{' '}
+                {Number(anticipo.settlement_rate).toLocaleString('es-CO', { maximumFractionDigits: 2 })} del{' '}
+                {formatoFechaCalendario(anticipo.settlement_rate_date)}
+                {anticipo.disbursed_at ? '' : ', estimado'}).
+              </>
+            ) : (
+              <>Se entrega en {anticipo.settlement_currency}: el valor lo fija tesorería al desembolsar.</>
+            )}{' '}
+            La legalización y la diferencia van en {anticipo.settlement_currency}.
+          </p>
+        )}
         <RutaAprobacion anticipo={anticipo} />
         {anticipo.budget_amount && anticipo.budget_amount !== anticipo.amount && anticipo.escalation_reasons.length === 0 && (
           <Alerta tono="aviso" titulo={`Pidió un valor distinto al sugerido (${formatoDinero(anticipo.budget_amount, anticipo.currency)})`}>
@@ -114,6 +132,8 @@ function DetalleAnticipo() {
           <ListaGastos anticipoId={anticipo.id} gastos={anticipo.expenses} />
         </section>
       )}
+
+      <SeccionRetiros anticipo={anticipo} />
 
       <SeccionConciliacion anticipo={anticipo} />
 

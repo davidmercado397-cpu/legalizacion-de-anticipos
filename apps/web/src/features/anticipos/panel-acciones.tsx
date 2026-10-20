@@ -3,6 +3,7 @@ import type { AnticipoDetalle, MetodoDesembolso, MetodoLiquidacion } from '@viat
 import { useState } from 'react';
 import { etiqueta } from '../../i18n';
 import { mensajeDeError } from '../../lib/errores';
+import { formatoDinero } from '../../lib/formato';
 import { puede } from '../../lib/roles';
 import { Boton } from '../../ui/boton';
 import { AreaTexto, Campo, Entrada, Seleccion } from '../../ui/campos';
@@ -128,8 +129,12 @@ export function PanelAcciones({ anticipo }: { anticipo: AnticipoDetalle }) {
           opciones={['transfer', 'cash', 'card'] satisfies MetodoDesembolso[]}
           grupo="desembolso"
           cargando={accion.isPending}
-          alEnviar={(method, reference) =>
-            accion.mutate({ tipo: 'desembolsar', datos: { method: method as MetodoDesembolso, reference } }, { onSuccess: () => setAbierto(null) })
+          entrega={anticipo.settlement_currency ? { moneda: anticipo.settlement_currency, estimado: anticipo.settlement_amount } : undefined}
+          alEnviar={(method, reference, amount) =>
+            accion.mutate(
+              { tipo: 'desembolsar', datos: { method: method as MetodoDesembolso, reference, amount } },
+              { onSuccess: () => setAbierto(null) },
+            )
           }
           alCancelar={() => setAbierto(null)}
         />
@@ -182,11 +187,14 @@ function FormularioTesoreria(props: {
   opciones: string[];
   grupo: string;
   cargando: boolean;
-  alEnviar: (metodo: string, referencia: string | null) => void;
+  /** Anticipo calculado en otra moneda: lo entregado en la de la compañía (vacío = con la tasa de hoy). */
+  entrega?: { moneda: string; estimado: string | null };
+  alEnviar: (metodo: string, referencia: string | null, valor: string | null) => void;
   alCancelar: () => void;
 }) {
   const [metodo, setMetodo] = useState(props.opciones[0] ?? '');
   const [referencia, setReferencia] = useState('');
+  const [valor, setValor] = useState('');
   return (
     <div className="grid gap-3 border-t border-slate-200 pt-3 sm:grid-cols-2">
       <h3 className="font-semibold sm:col-span-2">{props.titulo}</h3>
@@ -204,8 +212,17 @@ function FormularioTesoreria(props: {
       <Campo etiqueta="Referencia (opcional)">
         {(p) => <Entrada {...p} value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Comprobante, consignación…" />}
       </Campo>
+      {props.entrega && (
+        <Campo
+          etiqueta={`Valor entregado (${props.entrega.moneda})`}
+          className="sm:col-span-2"
+          ayuda={`Vacío = se calcula con la tasa de hoy${props.entrega.estimado ? ` (al pedirlo se estimó en ${formatoDinero(props.entrega.estimado, props.entrega.moneda)})` : ''}. Escríbalo si entregó otro valor.`}
+        >
+          {(p) => <Entrada {...p} inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} />}
+        </Campo>
+      )}
       <div className="flex gap-2 sm:col-span-2">
-        <Boton cargando={props.cargando} onClick={() => props.alEnviar(metodo, referencia.trim() || null)}>
+        <Boton cargando={props.cargando} onClick={() => props.alEnviar(metodo, referencia.trim() || null, valor.trim().replace(',', '.') || null)}>
           Registrar
         </Boton>
         <Boton variante="fantasma" onClick={props.alCancelar}>
