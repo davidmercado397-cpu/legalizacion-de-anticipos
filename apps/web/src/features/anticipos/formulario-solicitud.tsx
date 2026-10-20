@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { etiqueta } from '../../i18n';
 import { mensajeDeError } from '../../lib/errores';
 import { formatoDinero } from '../../lib/formato';
+import { opcionesDeMoneda } from '../../lib/monedas';
 import { Boton } from '../../ui/boton';
 import { AreaTexto, Campo, Entrada, Seleccion } from '../../ui/campos';
 import { Alerta, Tarjeta } from '../../ui/superficies';
@@ -174,7 +175,15 @@ export function FormularioSolicitud({ alCrear }: { alCrear: (anticipo: Anticipo)
           )}
         </Campo>
         <Campo etiqueta="Moneda" error={formState.errors.currency?.message}>
-          {(p) => <Entrada {...p} {...register('currency')} maxLength={3} className="uppercase" />}
+          {(p) => (
+            <Seleccion {...p} {...register('currency')}>
+              {opcionesDeMoneda(usuario, moneda).map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </Seleccion>
+          )}
         </Campo>
       </Tarjeta>
 

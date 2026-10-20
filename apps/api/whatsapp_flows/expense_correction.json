@@ -8,22 +8,50 @@
       "success": true,
       "data": {
         "summary": {"type": "string", "__example__": "Restaurante El Cielo · $45.000 COP"},
-        "vendor_name": {"type": "string", "__example__": "Restaurante El Cielo"},
-        "vendor_tax_id": {"type": "string", "__example__": "890903938-8"},
-        "invoice_number": {"type": "string", "__example__": "POS-1"},
-        "invoice_date": {"type": "string", "__example__": "2026-10-13"},
-        "total": {"type": "string", "__example__": "45000"},
+        "document_types": {
+          "type": "array",
+          "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
+          "__example__": [{"id": "electronic_invoice", "title": "Factura electrónica"}]
+        },
+        "document_type": {"type": "string", "__example__": "electronic_invoice"},
         "categories": {
           "type": "array",
           "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
           "__example__": [{"id": "meals", "title": "Alimentación"}]
         },
-        "category": {"type": "string", "__example__": "meals"}
+        "category": {"type": "string", "__example__": "meals"},
+        "vendor_name": {"type": "string", "__example__": "Restaurante El Cielo"},
+        "vendor_tax_id": {"type": "string", "__example__": "890903938-8"},
+        "invoice_number": {"type": "string", "__example__": "POS-1"},
+        "invoice_date": {"type": "string", "__example__": "2026-10-13"},
+        "currencies": {
+          "type": "array",
+          "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
+          "__example__": [{"id": "COP", "title": "COP"}]
+        },
+        "currency": {"type": "string", "__example__": "COP"},
+        "total": {"type": "string", "__example__": "45000"},
+        "subtotal": {"type": "string", "__example__": "41667"},
+        "tax_amount": {"type": "string", "__example__": "3333"},
+        "tip_amount": {"type": "string", "__example__": ""},
+        "discount_amount": {"type": "string", "__example__": ""},
+        "payment_methods": {
+          "type": "array",
+          "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
+          "__example__": [{"id": "advance", "title": "Según el anticipo"}]
+        },
+        "payment_method": {"type": "string", "__example__": "advance"},
+        "description": {"type": "string", "__example__": "Almuerzo con el cliente"},
+        "receipt_signed": {"type": "boolean", "__example__": false}
       },
       "layout": {
         "type": "SingleColumnLayout",
         "children": [
           {"type": "TextBody", "text": "${data.summary}"},
+          {"type": "Dropdown", "name": "document_type", "label": "Tipo de documento", "required": true,
+           "data-source": "${data.document_types}", "init-value": "${data.document_type}"},
+          {"type": "Dropdown", "name": "category", "label": "Categoría", "required": true,
+           "data-source": "${data.categories}", "init-value": "${data.category}"},
           {"type": "TextInput", "name": "vendor_name", "label": "Proveedor", "input-type": "text", "required": true,
            "init-value": "${data.vendor_name}"},
           {"type": "TextInput", "name": "vendor_tax_id", "label": "NIT del proveedor", "input-type": "text",
@@ -32,15 +60,34 @@
            "required": false, "init-value": "${data.invoice_number}"},
           {"type": "DatePicker", "name": "invoice_date", "label": "Fecha", "required": true,
            "init-value": "${data.invoice_date}"},
+          {"type": "Dropdown", "name": "currency", "label": "Moneda", "required": true,
+           "data-source": "${data.currencies}", "init-value": "${data.currency}"},
           {"type": "TextInput", "name": "total", "label": "Total", "input-type": "number", "required": true,
            "init-value": "${data.total}"},
-          {"type": "Dropdown", "name": "category", "label": "Categoría", "required": true,
-           "data-source": "${data.categories}", "init-value": "${data.category}"},
+          {"type": "TextInput", "name": "subtotal", "label": "Subtotal", "input-type": "number", "required": false,
+           "init-value": "${data.subtotal}"},
+          {"type": "TextInput", "name": "tax_amount", "label": "Impuestos", "input-type": "number", "required": false,
+           "init-value": "${data.tax_amount}"},
+          {"type": "TextInput", "name": "tip_amount", "label": "Propina", "input-type": "number", "required": false,
+           "init-value": "${data.tip_amount}"},
+          {"type": "TextInput", "name": "discount_amount", "label": "Descuento", "input-type": "number",
+           "required": false, "init-value": "${data.discount_amount}",
+           "helper-text": "Lo que la factura rebaja; el total ya lo tiene restado"},
+          {"type": "Dropdown", "name": "payment_method", "label": "Medio de pago", "required": true,
+           "data-source": "${data.payment_methods}", "init-value": "${data.payment_method}"},
+          {"type": "TextArea", "name": "description", "label": "Descripción", "required": false,
+           "init-value": "${data.description}"},
+          {"type": "OptIn", "name": "receipt_signed", "label": "Si es recibo de caja: está firmado por quien me vendió",
+           "required": false, "init-value": "${data.receipt_signed}"},
           {"type": "Footer", "label": "Guardar y confirmar",
            "on-click-action": {"name": "complete", "payload": {
+             "document_type": "${form.document_type}", "category": "${form.category}",
              "vendor_name": "${form.vendor_name}", "vendor_tax_id": "${form.vendor_tax_id}",
              "invoice_number": "${form.invoice_number}", "invoice_date": "${form.invoice_date}",
-             "total": "${form.total}", "category": "${form.category}"}}}
+             "currency": "${form.currency}", "total": "${form.total}", "subtotal": "${form.subtotal}",
+             "tax_amount": "${form.tax_amount}", "tip_amount": "${form.tip_amount}",
+             "discount_amount": "${form.discount_amount}", "payment_method": "${form.payment_method}",
+             "description": "${form.description}", "receipt_signed": "${form.receipt_signed}"}}}
         ]
       }
     }

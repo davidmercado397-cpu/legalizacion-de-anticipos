@@ -216,6 +216,7 @@ class EmployeeOut(Model):
 
 class MeOut(EmployeeOut):
     mfa_setup_required: bool = Field(description="Su rol exige verificación en dos pasos y todavía no la activa")
+    supported_currencies: list[str] = Field(description="Monedas que se pueden usar en anticipos y gastos")
 
 
 class EmployeeCreatedOut(EmployeeOut):

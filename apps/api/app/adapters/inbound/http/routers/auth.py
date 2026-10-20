@@ -90,7 +90,8 @@ async def me(employee: CurrentEmployeeAny, container: ContainerDep) -> MeOut:
     # Lectura fresca: el actor autenticado se cachea unos segundos y puede venir desactualizado (p. ej. tras vincular WhatsApp).
     fresh = await container.employees.get(employee, employee.id)
     required = fresh.role in container.settings.mfa_required_roles and not fresh.mfa_enabled
-    return MeOut(**employee_out(fresh).model_dump(), mfa_setup_required=required)
+    currencies = (await container.runtime.current()).supported_currencies
+    return MeOut(**employee_out(fresh).model_dump(), mfa_setup_required=required, supported_currencies=currencies)
 
 
 @router.post("/me/password", status_code=status.HTTP_204_NO_CONTENT, tags=["me"])

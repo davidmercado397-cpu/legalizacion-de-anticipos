@@ -21,7 +21,7 @@ from app.application.whatsapp_bot import FLOW_ACTIONS, Conversation, Handler, ba
 from app.application.whatsapp_events import InboundMessage, MessageKind
 from app.application.whatsapp_presenter import finding_text
 from app.domain.entities import Employee, Expense
-from app.domain.enums import AdvanceKind, Channel, PolicyAction
+from app.domain.enums import AdvanceKind, Channel, DocumentType, PaymentMethod, PolicyAction
 from app.domain.errors import AuthenticationError, JustificationRequiredError, NotFoundError
 from app.domain.ports import Clock, FlowMessage, MessageSender, TokenService, UnitOfWorkFactory
 from app.domain.values import WhatsAppAddress
@@ -31,6 +31,9 @@ logger = logging.getLogger(__name__)
 ADVANCE_REQUEST = "advance_request"
 EXPENSE_CORRECTION = "expense_correction"
 JUSTIFICATION = "justification"
+# Opciones de las listas del Flow que no son un valor: la lista exige elegir algo.
+UNSET = "unset"  # el gasto no tiene tipo de documento: se deja como está
+BY_ADVANCE = "advance"  # sin medio de pago propio: el del anticipo
 
 
 class FlowLauncher:
@@ -61,16 +64,41 @@ class FlowLauncher:
             return msg.CORRECT_IN_APP
         categories = await self._notifier.categories_of(expense.company_id)
         options = [{"id": code, "title": hint.name} for code, hint in categories.items()]
+        currencies = (await self._settings.current()).supported_currencies
+        async with self._uow() as uow:
+            company = await uow.companies.get(expense.company_id) if expense.company_id else None
+        documents = [{"id": code, "title": label} for code, label in msg.DOCUMENT_TYPE_LABELS.items()]
+        if expense.document_type is None:
+            documents.insert(0, {"id": UNSET, "title": msg.FLOW_UNSET})
+        methods = [{"id": BY_ADVANCE, "title": msg.FLOW_BY_ADVANCE}]
+        methods += [{"id": code, "title": label} for code, label in msg.PAYMENT_METHOD_LABELS.items()]
+        # Las listas y el selector de fecha exigen un valor válido: sin dato, hoy, la primera categoría y la
+        # moneda de la compañía.
+        if expense.currency in currencies:
+            currency = expense.currency
+        else:
+            currency = company.currency if company and company.currency in currencies else currencies[0]
         data = {
             "summary": await self._summary(expense),
+            "document_types": documents,
+            "document_type": expense.document_type.value if expense.document_type else UNSET,
+            "categories": options,
+            "category": expense.category if expense.category in categories else (options[0]["id"] if options else ""),
             "vendor_name": expense.vendor_name or "",
             "vendor_tax_id": expense.vendor_tax_id or "",
             "invoice_number": expense.invoice_number or "",
-            # El selector de fecha y la lista exigen un valor válido: sin dato, hoy y la primera categoría.
             "invoice_date": (expense.invoice_date or self._clock.now().date()).isoformat(),
-            "total": "" if expense.total is None else f"{expense.total.normalize():f}",
-            "categories": options,
-            "category": expense.category if expense.category in categories else (options[0]["id"] if options else ""),
+            "currencies": [{"id": code, "title": code} for code in currencies],
+            "currency": currency,
+            "total": _plain(expense.total),
+            "subtotal": _plain(expense.subtotal),
+            "tax_amount": _plain(expense.tax_amount),
+            "tip_amount": _plain(expense.tip_amount),
+            "discount_amount": _plain(expense.discount_amount),
+            "payment_methods": methods,
+            "payment_method": expense.payment_method.value if expense.payment_method else BY_ADVANCE,
+            "description": expense.description or "",
+            "receipt_signed": bool(expense.receipt_signed),
         }
         await self._open(
             to, employee, flow_id, EXPENSE_CORRECTION, expense.id, "CORRECT", data, msg.FLOW_CORRECT_TEXT, msg.FLOW_CORRECT_CTA
@@ -197,9 +225,13 @@ class FlowHandler(Handler):
                     return msg.ADVANCE_REQUESTED.format(amount=msg.money(advance.amount, advance.currency), label=advance.label)
                 case "expense_correction":
                     expense_id = uuid.UUID(str(claims.entity_id))
-                    await self._expenses.correct(employee, expense_id, _corrections(response))
+                    corrected = await self._expenses.correct(employee, expense_id, _corrections(response))
+                    is_receipt = corrected.document_type == DocumentType.CASH_RECEIPT
+                    signed = response.get("receipt_signed") in (True, "true") if is_receipt else None
                     try:
-                        expense = await self._expenses.confirm(employee, expense_id, None, None, channel=Channel.WHATSAPP)
+                        expense = await self._expenses.confirm(
+                            employee, expense_id, None, None, channel=Channel.WHATSAPP, receipt_signed=signed
+                        )
                     except JustificationRequiredError:
                         return await self._launcher.justification(employee, c.address, expense_id)
                     return msg.CORRECTED_CONFIRMED + await balance_line(self._advances, employee, expense.advance_id)
@@ -239,12 +271,19 @@ def _advance_request(response: dict[str, Any]) -> AdvanceRequest:
     )
 
 
+def _plain(amount: Decimal | None) -> str:
+    return "" if amount is None else f"{amount.normalize():f}"
+
+
 def _corrections(response: dict[str, Any]) -> dict[str, Any]:
     changes: dict[str, Any] = {
         "vendor_name": _text(response, "vendor_name"),
         "vendor_tax_id": _text(response, "vendor_tax_id"),
         "invoice_number": _text(response, "invoice_number"),
+        "description": _text(response, "description"),
     }
+    for name in ("subtotal", "tax_amount", "tip_amount", "discount_amount"):
+        changes[name] = _amount(_text(response, name))
     day, total, category = _text(response, "invoice_date"), _amount(_text(response, "total")), _text(response, "category")
     if day:
         changes["invoice_date"] = date.fromisoformat(day)
@@ -252,4 +291,12 @@ def _corrections(response: dict[str, Any]) -> dict[str, Any]:
         changes["total"] = total
     if category:
         changes["category"] = category
+    if currency := _text(response, "currency"):
+        changes["currency"] = currency
+    document = _text(response, "document_type")
+    if document and document != UNSET:
+        changes["document_type"] = DocumentType(document)
+    method = _text(response, "payment_method")
+    if method:
+        changes["payment_method"] = None if method == BY_ADVANCE else PaymentMethod(method)
     return changes

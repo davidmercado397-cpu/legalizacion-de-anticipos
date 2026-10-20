@@ -91,3 +91,10 @@ async def test_missing_setting_answers_503_and_ready_reports_it(harness: Harness
         json={"name": "Forsa Panamá", "country": "PA", "currency": "USD"},
     )
     assert created.status_code == 503 and created.json()["error"]["code"] == "setting_missing"
+
+
+async def test_every_user_sees_the_supported_currencies_in_me(harness: Harness) -> None:
+    employee = await harness.add_employee(await harness.add_company(), "juan@forsa.com", Role.EMPLOYEE)
+    await harness.set_setting("operation.supported_currencies", ["COP", "USD"])
+    me = (await harness.client.get("/api/v1/me", headers=await harness.login(employee))).json()
+    assert me["supported_currencies"] == ["COP", "USD"]

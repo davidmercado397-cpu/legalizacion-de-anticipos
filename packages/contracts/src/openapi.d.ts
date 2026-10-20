@@ -3541,6 +3541,11 @@ export interface components {
             privacy_accepted_at: string | null;
             role: components["schemas"]["Role"];
             staff_type: components["schemas"]["StaffType"] | null;
+            /**
+             * Supported Currencies
+             * @description Monedas que se pueden usar en anticipos y gastos
+             */
+            supported_currencies: string[];
             wa_link_status: components["schemas"]["WhatsAppLinkStatus"];
             /** Wa Profile Name */
             wa_profile_name: string | null;

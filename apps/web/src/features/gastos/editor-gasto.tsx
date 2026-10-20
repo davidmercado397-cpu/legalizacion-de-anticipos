@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { etiqueta } from '../../i18n';
 import { mensajeDeError } from '../../lib/errores';
 import { formatoDinero } from '../../lib/formato';
+import { opcionesDeMoneda } from '../../lib/monedas';
 import { puede } from '../../lib/roles';
 import { Boton } from '../../ui/boton';
 import { AreaTexto, Campo, Entrada, Seleccion } from '../../ui/campos';
@@ -186,6 +187,7 @@ function Resumen({ gasto }: { gasto: GastoDetalle }) {
 }
 
 function Formulario({ anticipo, gasto }: { anticipo: AnticipoDetalle; gasto: GastoDetalle }) {
+  const usuario = useSesion((s) => s.usuario);
   const categorias = useCategorias(anticipo.company_id);
   const corregir = useCorregirGasto();
   const confirmar = useConfirmarGasto();
@@ -251,7 +253,18 @@ function Formulario({ anticipo, gasto }: { anticipo: AnticipoDetalle; gasto: Gas
         <Campo etiqueta="NIT del proveedor">{(p) => <Entrada {...p} {...register('vendor_tax_id')} />}</Campo>
         <Campo etiqueta="Número de factura">{(p) => <Entrada {...p} {...register('invoice_number')} />}</Campo>
         <Campo etiqueta="Fecha">{(p) => <Entrada {...p} {...register('invoice_date')} type="date" />}</Campo>
-        <Campo etiqueta="Moneda">{(p) => <Entrada {...p} {...register('currency')} maxLength={3} className="uppercase" />}</Campo>
+        <Campo etiqueta="Moneda">
+          {(p) => (
+            <Seleccion {...p} {...register('currency')}>
+              <option value="">—</option>
+              {opcionesDeMoneda(usuario, gasto.currency).map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </Seleccion>
+          )}
+        </Campo>
         <Campo etiqueta="Total" error={e.total?.message}>
           {(p) => <Entrada {...p} {...register('total')} inputMode="decimal" />}
         </Campo>

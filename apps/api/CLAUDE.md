@@ -94,7 +94,8 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
 - 3b, WhatsApp Flows (migración 0014, `whatsapp_flows.py`): corregir, justificar y solicitar anticipo
   con los JSON de `whatsapp_flows/` (sin endpoint de datos; respuesta `nfm_reply`). El token del Flow
   (JWT `typ=flow`, `FLOW_TOKEN_TTL_MINUTES`) dice quién, para qué y sobre qué registro; responde solo
-  si coincide con el remitente. Sin el ID del Flow configurado, el bot remite a la app.
+  si coincide con el remitente. Sin el ID del Flow configurado, el bot remite a la app. El de corregir tiene los
+  campos del formulario web (moneda en lista, de `operation.supported_currencies`, que `/me` también expone).
 - 3b, avisos de estado: `AdvanceService` y `TreasuryService` emiten `AdvanceEvents` después del commit
   (Observer mínimo); `StatusNotices` avisa al empleado (aprobado con razón social y NIT, rechazado,
   anulado, entregado, devuelto con marcas, cerrado con el resultado) y al aprobador (enviada o

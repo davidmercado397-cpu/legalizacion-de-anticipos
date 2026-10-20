@@ -6796,6 +6796,14 @@
               }
             ]
           },
+          "supported_currencies": {
+            "description": "Monedas que se pueden usar en anticipos y gastos",
+            "items": {
+              "type": "string"
+            },
+            "title": "Supported Currencies",
+            "type": "array"
+          },
           "wa_link_status": {
             "$ref": "#/components/schemas/WhatsAppLinkStatus"
           },
@@ -6839,7 +6847,8 @@
           "wa_profile_name",
           "privacy_accepted_at",
           "created_at",
-          "mfa_setup_required"
+          "mfa_setup_required",
+          "supported_currencies"
         ],
         "title": "MeOut",
         "type": "object"

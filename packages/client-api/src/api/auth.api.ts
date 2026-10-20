@@ -1,7 +1,7 @@
 import type { AxiosInstance } from 'axios';
 import type { ConfiguracionMfa, Empleado, Login, RespuestaLogin, Tokens } from '@viaticos/contracts';
 
-export type Perfil = Empleado & { mfa_setup_required: boolean };
+export type Perfil = Empleado & { mfa_setup_required: boolean; supported_currencies: string[] };
 
 export interface AuthApi {
   /** Paso 1. Si el usuario tiene MFA, no trae tokens sino `mfa_token`. */

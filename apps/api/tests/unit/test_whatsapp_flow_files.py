@@ -14,7 +14,23 @@ FLOWS = pathlib.Path(__file__).resolve().parents[2] / "whatsapp_flows"
 EXPECTED = {
     "expense_correction.json": (
         "CORRECT",
-        {"vendor_name", "vendor_tax_id", "invoice_number", "invoice_date", "total", "category"},
+        {
+            "document_type",
+            "category",
+            "vendor_name",
+            "vendor_tax_id",
+            "invoice_number",
+            "invoice_date",
+            "currency",
+            "total",
+            "subtotal",
+            "tax_amount",
+            "tip_amount",
+            "discount_amount",
+            "payment_method",
+            "description",
+            "receipt_signed",
+        },
     ),
     "justification.json": ("JUSTIFY", {"justification"}),
     "advance_request.json": (

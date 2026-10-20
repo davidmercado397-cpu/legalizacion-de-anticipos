@@ -97,6 +97,8 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `JUSTIFY_REASON` | La política de gastos pide una justificación para este gasto. |
 | `ADVANCE_REQUESTED` | 📨 Listo, pedí tu anticipo de {amount} para {label}. Te aviso cuando lo aprueben. |
 | `CORRECTED_CONFIRMED` | ✏️ Listo, lo corregí y quedó confirmado. |
+| `FLOW_UNSET` | Sin definir |
+| `FLOW_BY_ADVANCE` | Según el anticipo |
 | `CORRECT_IN_APP` | ✏️ Para corregir este gasto entra a la app: ahí puedes cambiar cualquier dato y confirmarlo. |
 | `JUSTIFY_IN_APP` | ✍️ Escribe la justificación en la app y confirma el gasto desde ahí. |
 | `MOVE_PROMPT` | ¿A qué anticipo paso este gasto? |

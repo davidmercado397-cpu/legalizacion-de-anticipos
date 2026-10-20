@@ -265,7 +265,9 @@ El adaptador real aún no existe: sin él, todo queda «pendiente» con el aviso
 
 4. **WhatsApp Flows** (formularios). Los JSON versionados están en `whatsapp_flows/` (Flow JSON
    7.3, sin endpoint de datos):
-   - `expense_correction.json`: corregir un gasto ([✏️ Corregir]); al guardar queda confirmado.
+   - `expense_correction.json`: corregir un gasto ([✏️ Corregir]) con los mismos campos del formulario de
+     la app (tipo de documento, moneda, subtotal, impuestos, propina, descuento, medio de pago, descripción
+     y firma del recibo); al guardar queda confirmado.
    - `justification.json`: justificar un gasto que la política lo pide ([✍️ Justificar]).
    - `advance_request.json`: solicitar un anticipo (➕ en el menú); con el valor vacío se usa el
      calculado con las tarifas de viaje.

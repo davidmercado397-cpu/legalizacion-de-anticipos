@@ -50,6 +50,37 @@ async def test_correct_button_opens_the_flow_prefilled_and_its_reply_corrects_an
     assert Decimal(expense["total"]) == Decimal("52000")
 
 
+async def test_the_correction_flow_edits_every_field_of_the_web_form(harness: Harness) -> None:
+    juan, _, emp_h, _ = await _scenario(harness)
+    await _configure_flows(harness)
+    await juan.photo(1)
+    await juan.tap(juan.last("buttons").extra[1].id)  # Corregir
+
+    flow = _flow(juan)
+    assert flow.data["document_type"] == "pos_ticket" and flow.data["currency"] == "COP"
+    assert {"id": "COP", "title": "COP"} in flow.data["currencies"]
+    assert flow.data["subtotal"] == "37815" and flow.data["tax_amount"] == "7185" and flow.data["tip_amount"] == ""
+    assert flow.data["payment_method"] == "advance" and flow.data["description"] == "Almuerzo"
+    assert flow.data["receipt_signed"] is False
+    assert {"id": "unset", "title": "Sin definir"} not in flow.data["document_types"]
+
+    response = {
+        **flow.data,
+        "flow_token": flow.token,
+        "document_type": "cash_receipt",
+        "tip_amount": "4500",
+        "total": "49500",
+        "payment_method": "card",
+        "description": "Almuerzo con el cliente",
+        "receipt_signed": True,
+    }
+    await flow_reply(harness, juan, response)
+    expense = (await harness.client.get("/api/v1/expenses", headers=emp_h)).json()["data"][0]
+    assert expense["status"] == "confirmed" and expense["document_type"] == "cash_receipt"
+    assert expense["receipt_signed"] is True and expense["payment_method"] == "card"
+    assert Decimal(expense["tip_amount"]) == Decimal("4500") and expense["description"] == "Almuerzo con el cliente"
+
+
 async def test_justification_flow_confirms_with_the_reason(harness: Harness) -> None:
     juan, _, emp_h, _ = await _scenario(harness)
     await _configure_flows(harness)
