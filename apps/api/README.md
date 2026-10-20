@@ -246,6 +246,8 @@ El adaptador real aún no existe: sin él, todo queda «pendiente» con el aviso
    (`WHATSAPP_ACCESS_TOKEN`) y el `WHATSAPP_PHONE_NUMBER_ID` del número.
 2. Webhook: `https://<dominio>/webhooks/whatsapp`, token de verificación = `WHATSAPP_VERIFY_TOKEN`,
    campo `messages` suscrito. `WHATSAPP_APP_SECRET` = el App Secret (firma de los eventos).
+   La cuenta de WhatsApp Business debe tener la app suscrita (sin eso se envía pero no se recibe):
+   `python -m scripts.check_whatsapp <WABA_ID>` lo revisa y con `--suscribir` la suscribe.
 3. Plantillas de **utilidad** (aprobadas por Meta):
    El nombre de cada plantilla se guarda en la configuración del sistema (`whatsapp.welcome_template`,
    `whatsapp.approval_template`); mientras esté vacío, ese aviso no se envía y la API responde 503.
