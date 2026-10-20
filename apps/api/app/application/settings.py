@@ -31,6 +31,7 @@ class RuntimeSettings:
     whatsapp_slow_notice_seconds: float = _key("whatsapp.slow_notice_seconds")
     whatsapp_session_ttl_minutes: int = _key("whatsapp.session_ttl_minutes")
     whatsapp_notice_template: str = _key("whatsapp.notice_template")
+    whatsapp_notice_hold_days: int = _key("whatsapp.notice_hold_days")
     whatsapp_reminder_days: list[int] = _key("whatsapp.reminder_days")
     whatsapp_assistant_name: str = _key("whatsapp.assistant_name")
     whatsapp_keywords: dict[str, list[str]] = _key("whatsapp.keywords")

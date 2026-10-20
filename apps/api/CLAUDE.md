@@ -81,7 +81,12 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
   confirma solo), duplicado propio (misma foto antes de la IA, mismo CUFE después; queda
   `discarded` con `duplicate_of_id`), anticipo por la fecha de la factura y recordatorio de legalizar
   (`LegalizationReminders`). Los avisos que inicia el sistema van por `WhatsAppNotifier`: texto
-  libre dentro de la ventana y plantilla `whatsapp.notice_template` afuera.
+  libre dentro de la ventana y plantilla `whatsapp.notice_template` afuera, con el botón [Ver detalle].
+- Avisos guardados (migración 0022): lo que sale por plantilla guarda el mensaje completo en
+  `whatsapp_held_notices`; `WhatsAppBot.handle` lo entrega (`WhatsAppSessions.deliver_held`) al siguiente
+  mensaje del empleado antes de los handlers. Si era el botón [Ver detalle] (payload `menu:menu`), ahí
+  termina; si ya no hay nada, el menú lo atiende. Vence a los `whatsapp.notice_hold_days` y
+  `close_idle` borra los vencidos.
 - 3b, menú (`whatsapp_menu.py`, `MenuHandler`): saludo al empezar la conversación, palabras clave
   (`whatsapp.keywords`), despedida que cierra la sesión, opciones por rol (Mis anticipos, Saldo,
   Pendientes, Mis gastos, Enviar legalización, Por aprobar con `AdvanceService.decision_queue`) y
@@ -127,7 +132,7 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
 - **Pendiente:** el adaptador real de Siesa. Preguntas abiertas a Forsa: el tercero genérico de Panamá
   (`fiscal.generic_buyer_ids.PA` está vacío) y si los recibos de caja deben traer nombre e
   identificación de quien vende (`required_fields`). Plantillas que Forsa aprueba en Meta:
-  bienvenida (`{{1}}` nombre, `{{2}}` asistente), aprobación y aviso.
+  bienvenida (`{{1}}` nombre, `{{2}}` asistente), aprobación y aviso (con el botón «Ver detalle»).
 - **Stubs intencionales (no son bugs ni código zombie):** `ErpGateway` (Siesa, `domain/erp.py` y
   `application/erp.py`, migración 0018) no tiene adaptador real: el container usa
   `UnconfiguredService("siesa")`, así que el anticipo queda «pendiente» con el aviso «Siesa no está

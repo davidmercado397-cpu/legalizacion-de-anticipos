@@ -20,6 +20,7 @@ from app.domain.entities import (
     Expense,
     ExpenseLine,
     ExtractionAttempt,
+    HeldNotice,
     InboundMessage,
     PolicyRuleConfig,
     RefreshToken,
@@ -60,6 +61,7 @@ def start_mappers() -> None:
     mapper_registry.map_imperatively(ClassificationExample, t.classification_examples)
     mapper_registry.map_imperatively(ExampleHistory, t.classification_example_history)
     mapper_registry.map_imperatively(WhatsAppSession, t.whatsapp_sessions)
+    mapper_registry.map_imperatively(HeldNotice, t.whatsapp_held_notices)
     mapper_registry.map_imperatively(BankStatement, t.bank_statements)
     mapper_registry.map_imperatively(StatementMovement, t.statement_movements)
     _started = True

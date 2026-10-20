@@ -18,6 +18,7 @@ from app.adapters.outbound.persistence.repositories import (
     SqlExpenseLineRepository,
     SqlExpenseRepository,
     SqlExtractionAttemptRepository,
+    SqlHeldNoticeRepository,
     SqlInboundMessageRepository,
     SqlLinkCodeRepository,
     SqlPolicyRuleRepository,
@@ -65,6 +66,7 @@ class SqlAlchemyUnitOfWork:
         self.exchange_rates: ports.ExchangeRateRepository = SqlExchangeRateRepository(s)
         self.delegations: ports.DelegationRepository = SqlDelegationRepository(s)
         self.whatsapp_sessions: ports.WhatsAppSessionRepository = SqlWhatsAppSessionRepository(s)
+        self.held_notices: ports.HeldNoticeRepository = SqlHeldNoticeRepository(s)
         self.reports: ports.ReportRepository = SqlReportRepository(s)
         self.examples: ports.ExampleRepository = SqlExampleRepository(s)
         self.statements: ports.StatementRepository = SqlStatementRepository(s)

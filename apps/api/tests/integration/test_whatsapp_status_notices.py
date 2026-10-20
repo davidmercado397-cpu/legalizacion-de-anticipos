@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import uuid
 from datetime import date
+from typing import cast
 
 import sqlalchemy as sa
 
+from app.application.whatsapp_notifier import NOTICE_DETAIL_PAYLOAD, WhatsAppSessions
 from app.domain.enums import Role
-from tests.conftest import Harness
+from tests.conftest import Harness, wa_message
 from tests.fakes import invoice
 from tests.integration.test_whatsapp_flows import _configure_flows, _flow, flow_reply
-from tests.integration.test_whatsapp_menu import _scenario
+from tests.integration.test_whatsapp_menu import Chat, _scenario
 
 
 async def _new_advance(harness: Harness, headers: dict[str, str], **extra: object) -> str:
@@ -56,6 +58,72 @@ async def test_employee_hears_about_approval_rejection_disbursement_and_void(har
     await harness.drain()
     template = juan.last("template")
     assert template.text == "aviso_gastos" and template.extra["params"] == ["Juan", "Ana Pérez no aprobó tu anticipo Bogotá"]
+    assert template.extra["payloads"] == [NOTICE_DETAIL_PAYLOAD]
+
+    # [Ver detalle] entrega el mensaje completo, con el motivo, y nada más.
+    sent = juan.received
+    await _tap_template_button(harness, juan)
+    assert juan.received == sent + 1
+    assert juan.last("text").text == "❌ Ana Pérez no aprobó tu anticipo Bogotá.\nMotivo: No hay presupuesto"
+    # Ya se mostró: el mismo botón abre el menú.
+    await _tap_template_button(harness, juan)
+    assert juan.received == sent + 2 and juan.last("list").to.phone == juan.phone
+
+
+async def test_a_held_notice_arrives_before_whatever_the_employee_writes_and_expires(harness: Harness) -> None:
+    juan, _, emp_h, _ = await _scenario(harness)
+    appr_h = await harness.login(await _employee(harness, "ana@forsa.com"))
+    await harness.set_setting("whatsapp.notice_template", "aviso_gastos")
+    await juan.say("hola")
+    await _close_window(harness)
+    await _rejected(harness, emp_h, appr_h, "Bogotá")
+    assert juan.last("template").extra["params"][1] == "Ana Pérez no aprobó tu anticipo Bogotá"
+
+    sent = juan.received
+    await juan.say("saldo")
+    detail, balance = harness.wa.sent[-2:]
+    assert juan.received == sent + 2
+    assert detail.text == "❌ Ana Pérez no aprobó tu anticipo Bogotá.\nMotivo: No hay presupuesto"
+    assert balance.text.startswith("💰 *Medellín")
+    await juan.say("saldo")
+    assert juan.received == sent + 3  # el aviso se entrega una sola vez
+
+    # Vencido no se entrega...
+    await _close_window(harness)
+    await _rejected(harness, emp_h, appr_h, "Cali")
+    await _age_held(harness)
+    sent = juan.received
+    await juan.say("saldo")
+    assert juan.received == sent + 1 and juan.last("text").text.startswith("💰 *Medellín")
+    # ...y el cierre de sesiones lo borra aunque el empleado no vuelva a escribir.
+    await _close_window(harness)
+    await _rejected(harness, emp_h, appr_h, "Pasto")
+    await _age_held(harness)
+    await cast(WhatsAppSessions, harness.container.extras["sessions"]).close_idle()
+    async with harness.container.engine.begin() as conn:
+        assert (await conn.execute(sa.text("SELECT count(*) FROM whatsapp_held_notices"))).scalar_one() == 0
+
+
+async def _rejected(harness: Harness, emp_h: dict[str, str], appr_h: dict[str, str], purpose: str) -> None:
+    advance_id = await _new_advance(harness, emp_h, purpose=purpose)
+    await harness.client.post(f"/api/v1/advances/{advance_id}/reject", headers=appr_h, json={"note": "No hay presupuesto"})
+    await harness.drain()
+
+
+async def _tap_template_button(harness: Harness, chat: Chat) -> None:
+    button = {"payload": NOTICE_DETAIL_PAYLOAD, "text": "Ver detalle"}
+    await harness.webhook(wa_message(chat._id(), phone=chat.phone, type="button", button=button))
+    await harness.drain()
+
+
+async def _close_window(harness: Harness) -> None:
+    async with harness.container.engine.begin() as conn:
+        await conn.execute(sa.text("UPDATE whatsapp_sessions SET last_inbound_at = now() - interval '2 days'"))
+
+
+async def _age_held(harness: Harness) -> None:
+    async with harness.container.engine.begin() as conn:
+        await conn.execute(sa.text("UPDATE whatsapp_held_notices SET created_at = now() - interval '8 days'"))
 
 
 async def test_legalization_round_trip_notifies_the_employee(harness: Harness) -> None:

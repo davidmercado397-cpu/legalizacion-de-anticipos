@@ -82,6 +82,8 @@ confirmación ("Sí, soy {nombre}") queda en la auditoría con la fecha y el can
   contable: celular, identificador y nombre de usuario de WhatsApp, nombre de perfil. Un
   administrador lo hace con `POST /employees/{id}/anonymize-contact` sobre un usuario ya
   desactivado: borra esos datos, deja los gastos intactos y queda en la auditoría (control D7).
+- **Avisos de WhatsApp guardados:** cuando un aviso sale por plantilla, su texto completo se guarda
+  solo hasta que el empleado lo ve o vence (`whatsapp.notice_hold_days`, 7 días); después se borra.
 - **Usuarios retirados:** se desactivan (pierden acceso al instante); su historial de gastos se
   conserva por la regla contable.
 

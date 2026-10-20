@@ -517,6 +517,16 @@ whatsapp_sessions = sa.Table(
     sa.Index("ix_whatsapp_sessions_open", "last_inbound_at", postgresql_where=sa.text("closed_at IS NULL")),
 )
 
+whatsapp_held_notices = sa.Table(
+    "whatsapp_held_notices",
+    metadata,
+    sa.Column("id", sa.Uuid, primary_key=True),
+    sa.Column("employee_id", sa.Uuid, sa.ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True),
+    sa.Column("text", sa.Text, nullable=False),
+    sa.Column("buttons", pg.JSONB, nullable=False, server_default="[]"),
+    sa.Column("created_at", TZ, nullable=False),
+)
+
 classification_examples = sa.Table(
     "classification_examples",
     metadata,

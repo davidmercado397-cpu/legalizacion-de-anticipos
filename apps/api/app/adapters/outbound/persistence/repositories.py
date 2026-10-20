@@ -27,6 +27,7 @@ from app.domain.entities import (
     Expense,
     ExpenseLine,
     ExtractionAttempt,
+    HeldNotice,
     PolicyRuleConfig,
     RefreshToken,
     StatementMovement,
@@ -612,6 +613,21 @@ class SqlWhatsAppSessionRepository(_Repo):
             .with_for_update(skip_locked=True)
         )
         return list((await self._s.scalars(stmt)).all())
+
+
+class SqlHeldNoticeRepository(_Repo):
+    def add(self, notice: HeldNotice) -> None:
+        self._s.add(notice)
+
+    async def take_for(self, employee_id: uuid.UUID) -> list[HeldNotice]:
+        # DELETE ... RETURNING: si llegan dos mensajes a la vez, cada aviso lo saca uno solo.
+        c = t.whatsapp_held_notices.c
+        stmt = sa.delete(HeldNotice).where(c.employee_id == employee_id).returning(HeldNotice)
+        return sorted((await self._s.scalars(stmt)).all(), key=lambda n: n.created_at)
+
+    async def purge(self, before: datetime) -> int:
+        result = await self._s.execute(sa.delete(t.whatsapp_held_notices).where(t.whatsapp_held_notices.c.created_at < before))
+        return int(result.rowcount)  # type: ignore[attr-defined]
 
 
 class SqlDelegationRepository(_Repo):

@@ -96,7 +96,9 @@ almacenamiento), Decorator/Chain (escalamiento de la IA), Chain of Responsibilit
   facturas), se rechaza, se anula, se entrega, se le devuelve la legalización (con los gastos
   marcados y [↩️ Ver marcados]) o se cierra (con el reintegro, el saldo a su favor o "en cero"); al
   aprobador cuando recibe una legalización o la recibe corregida (cuántas marcas quedaron sin
-  resolver). La solicitud nueva sigue llegando con la plantilla de aprobación.
+  resolver). La solicitud nueva sigue llegando con la plantilla de aprobación. Si el aviso salió por
+  plantilla, el mensaje completo (motivo, botones) queda guardado y se entrega cuando el empleado toca
+  [Ver detalle] o escribe cualquier cosa, antes de responderle; vence a los `whatsapp.notice_hold_days`.
 
 ## Políticas de gasto (incremento 2)
 
@@ -254,10 +256,12 @@ El adaptador real aún no existe: sin él, todo queda «pendiente» con el aviso
      número se digitó mal).
    - **Aprobación**: `{{1}}` solicitante, `{{2}}` valor, `{{3}}`
      viaje; botones rápidos "Aprobar" y "Rechazar".
-   - **Aviso** (`whatsapp.notice_template`): `{{1}}` nombre, `{{2}}` aviso de una línea; por
-     ejemplo "Hola {{1}}, {{2}}. Escríbenos para ver el detalle." Meta solo deja escribir libre hasta
-     24 h después del último mensaje del usuario; afuera, recordatorios y avisos usan esta plantilla.
-     Si está vacía, fuera de la ventana no se avisa (queda en el log).
+   - **Aviso** (`whatsapp.notice_template`): `{{1}}` nombre, `{{2}}` aviso de una línea y un botón
+     de respuesta rápida "Ver detalle" (obligatorio: el bot le pone su payload); por ejemplo "Hola
+     {{1}}, {{2}}. Toca el botón para ver el detalle." Meta solo deja escribir libre hasta 24 h
+     después del último mensaje del usuario; afuera, recordatorios y avisos usan esta plantilla y el
+     mensaje completo se entrega cuando el usuario toca el botón o escribe. Si está vacía, fuera de
+     la ventana no se avisa (queda en el log).
 
 4. **WhatsApp Flows** (formularios). Los JSON versionados están en `whatsapp_flows/` (Flow JSON
    7.3, sin endpoint de datos):

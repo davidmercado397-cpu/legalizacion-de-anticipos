@@ -28,6 +28,7 @@ from app.domain.entities import (
     Expense,
     ExpenseLine,
     ExtractionAttempt,
+    HeldNotice,
     PolicyRuleConfig,
     RefreshToken,
     StatementMovement,
@@ -400,6 +401,17 @@ class WhatsAppSessionRepository(Protocol):
         ...
 
 
+class HeldNoticeRepository(Protocol):
+    def add(self, notice: HeldNotice) -> None: ...
+    async def take_for(self, employee_id: uuid.UUID) -> list[HeldNotice]:
+        """Saca (borra y devuelve, del más viejo al más nuevo) los avisos guardados del empleado."""
+        ...
+
+    async def purge(self, before: datetime) -> int:
+        """Borra los avisos guardados antes de `before`; devuelve cuántos."""
+        ...
+
+
 class InboundMessageRepository(Protocol):
     async def register(self, wa_message_id: str) -> bool:
         """Devuelve False si el id del mensaje ya se procesó (Meta reintenta)."""
@@ -438,6 +450,7 @@ class UnitOfWork(Protocol):
     exchange_rates: ExchangeRateRepository
     delegations: DelegationRepository
     whatsapp_sessions: WhatsAppSessionRepository
+    held_notices: HeldNoticeRepository
     reports: ReportRepository
     examples: ExampleRepository
     statements: StatementRepository

@@ -108,5 +108,5 @@ El jefe solo aprueba la solicitud; la legalización la revisa y la cierra contab
 | S12 | Activar lo aprendido de un empleado al cerrarse su legalización | Al cerrar |
 | S13 | Recordar la legalización días después del viaje (plantilla fuera de la ventana de 24 h) | Tarea periódica |
 | S14 | Cerrar la conversación de WhatsApp por inactividad, con un solo recordatorio si quedó algo pendiente | Tarea periódica |
-| S15 | Avisar al empleado cada cambio de su anticipo | Al cambiar de estado |
+| S15 | Avisar al empleado cada cambio de su anticipo (fuera de la ventana, el detalle se entrega cuando toca [Ver detalle] o escribe) | Al cambiar de estado |
 | S16 | Crear el anticipo en Siesa (si falla, queda el error para reintentar) | Al aprobarse |

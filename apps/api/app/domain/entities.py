@@ -444,6 +444,18 @@ class WhatsAppSession:
 
 
 @dataclass(eq=False)
+class HeldNotice:
+    """Aviso que salió por plantilla (fuera de la ventana de 24 h) en una sola línea: el mensaje completo,
+    con sus botones, se entrega cuando el empleado vuelve a escribir."""
+
+    employee_id: uuid.UUID
+    text: str
+    buttons: list[dict[str, str]]  # [{"id": ..., "title": ...}]
+    created_at: datetime
+    id: uuid.UUID = field(default_factory=uuid.uuid4)
+
+
+@dataclass(eq=False)
 class ApproverDelegation:
     """Suplencia: mientras esté vigente, `delegate_id` aprueba por `approver_id` (vacaciones, viajes)."""
 

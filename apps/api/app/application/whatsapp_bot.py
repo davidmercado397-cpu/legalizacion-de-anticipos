@@ -17,7 +17,7 @@ from app.application.expenses import ExpenseService
 from app.application.notifications import ExpenseNotifier
 from app.application.whatsapp_events import InboundMessage, MessageKind, StatusUpdate, WebhookBatch
 from app.application.whatsapp_identity import WELCOME_PAYLOAD_PREFIX, WhatsAppIdentityService
-from app.application.whatsapp_notifier import WhatsAppSessions
+from app.application.whatsapp_notifier import NOTICE_DETAIL_PAYLOAD, WhatsAppSessions
 from app.application.whatsapp_presenter import advance_rows, menu
 from app.domain.entities import Employee
 from app.domain.enums import AdvanceStatus, Channel
@@ -236,6 +236,9 @@ class WhatsAppBot:
             return
         new_session = await self._sessions.register_inbound(employee.id)
         conversation = Conversation(employee, message, new_session)
+        held = await self._sessions.deliver_held(employee.id, conversation.address)
+        if held and message.reply_id == NOTICE_DETAIL_PAYLOAD:
+            return  # [Ver detalle]: el detalle era la respuesta
         for handler in self._handlers:
             if handler.can_handle(message):
                 await handler.handle(conversation)
