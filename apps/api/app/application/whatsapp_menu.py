@@ -139,6 +139,14 @@ class MenuHandler(Handler):
                 await self._sender.send_list(c.address, msg.MARKED_PROMPT, msg.EXPENSES_BUTTON, expense_rows(marked, fmt))
             case "request":
                 return await self._flows.advance_request(employee, c.address)
+            case "withdraw":
+                open_advances = [b.advance for b in await self._advances.open_balances(employee.id)]
+                if not open_advances:
+                    return msg.NO_OPEN_ADVANCES
+                if len(open_advances) == 1:
+                    return await self._flows.withdrawal(employee, c.address, open_advances[0].id)
+                rows = advance_rows(open_advances, "withdraw")
+                await self._sender.send_list(c.address, msg.WITHDRAW_PROMPT, msg.ASSIGN_BUTTON, rows)
             case "submit":
                 open_advances = [b.advance for b in await self._advances.open_balances(employee.id)]
                 if not open_advances:

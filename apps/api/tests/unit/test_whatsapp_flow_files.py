@@ -41,6 +41,7 @@ EXPECTED = {
         "REQUEST",
         {"company_id", "destination", "purpose", "start_date", "end_date", "kind", "currency", "amount", "justification"},
     ),
+    "cash_withdrawal.json": ("WITHDRAW", {"withdrawn_on", "currency", "amount", "debited_amount", "fee_amount"}),
 }
 
 

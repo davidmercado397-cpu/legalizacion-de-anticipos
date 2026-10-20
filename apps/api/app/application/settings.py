@@ -38,6 +38,7 @@ class RuntimeSettings:
     whatsapp_flow_advance_request_id: str = _key("whatsapp.flow_advance_request_id")
     whatsapp_flow_expense_correction_id: str = _key("whatsapp.flow_expense_correction_id")
     whatsapp_flow_justification_id: str = _key("whatsapp.flow_justification_id")
+    whatsapp_flow_withdrawal_id: str = _key("whatsapp.flow_withdrawal_id")
     ai_primary_model: str = _key("ai.primary_model")
     ai_lite_model: str = _key("ai.lite_model")
     ai_fallback_model: str = _key("ai.fallback_model")

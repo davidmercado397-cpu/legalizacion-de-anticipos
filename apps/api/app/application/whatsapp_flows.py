@@ -22,6 +22,7 @@ from app.application.settings import SettingsService
 from app.application.whatsapp_bot import FLOW_ACTIONS, Conversation, Handler, balance_line, run_action
 from app.application.whatsapp_events import InboundMessage, MessageKind
 from app.application.whatsapp_presenter import finding_text
+from app.application.withdrawals import WithdrawalData, WithdrawalService
 from app.domain.entities import Employee, Expense
 from app.domain.enums import AdvanceKind, Channel, DocumentType, PaymentMethod, PolicyAction
 from app.domain.errors import AuthenticationError, DomainError, JustificationRequiredError, NotFoundError
@@ -33,6 +34,7 @@ logger = logging.getLogger(__name__)
 ADVANCE_REQUEST = "advance_request"
 EXPENSE_CORRECTION = "expense_correction"
 JUSTIFICATION = "justification"
+CASH_WITHDRAWAL = "cash_withdrawal"
 # Opciones de las listas del Flow que no son un valor: la lista exige elegir algo.
 UNSET = "unset"  # el gasto no tiene tipo de documento: se deja como está
 BY_ADVANCE = "advance"  # sin medio de pago propio: el del anticipo
@@ -119,6 +121,40 @@ class FlowLauncher:
         data = {"summary": await self._summary(expense), "reason": " ".join(r for r in reasons if r) or msg.JUSTIFY_REASON}
         await self._open(
             to, employee, flow_id, JUSTIFICATION, expense.id, "JUSTIFY", data, msg.FLOW_JUSTIFY_TEXT, msg.FLOW_JUSTIFY_CTA
+        )
+        return None
+
+    async def withdrawal(self, employee: Employee, to: WhatsAppAddress, advance_id: uuid.UUID) -> str | None:
+        """Registrar un retiro de efectivo en otra moneda (decisión 9.4) sobre un anticipo abierto del empleado."""
+        current = await self._settings.current()
+        if not current.whatsapp_flow_withdrawal_id:
+            return msg.WITHDRAW_IN_APP
+        async with self._uow() as uow:
+            advance = await uow.advances.get(advance_id)
+        if advance is None or advance.employee_id != employee.id:
+            raise NotFoundError("advance")
+        ledger = advance.ledger_currency
+        currencies = [c for c in current.supported_currencies if c != ledger]
+        if not currencies:
+            return msg.WITHDRAW_IN_APP
+        default = advance.currency if advance.currency in currencies else currencies[0]
+        data = {
+            "summary": advance.label,
+            "ledger": msg.FLOW_WITHDRAW_LEDGER.format(currency=ledger),
+            "currencies": [{"id": code, "title": code} for code in currencies],
+            "currency": default,
+            "withdrawn_on": self._clock.now().date().isoformat(),  # el DatePicker necesita un valor válido
+        }
+        await self._open(
+            to,
+            employee,
+            current.whatsapp_flow_withdrawal_id,
+            CASH_WITHDRAWAL,
+            advance.id,
+            "WITHDRAW",
+            data,
+            msg.FLOW_WITHDRAW_TEXT,
+            msg.FLOW_WITHDRAW_CTA,
         )
         return None
 
@@ -277,7 +313,9 @@ class FlowHandler(Handler):
         expenses: ExpenseService,
         tokens: TokenService,
         sender: MessageSender,
+        withdrawals: WithdrawalService | None = None,
     ) -> None:
+        self._withdrawals = withdrawals
         self._launcher = launcher
         self._advances = advances
         self._expenses = expenses
@@ -298,6 +336,8 @@ class FlowHandler(Handler):
         employee = conversation.employee
         if action == "exp_correct":
             await run_action(self._sender, to, action, self._launcher.correction(employee, to, uuid.UUID(rest)))
+        elif action == "withdraw":
+            await run_action(self._sender, to, action, self._launcher.withdrawal(employee, to, uuid.UUID(rest)))
         else:
             await run_action(self._sender, to, action, self._launcher.justification(employee, to, uuid.UUID(rest)))
 
@@ -334,9 +374,36 @@ class FlowHandler(Handler):
                         employee, uuid.UUID(str(claims.entity_id)), None, None, justification=text, channel=Channel.WHATSAPP
                     )
                     return msg.CONFIRMED_ONE + await balance_line(self._advances, employee, expense.advance_id)
+                case "cash_withdrawal" if self._withdrawals is not None:
+                    withdrawal = await self._withdrawals.create(employee, uuid.UUID(str(claims.entity_id)), _withdrawal(response))
+                    ledger = (await self._advances.get(employee, withdrawal.advance_id)).balance.currency
+                    return msg.WITHDRAWAL_REGISTERED.format(
+                        amount=msg.money(withdrawal.amount, withdrawal.currency),
+                        value=msg.money(withdrawal.value, ledger),
+                        rate=_rate(withdrawal.rate),
+                        currency=withdrawal.currency,
+                    )
         except (ValueError, InvalidOperation, TypeError):
             return msg.FLOW_INVALID
         return msg.FLOW_INVALID
+
+
+def _withdrawal(response: dict[str, Any]) -> WithdrawalData:
+    amount = _amount(response.get("amount"))
+    if amount is None:
+        raise ValueError("amount required")
+    return WithdrawalData(
+        withdrawn_on=date.fromisoformat(str(response.get("withdrawn_on"))),
+        currency=str(response.get("currency") or "").upper(),
+        amount=amount,
+        debited_amount=_amount(response.get("debited_amount")),
+        fee_amount=_amount(response.get("fee_amount")),
+    )
+
+
+def _rate(value: Decimal | None) -> str:
+    """820.00000000 -> 820; 816.66666667 -> 816.67."""
+    return "—" if value is None else f"{value.quantize(Decimal('0.01')).normalize():f}"
 
 
 def _text(response: dict[str, Any], name: str) -> str | None:

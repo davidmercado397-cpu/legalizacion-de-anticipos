@@ -352,7 +352,7 @@ def build_container(settings: Settings, overrides: Overrides | None = None) -> C
         ),
         [
             MediaHandler(expenses, notifier, sender),
-            FlowHandler(flows, advances, expenses, tokens, sender),
+            FlowHandler(flows, advances, expenses, tokens, sender, withdrawals),
             ReplyHandler(expenses, advances, identity, uow, sender),
             MenuHandler(advances, expenses, notifier, sessions, sender, runtime, flows),
         ],

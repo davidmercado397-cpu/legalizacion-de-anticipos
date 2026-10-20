@@ -160,7 +160,7 @@ class ReplyHandler(Handler):
 
 
 MENU_ACTIONS = ("menu", "exp_view", "submit")  # respuestas que atiende el menú
-FLOW_ACTIONS = ("exp_correct", "exp_justify")  # botones que abren un WhatsApp Flow
+FLOW_ACTIONS = ("exp_correct", "exp_justify", "withdraw")  # botones y filas que abren un WhatsApp Flow
 
 
 async def balance_line(advances: AdvanceService, employee: Employee, advance_id: uuid.UUID | None) -> str:

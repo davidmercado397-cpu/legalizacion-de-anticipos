@@ -146,3 +146,44 @@ async def test_without_the_flow_configured_the_bot_points_to_the_app(harness: Ha
     await juan.tap("menu:request")
     assert juan.last("text").text.startswith("➕ Solicita el anticipo en la app")
     assert not [s for s in harness.wa.of_kind("flow") if s.to and s.to.phone == PHONE]
+
+
+async def test_register_a_cash_withdrawal_with_the_flow(harness: Harness) -> None:
+    """Retiro en reales de un anticipo en pesos: lo debitado fija la tasa y la comisión queda como gasto."""
+    juan, _, emp_h, advance_id = await _scenario(harness)
+    await harness.set_setting("whatsapp.flow_withdrawal_id", "FLOW-WITHDRAW")
+    await juan.tap("menu:withdraw")  # un solo anticipo abierto: abre el formulario de una vez
+    flow = _flow(juan)
+    assert flow.flow_id == "FLOW-WITHDRAW" and flow.screen == "WITHDRAW" and flow.cta == "Registrar retiro"
+    assert "COP" not in [c["id"] for c in flow.data["currencies"]] and flow.data["ledger"].endswith(
+        "en COP, la moneda en que legalizas."
+    )
+
+    response = {
+        "flow_token": flow.token,
+        "withdrawn_on": "2026-10-13",
+        "currency": "BRL",
+        "amount": "500",
+        "debited_amount": "410000",
+        "fee_amount": "15000",
+    }
+    await flow_reply(harness, juan, response)
+    assert juan.last("text").text.startswith("🏧 Listo, registré el retiro de")
+    assert "(tasa 820)" in juan.last("text").text
+    detail = (await harness.client.get(f"/api/v1/advances/{advance_id}", headers=emp_h)).json()
+    [withdrawal] = detail["withdrawals"]
+    assert withdrawal["currency"] == "BRL" and Decimal(withdrawal["rate"]) == Decimal("820")
+    assert Decimal(withdrawal["fee_amount"]) == Decimal("15000")
+
+    # Sin tasa oficial para ese día ni lo debitado: se pide el valor del banco, sin crear nada.
+    await flow_reply(harness, juan, {**response, "withdrawn_on": "2026-10-14", "debited_amount": ""})
+    assert juan.last("text").text == "❌ No hay tasa de cambio para ese día: escribe cuánto te debitó el banco en COP."
+    detail = (await harness.client.get(f"/api/v1/advances/{advance_id}", headers=emp_h)).json()
+    assert len(detail["withdrawals"]) == 1
+
+
+async def test_without_the_withdrawal_flow_the_bot_points_to_the_app(harness: Harness) -> None:
+    juan, _, _, _ = await _scenario(harness)
+    await juan.tap("menu:withdraw")
+    assert juan.last("text").text.startswith("🏧")
+    assert not [s for s in harness.wa.of_kind("flow") if s.to and s.to.phone == PHONE]

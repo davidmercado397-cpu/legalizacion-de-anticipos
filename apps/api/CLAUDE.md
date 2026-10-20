@@ -81,7 +81,8 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
   (`cash_withdrawals`, `application/withdrawals.py`): bolsas con la tasa oficial del día o la debitada; las facturas en
   efectivo las gastan FIFO (`domain/withdrawals.py`, se recalcula todo el anticipo en cada cambio y se guarda en
   `expenses.cash_allocations`); lo no cubierto va con la tasa del día y la regla `cash_without_withdrawal` lo manda a
-  revisión. La comisión es un gasto `withdrawal_fee` que se maneja desde el retiro.
+  revisión. La comisión es un gasto `withdrawal_fee` que se maneja desde el retiro. Por WhatsApp, 🏧 en el menú abre
+  el Flow `cash_withdrawal.json` (migración 0024, `whatsapp.flow_withdrawal_id`; sin ID remite a la app).
 - 3b, primera parte (migración 0013): sesión de WhatsApp (`whatsapp_sessions`: ventana de 24 h de
   Meta y conversación nueva tras `whatsapp.session_ttl_minutes`), presentador puro
   (`whatsapp_presenter.py`, con los límites de Meta y el formato de moneda de

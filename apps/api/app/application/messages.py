@@ -90,6 +90,7 @@ MENU_OPTIONS = {
     "pending": ("📝 Pendientes", "Gastos por confirmar"),
     "expenses": ("🧾 Mis gastos", "Corregir o descartar un gasto"),
     "request": ("➕ Solicitar anticipo", "Pide un anticipo para un viaje"),
+    "withdraw": ("🏧 Registrar retiro", "Efectivo que sacaste en otra moneda en el viaje"),
     "submit": ("📤 Enviar legalización", "Manda tu legalización a revisión"),
     "approvals": ("✅ Por aprobar", "Anticipos de tu equipo"),
 }
@@ -105,6 +106,12 @@ EXPENSES_PROMPT = "🧾 Tus últimos gastos. Elige uno para verlo, corregirlo o 
 EXPENSES_BUTTON = "Ver gastos"
 NO_EXPENSES = "Todavía no tienes gastos en tus anticipos abiertos. Envíame la foto de una factura 📸"
 REQUEST_IN_APP = "➕ Solicita el anticipo en la app: ahí ves el valor calculado con las tarifas de viaje."
+WITHDRAW_IN_APP = "🏧 Registra el retiro en la app: en el anticipo, *Retiros en efectivo*."
+WITHDRAW_PROMPT = "🏧 ¿En qué anticipo registras el retiro?"
+WITHDRAWAL_REGISTERED = (
+    "🏧 Listo, registré el retiro de {amount}: te costó {value} (tasa {rate}). Las facturas que pagues en efectivo en "
+    "{currency} salen de ahí."
+)
 SUBMIT_PROMPT = "¿Qué legalización quieres enviar?"
 SUBMIT_SUMMARY = "📤 *{label}*\nLegalizado: {applied} de {amount} en {count}."
 SUBMIT_QUESTION = "¿La envío a revisión?"
@@ -172,6 +179,11 @@ FLOW_REQUEST_TEXT = "➕ Completa los datos del viaje y te muestro el valor calc
 FLOW_BUDGET = "💰 Valor calculado con las tarifas de viaje: {amount}. Si pides otro valor, explica por qué."
 FLOW_NO_BUDGET = "No hay tarifas de viaje para este destino: escribe el valor del anticipo."
 FLOW_REQUEST_CTA = "Solicitar anticipo"
+FLOW_WITHDRAW_TEXT = (
+    "🏧 Registra el efectivo que sacaste. Con su tasa se legalizan las facturas que pagues en efectivo en esa moneda."
+)
+FLOW_WITHDRAW_CTA = "Registrar retiro"
+FLOW_WITHDRAW_LEDGER = "Lo debitado y la comisión van en {currency}, la moneda en que legalizas."
 FLOW_EXPIRED = "⌛ Ese formulario venció. Ábrelo de nuevo desde el menú."
 FLOW_INVALID = "No pude leer los datos del formulario. Ábrelo de nuevo y revísalos."
 JUSTIFY_REASON = "La política de gastos pide una justificación para este gasto."

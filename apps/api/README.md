@@ -281,10 +281,14 @@ El adaptador real aún no existe: sin él, todo queda «pendiente» con el aviso
      3. En el Flow, *Endpoint* → URL del endpoint, revisar la verificación de estado y publicar.
      Las peticiones van firmadas (mismo App Secret del webhook) y cifradas (RSA-OAEP + AES-GCM); el
      token del Flow dice quién pide. Sin llave el endpoint responde 503 y el Flow no se puede publicar.
+   - `cash_withdrawal.json`: registrar un retiro de efectivo en otra moneda (🏧 en el menú): fecha,
+     moneda, valor retirado y, si ya se saben, lo que debitó el banco y la comisión (tesorería los
+     puede completar después en la app).
 
    En WhatsApp Manager → Flows: crear cada Flow, pegar su JSON, publicarlo y guardar su ID en
-   `whatsapp.flow_expense_correction_id`, `whatsapp.flow_justification_id` y
-   `whatsapp.flow_advance_request_id` (`PATCH /api/v1/settings`). Sin ID, el botón remite a la app.
+   `whatsapp.flow_expense_correction_id`, `whatsapp.flow_justification_id`,
+   `whatsapp.flow_advance_request_id` y `whatsapp.flow_withdrawal_id` (`PATCH /api/v1/settings`). Sin
+   ID, el botón remite a la app.
    Cada Flow se abre con un token firmado de `FLOW_TOKEN_TTL_MINUTES` (30) que identifica a quién,
    para qué y sobre qué gasto; la respuesta pasa por los mismos casos de uso que la API.
 

@@ -1,0 +1,42 @@
+{
+  "version": "7.3",
+  "screens": [
+    {
+      "id": "WITHDRAW",
+      "title": "Registrar retiro",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "summary": {"type": "string", "__example__": "São Paulo · 10 nov"},
+        "ledger": {"type": "string", "__example__": "Lo debitado y la comisión van en COP."},
+        "currencies": {
+          "type": "array",
+          "items": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}}},
+          "__example__": [{"id": "BRL", "title": "BRL"}, {"id": "USD", "title": "USD"}, {"id": "EUR", "title": "EUR"}, {"id": "MXN", "title": "MXN"}]
+        },
+        "currency": {"type": "string", "__example__": "BRL"},
+        "withdrawn_on": {"type": "string", "__example__": "2026-10-14"}
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {"type": "TextSubheading", "text": "${data.summary}"},
+          {"type": "TextBody", "text": "${data.ledger}"},
+          {"type": "DatePicker", "name": "withdrawn_on", "label": "Fecha del retiro", "required": true,
+           "init-value": "${data.withdrawn_on}"},
+          {"type": "Dropdown", "name": "currency", "label": "Moneda", "required": true,
+           "data-source": "${data.currencies}", "init-value": "${data.currency}"},
+          {"type": "TextInput", "name": "amount", "label": "Valor retirado", "input-type": "number", "required": true},
+          {"type": "TextInput", "name": "debited_amount", "label": "Debitado (opcional)", "input-type": "number",
+           "required": false, "helper-text": "Lo que te descontó el banco; si no lo sabes, se usa la tasa del día"},
+          {"type": "TextInput", "name": "fee_amount", "label": "Comisión (opcional)", "input-type": "number",
+           "required": false, "helper-text": "Lo que cobró el cajero o el banco por el retiro"},
+          {"type": "Footer", "label": "Registrar retiro",
+           "on-click-action": {"name": "complete", "payload": {
+             "withdrawn_on": "${form.withdrawn_on}", "currency": "${form.currency}", "amount": "${form.amount}",
+             "debited_amount": "${form.debited_amount}", "fee_amount": "${form.fee_amount}"}}}
+        ]
+      }
+    }
+  ]
+}

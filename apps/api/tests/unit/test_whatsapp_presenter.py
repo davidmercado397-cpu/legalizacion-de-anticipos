@@ -174,7 +174,8 @@ def test_menu_greeting_and_advances_list() -> None:
     assert greeting("Juan", "").startswith("Hola Juan 👋 ¿Qué necesitas?")
     rows = menu(can_approve=False)
     assert all(len(r.title) <= 24 and len(r.description or "") <= 72 for r in menu(can_approve=True))
-    assert len(rows) == 6 and "menu:approvals" not in [r.id for r in rows]
+    assert len(rows) == 7 and "menu:approvals" not in [r.id for r in rows]
+    assert len(menu(can_approve=True)) <= 10  # límite de filas de una lista de Meta
     returned = _advance("Cali", date(2026, 10, 1), date(2026, 10, 3))
     returned.status, returned.returned_at, returned.decision_note = AdvanceStatus.APPROVED, NOW, "Falta la factura del hotel"
     text = advances_list([returned], NumberFormat())
