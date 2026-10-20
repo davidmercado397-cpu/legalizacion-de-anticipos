@@ -3,6 +3,8 @@ from __future__ import annotations
 import pytest
 
 from app.adapters.inbound.whatsapp.flow_crypto import FlowCrypto, FlowDecryptionError
+from app.container import build_flow_crypto
+from tests.conftest import make_settings
 from tests.flow_meta import private_key_pem, seal
 
 
@@ -23,3 +25,10 @@ def test_tampered_or_foreign_requests_are_rejected() -> None:
         crypto.decrypt({**sealed.body, "encrypted_flow_data": sealed.body["encrypted_flow_data"][:-8] + "AAAAAAA="})
     with pytest.raises(FlowDecryptionError):
         crypto.decrypt({"initial_vector": sealed.body["initial_vector"]})
+
+
+def test_a_key_pasted_with_quotes_works_and_a_broken_one_only_turns_off_the_endpoint() -> None:
+    quoted = '"' + private_key_pem().replace("\n", "\\n") + '"'
+    assert build_flow_crypto(make_settings(WHATSAPP_FLOWS_PRIVATE_KEY=quoted)) is not None
+    assert build_flow_crypto(make_settings(WHATSAPP_FLOWS_PRIVATE_KEY="no es una llave")) is None
+    assert build_flow_crypto(make_settings()) is None

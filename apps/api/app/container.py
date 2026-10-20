@@ -5,6 +5,7 @@ fakes sin dejar de usar el PostgreSQL real."""
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
@@ -79,6 +80,8 @@ from app.domain.ports import (
     StatementExtractor,
 )
 from app.domain.verification import InvoiceVerifier
+
+logger = logging.getLogger(__name__)
 
 PROMPT_DIR = Path(__file__).resolve().parent.parent / "prompts" / "invoice_extraction"
 STATEMENT_PROMPT_DIR = PROMPT_DIR.parent / "statement_extraction"
@@ -164,9 +167,14 @@ def build_extractor(settings: Settings, http: httpx.AsyncClient) -> InvoiceExtra
 
 
 def build_flow_crypto(settings: Settings) -> FlowCrypto | None:
+    """Una llave mal pegada no tumba la API: solo el endpoint de los Flows queda sin servicio (503)."""
     if not settings.WHATSAPP_FLOWS_PRIVATE_KEY:
         return None
-    return FlowCrypto(settings.WHATSAPP_FLOWS_PRIVATE_KEY, settings.WHATSAPP_FLOWS_PRIVATE_KEY_PASSPHRASE)
+    try:
+        return FlowCrypto(settings.WHATSAPP_FLOWS_PRIVATE_KEY, settings.WHATSAPP_FLOWS_PRIVATE_KEY_PASSPHRASE)
+    except (ValueError, TypeError):
+        logger.error("WHATSAPP_FLOWS_PRIVATE_KEY is not a valid RSA private key (or the passphrase is wrong)")
+        return None
 
 
 def build_container(settings: Settings, overrides: Overrides | None = None) -> Container:

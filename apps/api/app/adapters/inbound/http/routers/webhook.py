@@ -71,7 +71,7 @@ async def flow_data(request: Request, container: ContainerDep) -> Response:
         return raw
     crypto = container.flow_crypto
     if crypto is None:
-        logger.warning("WhatsApp Flows endpoint called without WHATSAPP_FLOWS_PRIVATE_KEY")
+        logger.warning("WhatsApp Flows endpoint called without a valid WHATSAPP_FLOWS_PRIVATE_KEY")
         return Response(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
     try:
         flow_request = crypto.decrypt(json.loads(raw))

@@ -57,8 +57,8 @@ async def register() -> int:
 
 def main() -> int:
     if "--generar" in sys.argv:
-        print("Pegue esta línea en el .env (es secreta, no la comparta):\n")
-        print(f'WHATSAPP_FLOWS_PRIVATE_KEY="{new_private_key()}"')
+        print("Valor de WHATSAPP_FLOWS_PRIVATE_KEY (es secreto, no lo comparta). Cópielo completo, en una sola línea:\n")
+        print(new_private_key())
         return 0
     return asyncio.run(register())
 

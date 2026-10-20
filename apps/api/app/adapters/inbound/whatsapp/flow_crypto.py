@@ -34,8 +34,8 @@ class FlowRequest:
 
 class FlowCrypto:
     def __init__(self, private_key_pem: str, passphrase: str | None = None) -> None:
-        # En el .env la llave suele ir en una sola línea con "\n" escritos.
-        pem = private_key_pem.replace("\\n", "\n").encode()
+        # En el .env o en Coolify la llave suele ir en una sola línea con "\n" escritos, a veces entre comillas.
+        pem = private_key_pem.strip().strip("\"'").replace("\\n", "\n").encode()
         key = serialization.load_pem_private_key(pem, password=passphrase.encode() if passphrase else None)
         if not isinstance(key, rsa.RSAPrivateKey):
             raise ValueError("WHATSAPP_FLOWS_PRIVATE_KEY must be an RSA private key")

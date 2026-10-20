@@ -50,6 +50,7 @@ Sin ellas la aplicación funciona, pero subir una factura responde que el almace
 | `WHATSAPP_APP_SECRET` | App Secret de la app de Meta (firma de los mensajes; sin él se rechazan) |
 | `WHATSAPP_ACCESS_TOKEN` | Token permanente del usuario del sistema de Meta |
 | `WHATSAPP_PHONE_NUMBER_ID` | ID del número de WhatsApp |
+| `WHATSAPP_FLOWS_PRIVATE_KEY` | Llave del formulario de solicitar anticipo: se genera con `python -m scripts.flows_public_key --generar` y su pública se registra en Meta con `python -m scripts.flows_public_key` (ver el README de la API) |
 
 ### Opcionales (ya traen un valor por defecto)
 
