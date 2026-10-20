@@ -35,9 +35,19 @@ def parse_webhook(body: dict[str, Any]) -> WebhookBatch:
                         status=str(raw.get("status", "")),
                         recipient_phone=raw.get("recipient_id"),
                         recipient_user_id=raw.get("recipient_user_id"),
+                        error=_status_error(raw),
                     )
                 )
     return batch
+
+
+def _status_error(raw: dict[str, Any]) -> str | None:
+    errors = raw.get("errors") or []
+    if not errors:
+        return None
+    first = errors[0]
+    detail = (first.get("error_data") or {}).get("details") or first.get("message") or ""
+    return f"{first.get('code')} {first.get('title', '')}: {detail}".strip(": ")
 
 
 def _sender(raw: dict[str, Any], contacts: list[dict[str, Any]]) -> WhatsAppSender:

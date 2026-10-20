@@ -94,6 +94,17 @@ def test_status_with_recipient_bsuid() -> None:
     assert status.message_id == "wamid.1" and status.recipient_user_id == "CO.42"
 
 
+def test_a_failed_status_keeps_the_meta_error() -> None:
+    payload = wa_status("wamid.2", "failed", "3053141912", None)
+    raw_status = payload["entry"][0]["changes"][0]["value"]["statuses"][0]
+    raw_status["errors"] = [
+        {"code": 131026, "title": "Message undeliverable", "error_data": {"details": "Receiver is incapable of receiving"}}
+    ]
+    status = parse_webhook(payload).statuses[0]
+    assert status.status == "failed" and status.error == "131026 Message undeliverable: Receiver is incapable of receiving"
+    assert parse_webhook(wa_status("wamid.3", "delivered", "573001112233", None)).statuses[0].error is None
+
+
 def test_flow_reply_parses_the_response_json() -> None:
     reply = {
         "type": "nfm_reply",

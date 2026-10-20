@@ -216,6 +216,9 @@ class WhatsAppBot:
                 logger.exception("Failed to handle WhatsApp message %s", message.message_id)
 
     async def _handle_status(self, status: StatusUpdate) -> None:
+        if status.status == "failed":
+            # Meta aceptó el envío pero no lo entregó (número sin código de país, plantilla en otro idioma…).
+            logger.warning("WhatsApp message %s was not delivered: %s", status.message_id, status.error or "no detail")
         if status.recipient_user_id:
             await self._identity.capture_from_status(status.message_id, status.recipient_user_id)
 

@@ -43,6 +43,7 @@ class StatusUpdate:
     status: str
     recipient_phone: str | None = None
     recipient_user_id: str | None = None
+    error: str | None = None  # código y título del error de Meta cuando status == "failed"
 
 
 @dataclass(frozen=True)
