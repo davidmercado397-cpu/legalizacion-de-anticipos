@@ -15,7 +15,8 @@
         "children": [
           {"type": "TextSubheading", "text": "${data.summary}"},
           {"type": "TextBody", "text": "${data.reason}"},
-          {"type": "TextArea", "name": "justification", "label": "¿Por qué es un gasto del viaje?", "required": true},
+          {"type": "TextArea", "name": "justification", "label": "Justificación", "required": true,
+           "helper-text": "¿Por qué es un gasto del viaje?"},
           {"type": "Footer", "label": "Enviar y confirmar",
            "on-click-action": {"name": "complete", "payload": {"justification": "${form.justification}"}}}
         ]

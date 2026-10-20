@@ -66,6 +66,21 @@ def test_the_advance_request_asks_the_endpoint_for_the_calculated_amount() -> No
     assert amount["id"] == "AMOUNT" and set(amount["data"]) == {*TRIP_FIELDS, "summary", "currencies", "currency", "amount"}
 
 
+# Largo máximo de cada texto según Meta: más largo, el editor de Flows no deja publicar.
+LABEL_LIMITS = {"TextInput": 20, "TextArea": 20, "Dropdown": 20, "DatePicker": 40, "OptIn": 120, "Footer": 35}
+HELPER_LIMIT = 80
+
+
+@pytest.mark.parametrize("name", sorted(EXPECTED))
+def test_labels_fit_the_meta_limits(name: str) -> None:
+    for screen in json.loads((FLOWS / name).read_text())["screens"]:
+        for component in screen["layout"]["children"]:
+            limit = LABEL_LIMITS.get(component["type"])
+            if limit:
+                assert len(component["label"]) <= limit, component["label"]
+            assert len(component.get("helper-text", "")) <= HELPER_LIMIT, component["helper-text"]
+
+
 def _footer(screen: dict[str, Any]) -> dict[str, Any]:
     action: dict[str, Any] = next(c for c in screen["layout"]["children"] if c["type"] == "Footer")["on-click-action"]
     return action

@@ -32,7 +32,7 @@
           {"type": "TextInput", "name": "purpose", "label": "Motivo del viaje", "input-type": "text", "required": true},
           {"type": "DatePicker", "name": "start_date", "label": "Fecha de salida", "required": true},
           {"type": "DatePicker", "name": "end_date", "label": "Fecha de regreso", "required": true},
-          {"type": "Dropdown", "name": "kind", "label": "Cómo recibes el dinero", "required": true,
+          {"type": "Dropdown", "name": "kind", "label": "Tipo de anticipo", "required": true,
            "data-source": "${data.kinds}", "init-value": "cash"},
           {"type": "Footer", "label": "Calcular valor",
            "on-click-action": {"name": "data_exchange", "payload": {
