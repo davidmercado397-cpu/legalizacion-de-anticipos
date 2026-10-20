@@ -90,6 +90,8 @@ class ExpenseService:
                 existing = await uow.expenses.get_by_client_ref(actor.id, client_ref)
                 if existing is not None:
                     return existing, False
+            if advance_id is None:
+                await self._require_open_advance(uow, actor.id)
             advance = await self._own_open_advance(uow, actor, advance_id) if advance_id else None
         expense = Expense(
             employee_id=actor.id,
@@ -115,6 +117,7 @@ class ExpenseService:
         async with self._uow() as uow:
             if await uow.expenses.get_by_wa_message_id(wa_message_id) is not None:
                 return None
+            await self._require_open_advance(uow, employee.id)
             expense = Expense(
                 employee_id=employee.id,
                 source=ExpenseSource.WHATSAPP,
@@ -206,7 +209,6 @@ class ExpenseService:
         amount_applied: Decimal | None,
         *,
         justification: str | None = None,
-        keep_current_advance: bool = True,
         channel: Channel = Channel.API,
         receipt_signed: bool | None = None,
     ) -> Expense:
@@ -214,9 +216,11 @@ class ExpenseService:
             expense = await self._owned(uow, actor, expense_id)
             if receipt_signed is not None:
                 expense.receipt_signed = receipt_signed  # el empleado declara la firma del recibo (decisión 5.6)
-            target = advance_id if advance_id is not None else (expense.advance_id if keep_current_advance else None)
-            advance = await self._own_open_advance(uow, actor, target) if target else None
-            if advance is not None and advance.id != expense.advance_id:
+            target = advance_id or expense.advance_id
+            if target is None:
+                raise InvalidOperationError("The expense needs an advance", code="advance_required")
+            advance = await self._own_open_advance(uow, actor, target)
+            if advance.id != expense.advance_id:
                 expense.assign_to(advance)
             # Se reevalúan las reglas al confirmar: pudo aparecer un duplicado entretanto.
             await self._evaluator.apply(uow, expense, await uow.lines.list_for_expense(expense.id), self._clock.now())
@@ -239,15 +243,15 @@ class ExpenseService:
             await uow.commit()
         return expense
 
-    async def assign(self, actor: Employee, expense_id: uuid.UUID, advance_id: uuid.UUID | None) -> Advance | None:
-        """Pasar un gasto sin confirmar a otro anticipo abierto (o dejarlo sin anticipo)."""
+    async def assign(self, actor: Employee, expense_id: uuid.UUID, advance_id: uuid.UUID) -> Advance:
+        """Pasar un gasto sin confirmar a otro anticipo abierto."""
         async with self._uow() as uow:
             expense = await self._owned(uow, actor, expense_id)
             if expense.status != ExpenseStatus.EXTRACTED:
                 raise InvalidOperationError(
                     "Only unconfirmed expenses move", code="expense_not_editable", status=expense.status.value
                 )
-            advance = await self._own_open_advance(uow, actor, advance_id) if advance_id else None
+            advance = await self._own_open_advance(uow, actor, advance_id)
             expense.assign_to(advance)
             await self._rates.convert_expense(uow, expense, advance)
             await self._evaluator.apply(uow, expense, await uow.lines.list_for_expense(expense.id), self._clock.now())
@@ -258,9 +262,9 @@ class ExpenseService:
             await uow.commit()
         return advance
 
-    async def assign_batch(self, actor: Employee, batch_id: uuid.UUID, advance_id: uuid.UUID | None) -> Advance | None:
+    async def assign_batch(self, actor: Employee, batch_id: uuid.UUID, advance_id: uuid.UUID) -> Advance:
         async with self._uow() as uow:
-            advance = await self._own_open_advance(uow, actor, advance_id) if advance_id else None
+            advance = await self._own_open_advance(uow, actor, advance_id)
             for expense in await uow.expenses.list_by_batch(batch_id):
                 if expense.employee_id == actor.id and expense.status == ExpenseStatus.EXTRACTED:
                     expense.assign_to(advance)
@@ -365,6 +369,12 @@ class ExpenseService:
         if expense.employee_id != actor.id:
             raise PermissionDeniedError("Only the owner can change this expense", code="owner_only")
         return expense
+
+    @staticmethod
+    async def _require_open_advance(uow: UnitOfWork, employee_id: uuid.UUID) -> None:
+        """Las facturas se legalizan contra un anticipo: sin uno aprobado no se guardan ni se leen (no gastan IA)."""
+        if not await uow.advances.list_open_for(employee_id):
+            raise InvalidOperationError("No approved advance to legalize", code="no_open_advance")
 
     @staticmethod
     async def _own_open_advance(uow: UnitOfWork, actor: Employee, advance_id: uuid.UUID) -> Advance:

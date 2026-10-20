@@ -239,13 +239,11 @@ def approval_request(advance: Advance, owner_name: str, fmt: NumberFormat) -> Re
     )
 
 
-def advance_rows(advances: list[Advance], prefix: str, none_row: bool) -> list[ListRow]:
-    """Filas para elegir un anticipo (la última, "Sin anticipo", si aplica)."""
-    limit = MAX_LIST_ROWS - (1 if none_row else 0)
-    rows = [ListRow(f"{prefix}:{a.id}", a.label[:MAX_ROW_TITLE], a.purpose[:MAX_ROW_DESCRIPTION]) for a in advances[:limit]]
-    if none_row:
-        rows.append(ListRow(f"{prefix}:none", msg.ASSIGN_NONE_TITLE, msg.ASSIGN_NONE_DESCRIPTION))
-    return rows
+def advance_rows(advances: list[Advance], prefix: str) -> list[ListRow]:
+    """Filas para elegir un anticipo: todo gasto se legaliza contra uno."""
+    return [
+        ListRow(f"{prefix}:{a.id}", a.label[:MAX_ROW_TITLE], a.purpose[:MAX_ROW_DESCRIPTION]) for a in advances[:MAX_LIST_ROWS]
+    ]
 
 
 def legalization_reminder(

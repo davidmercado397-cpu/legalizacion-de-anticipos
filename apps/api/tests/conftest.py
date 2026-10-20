@@ -26,8 +26,8 @@ from app.adapters.outbound.persistence.tables import metadata, system_settings
 from app.adapters.outbound.security.passwords import Argon2PasswordHasher
 from app.config import Settings
 from app.container import Container, Overrides
-from app.domain.entities import Company, Employee, blocked_concepts_from, categories_from
-from app.domain.enums import Role, StaffType
+from app.domain.entities import Advance, Company, Employee, blocked_concepts_from, categories_from
+from app.domain.enums import AdvanceKind, AdvanceStatus, Role, StaffType
 from app.main import create_app
 from tests.fakes import FakeErp, FakeExtractor, FakeRateProvider, FakeStatementExtractor, FakeStorage, FakeWhatsApp
 from tests.seed import database_sql, extensions_sql, seed_settings, setting_value
@@ -108,6 +108,22 @@ class Harness:
             row.value = value
             await uow.commit()
         await self.container.runtime._cache.invalidate()
+
+    async def add_open_advance(self, employee: Employee, currency: str = "COP", purpose: str = "Viaje de trabajo") -> Advance:
+        """Anticipo ya aprobado, sin fechas: sin uno abierto el empleado no puede registrar facturas."""
+        advance = Advance(
+            employee.id,
+            employee.company_ids[0],
+            AdvanceKind.CASH,
+            currency,
+            Decimal("1000000"),
+            purpose,
+            status=AdvanceStatus.APPROVED,
+        )
+        async with self.container.uow() as uow:
+            await uow.advances.add(advance)
+            await uow.commit()
+        return advance
 
     async def add_company(self, name: str = "Forsa Colombia", country: str = "CO", currency: str = "COP") -> Company:
         country_defaults = setting_value("defaults.countries")[country]

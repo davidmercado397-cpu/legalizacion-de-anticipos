@@ -347,7 +347,7 @@ def build_container(settings: Settings, overrides: Overrides | None = None) -> C
             settings.RATE_LIMIT_WA_NOTICE,
         ),
         [
-            MediaHandler(expenses, notifier),
+            MediaHandler(expenses, notifier, sender),
             FlowHandler(flows, advances, expenses, tokens, sender),
             ReplyHandler(expenses, advances, identity, uow, sender),
             MenuHandler(advances, expenses, notifier, sessions, sender, runtime, flows),

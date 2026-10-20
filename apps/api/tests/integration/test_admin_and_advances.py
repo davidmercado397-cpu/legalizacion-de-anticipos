@@ -163,6 +163,7 @@ async def test_failed_reads_are_retried_by_the_sweeper(harness: Harness) -> None
     company = await harness.add_company()
     employee = await harness.add_employee(company, "juan@forsa.com")
     headers = await harness.login(employee)
+    await harness.add_open_advance(employee)
     harness.extractor.fail_times = 1
     upload = await harness.client.post("/api/v1/expenses", headers=headers, files={"file": ("f.jpg", make_jpeg(), "image/jpeg")})
     await harness.drain()
@@ -184,6 +185,7 @@ async def test_without_ai_configured_an_uploaded_invoice_goes_straight_to_manual
     company = await harness.add_company()
     employee = await harness.add_employee(company, "juan@forsa.com")
     headers = await harness.login(employee)
+    await harness.add_open_advance(employee)
 
     def unconfigured(_request: object, _call: int) -> list[object]:
         raise ServiceNotConfiguredError("openrouter")
@@ -204,6 +206,7 @@ async def test_an_invoice_waiting_for_a_retry_can_be_discarded_and_stays_discard
     company = await harness.add_company()
     employee = await harness.add_employee(company, "juan@forsa.com")
     headers = await harness.login(employee)
+    await harness.add_open_advance(employee)
     harness.extractor.fail_times = 1
     upload = await harness.client.post("/api/v1/expenses", headers=headers, files={"file": ("f.jpg", make_jpeg(), "image/jpeg")})
     await harness.drain()
@@ -222,6 +225,7 @@ async def test_discarding_while_the_ai_reads_is_not_undone_by_the_reading(harnes
     company = await harness.add_company()
     employee = await harness.add_employee(company, "juan@forsa.com")
     headers = await harness.login(employee)
+    await harness.add_open_advance(employee)
     read = harness.extractor.extract
 
     async def discard_meanwhile(request):  # type: ignore[no-untyped-def]

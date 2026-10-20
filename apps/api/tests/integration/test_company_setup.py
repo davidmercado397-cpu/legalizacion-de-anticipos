@@ -53,6 +53,7 @@ async def test_accounting_manages_categories_and_corrections_must_use_active_one
     accountant = await harness.add_employee(company, "conta@forsa.com", Role.ACCOUNTANT)
     employee = await harness.add_employee(company, "juan@forsa.com")
     acc_h, emp_h = await harness.login(accountant), await harness.login(employee)
+    await harness.add_open_advance(employee)
     base = f"/api/v1/companies/{company.id}/categories"
 
     added = await harness.client.post(
@@ -106,7 +107,7 @@ async def test_unsupported_currency_on_an_advance_is_rejected(harness: Harness) 
 
 async def test_a_selfie_gets_a_clear_message_and_no_escalation(harness: Harness) -> None:
     company = await harness.add_company()
-    await harness.add_employee(company, "juan@forsa.com", phone=PHONE)
+    await harness.add_open_advance(await harness.add_employee(company, "juan@forsa.com", phone=PHONE))
     harness.extractor.respond = lambda _r, _n: [invoice(is_receipt=False, total=None, confidence=0.2)]
     harness.wa.media["SELFIE"] = (make_jpeg(), "image/jpeg")
     await harness.webhook(wa_message("wamid.S1", phone=PHONE, type="image", image={"id": "SELFIE", "mime_type": "image/jpeg"}))

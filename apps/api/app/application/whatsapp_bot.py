@@ -3,7 +3,6 @@ handlers (Chain of Responsibility). Funcionalidad nueva = handler nuevo; el desp
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import re
 import uuid
@@ -17,13 +16,13 @@ from app.application.expenses import ExpenseService
 from app.application.notifications import ExpenseNotifier
 from app.application.whatsapp_events import InboundMessage, MessageKind, StatusUpdate, WebhookBatch
 from app.application.whatsapp_identity import WELCOME_PAYLOAD_PREFIX, WhatsAppIdentityService
-from app.application.whatsapp_notifier import NOTICE_DETAIL_PAYLOAD, WhatsAppSessions
-from app.application.whatsapp_presenter import advance_rows, menu
+from app.application.whatsapp_notifier import NOTICE_DETAIL_PAYLOAD, WhatsAppSessions, send_reply
+from app.application.whatsapp_presenter import Reply, advance_rows, menu
 from app.domain.entities import Employee
 from app.domain.enums import AdvanceStatus, Channel
-from app.domain.errors import DomainError, JustificationRequiredError, PolicyBlockedError
+from app.domain.errors import DomainError, InvalidOperationError, JustificationRequiredError, PolicyBlockedError
 from app.domain.permissions import Permission, has_permission
-from app.domain.ports import MessageSender, RateLimiter, UnitOfWorkFactory
+from app.domain.ports import Button, MessageSender, RateLimiter, UnitOfWorkFactory
 from app.domain.values import WhatsAppAddress, WhatsAppSender
 
 logger = logging.getLogger(__name__)
@@ -61,9 +60,10 @@ class Handler(ABC):
 
 
 class MediaHandler(Handler):
-    def __init__(self, expenses: ExpenseService, notifier: ExpenseNotifier) -> None:
+    def __init__(self, expenses: ExpenseService, notifier: ExpenseNotifier, sender: MessageSender) -> None:
         self._expenses = expenses
         self._notifier = notifier
+        self._sender = sender
 
     def can_handle(self, message: InboundMessage) -> bool:
         return message.kind == MessageKind.MEDIA and bool(message.media_id)
@@ -71,10 +71,18 @@ class MediaHandler(Handler):
     async def handle(self, conversation: Conversation) -> None:
         m = conversation.message
         assert m.media_id is not None
-        await asyncio.gather(
-            self._notifier.acknowledge(conversation.address, m.message_id),
-            self._expenses.register_whatsapp_media(conversation.employee, m.message_id, m.media_id, m.mime_type, m.timestamp),
-        )
+        try:
+            created = await self._expenses.register_whatsapp_media(
+                conversation.employee, m.message_id, m.media_id, m.mime_type, m.timestamp
+            )
+        except InvalidOperationError as exc:
+            if exc.code != "no_open_advance":
+                raise
+            request = Button("menu:request", msg.BUTTON_REQUEST_ADVANCE)
+            await send_reply(self._sender, conversation.address, Reply(msg.NO_ADVANCE_FOR_EXPENSES, (request,)))
+            return
+        if created is not None:
+            await self._notifier.acknowledge(conversation.address, m.message_id)
 
 
 class ReplyHandler(Handler):
@@ -115,20 +123,17 @@ class ReplyHandler(Handler):
             case "exp_move":
                 expense = await self._expenses.get(employee, uuid.UUID(rest))
                 advances = [b.advance for b in await self._advances.open_balances(employee.id)]
-                rows = advance_rows(advances, f"move:{expense.id}", none_row=True)
+                rows = advance_rows(advances, f"move:{expense.id}")
                 await self._sender.send_list(c.address, msg.MOVE_PROMPT, msg.ASSIGN_BUTTON, rows)
                 return None
             case "move":
                 expense_id, _, target = rest.partition(":")
-                advance = await self._expenses.assign(
-                    employee, uuid.UUID(expense_id), None if target == "none" else uuid.UUID(target)
-                )
-                return msg.MOVED.format(label=advance.label if advance else msg.ASSIGN_NONE_TITLE)
+                advance = await self._expenses.assign(employee, uuid.UUID(expense_id), uuid.UUID(target))
+                return msg.MOVED.format(label=advance.label)
             case "assign":
                 batch, _, target = rest.partition(":")
-                advance_id = None if target == "none" else uuid.UUID(target)
-                advance = await self._expenses.assign_batch(employee, uuid.UUID(batch), advance_id)
-                return msg.ASSIGNED.format(label=advance.label if advance else msg.ASSIGN_NONE_TITLE)
+                advance = await self._expenses.assign_batch(employee, uuid.UUID(batch), uuid.UUID(target))
+                return msg.ASSIGNED.format(label=advance.label)
             case "adv_submit":
                 await self._advances.submit(employee, uuid.UUID(rest))
                 return msg.SUBMITTED

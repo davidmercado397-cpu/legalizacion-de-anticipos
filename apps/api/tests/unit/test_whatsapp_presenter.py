@@ -122,9 +122,17 @@ def test_texts_and_lists_respect_meta_limits() -> None:
     reply = expense_detail(ExpenseView(expense, long_lines, CATEGORIES, NumberFormat()))
     assert len(reply.text) <= 1024 and "La factura no tiene NIT" in reply.text and "…y 35 más" in reply.text
     advances = [_advance(f"Destino con un nombre larguísimo {i}", None, None) for i in range(12)]
-    rows = advance_rows(advances, "assign:batch", none_row=True)
-    assert len(rows) == 10 and rows[-1].id == "assign:batch:none" and all(len(r.title) <= 24 for r in rows)
-    for title in (msg.BUTTON_OK, msg.BUTTON_CORRECT, msg.BUTTON_JUSTIFY, msg.BUTTON_CHANGE_ADVANCE, msg.BUTTON_SUBMIT):
+    rows = advance_rows(advances, "assign:batch")
+    # Sin fila «Sin anticipo»: todo gasto se legaliza contra un anticipo.
+    assert len(rows) == 10 and all(r.id.startswith("assign:batch:") and len(r.title) <= 24 for r in rows)
+    for title in (
+        msg.BUTTON_OK,
+        msg.BUTTON_CORRECT,
+        msg.BUTTON_JUSTIFY,
+        msg.BUTTON_CHANGE_ADVANCE,
+        msg.BUTTON_SUBMIT,
+        msg.BUTTON_REQUEST_ADVANCE,
+    ):
         assert len(title) <= 20
 
 

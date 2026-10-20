@@ -145,6 +145,7 @@ async def test_duplicate_across_employees_is_flagged_without_revealing_who(harne
     company, employee, emp_h, appr_h, acc_h, _ = await _scenario(harness)
     colleague = await harness.add_employee(company, "pedro@forsa.com")
     col_h = await harness.login(colleague)
+    await harness.add_open_advance(colleague)
     first = await _upload(harness, emp_h, seed=1)
     assert first["policy_findings"] == []
     second = await _upload(harness, col_h, seed=2)

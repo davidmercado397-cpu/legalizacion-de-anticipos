@@ -34,6 +34,7 @@ async def test_missing_r2_answers_503_with_the_service_name(bare_harness: Harnes
     company = await bare_harness.add_company()
     user = await bare_harness.add_employee(company, "juan@forsa.com")
     headers = await bare_harness.login(user)
+    await bare_harness.add_open_advance(user)
     upload = await bare_harness.client.post(
         "/api/v1/expenses", headers=headers, files={"file": ("f.jpg", make_jpeg(), "image/jpeg")}
     )

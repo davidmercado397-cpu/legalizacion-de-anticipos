@@ -101,7 +101,7 @@ class ExpenseNotifier:
         unassigned = [e for e in expenses if e.status == ExpenseStatus.EXTRACTED and e.advance_id is None]
         if unassigned and len(advances) > 1:
             what = "este gasto" if len(unassigned) == 1 else f"estos {len(unassigned)} gastos"
-            rows = advance_rows(advances, f"assign:{batch_id}", none_row=True)
+            rows = advance_rows(advances, f"assign:{batch_id}")
             await self._safe(self._sender.send_list(address, msg.ASSIGN_PROMPT.format(what=what), msg.ASSIGN_BUTTON, rows))
 
     async def categories_of(self, company_id: uuid.UUID | None) -> dict[str, CategoryHint]:

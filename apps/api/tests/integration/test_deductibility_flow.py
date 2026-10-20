@@ -14,6 +14,7 @@ async def test_invoice_buyer_deductibility_and_accounting_override(harness: Harn
     admin = await harness.add_employee(company, "admin@forsa.com", Role.ADMIN)
     employee = await harness.add_employee(company, "juan@forsa.com")
     acc_h, emp_h, admin_h = await harness.login(accountant), await harness.login(employee), await harness.login(admin)
+    await harness.add_open_advance(employee)
     await harness.client.patch(
         f"/api/v1/companies/{company.id}", headers=admin_h, json={"tax_id": "900123456-7", "legal_name": "Forsa S.A."}
     )

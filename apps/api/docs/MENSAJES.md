@@ -60,8 +60,8 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `DISCARDED` | 🗑️ Gasto descartado. |
 | `ASSIGN_PROMPT` | ¿A qué anticipo asigno {what}? |
 | `ASSIGN_BUTTON` | Elegir anticipo |
-| `ASSIGN_NONE_TITLE` | Sin anticipo |
-| `ASSIGN_NONE_DESCRIPTION` | Tarjeta corporativa o reembolso |
+| `NO_ADVANCE_FOR_EXPENSES` | 📭 Todavía no tienes un anticipo aprobado, así que no registré esta factura. Solicita uno y, cuando te lo aprueben, me envías las fotos de tus facturas. |
+| `BUTTON_REQUEST_ADVANCE` | ➕ Solicitar anticipo |
 | `ASSIGNED` | 📌 Asignado a: {label}. |
 | `ACTION_NOT_ALLOWED` | No puedes realizar esa acción. |
 | `ADVANCE_APPROVED_BY_WA` | ✅ Anticipo de {name} aprobado. |
@@ -128,7 +128,7 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `LEGALIZATION_REMINDER_PENDING` | Antes de enviarla, confirma o descarta {what}. |
 | `LEGALIZATION_REMINDER_SUBMIT` | Cuando esté completa, envíala a revisión con el botón. |
 | `LEGALIZATION_REMINDER_NOTICE` | tu viaje a {destination} terminó el {end}; recuerda enviar la legalización ({applied} de {amount}) |
-| `NEEDS_JUSTIFICATION_HINT` | ✍️ Necesita una justificación: complétala en la app |
+| `NEEDS_JUSTIFICATION_HINT` | ✍️ Necesita una justificación antes de confirmarse |
 | `BLOCKED_HINT` | ⛔ Bloqueado: lo revisará tu aprobador |
 | `NEEDS_JUSTIFICATION` | ✍️ Este gasto necesita una justificación antes de confirmarse. Complétala en la app. |
 | `BLOCKED_BY_POLICY` | ⛔ Este gasto está bloqueado por la política de gastos; lo revisará tu aprobador. |
@@ -241,6 +241,8 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `anonymize_active_user` | Solo se pueden borrar los datos de contacto de usuarios desactivados. |
 | `legalization_locked` | La legalización ya fue enviada o cerrada. Para cambiar algo, pide que te la devuelvan. |
 | `advance_not_open` | Ese anticipo no está abierto para recibir gastos. |
+| `no_open_advance` | No tienes un anticipo aprobado. Solicita uno y, cuando te lo aprueben, registra tus facturas. |
+| `advance_required` | Elige a qué anticipo va este gasto antes de confirmarlo. |
 | `advance_of_other` | Ese anticipo es de otra persona. |
 | `amount_required` | Indica el valor del anticipo: no hay tarifas de viaje para calcularlo. |
 | `escalation_justification_required` | Esta solicitud necesita la aprobación del jefe directivo (supera el presupuesto o el monto configurado): explica por qué la necesitas. |

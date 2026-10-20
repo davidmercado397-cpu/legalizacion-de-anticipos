@@ -16,6 +16,7 @@ async def test_records_of_another_company_are_invisible_to_accounting(harness: H
     colombia = await harness.add_company()
     panama = await harness.add_company("Forsa Panamá", "PA", "USD")
     tecnico = await harness.add_employee(panama, "pedro@forsa.com")
+    await harness.add_open_advance(tecnico, currency="USD")
     contador = await harness.add_employee(colombia, "carlos@forsa.com", Role.ACCOUNTANT)
     upload = await harness.client.post(
         "/api/v1/expenses", headers=await harness.login(tecnico), files={"file": ("f.jpg", make_jpeg(), "image/jpeg")}

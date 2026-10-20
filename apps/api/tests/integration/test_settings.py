@@ -49,6 +49,7 @@ async def test_a_model_change_applies_to_the_next_invoice_without_restarting(har
     user = await harness.add_employee(company, "juan@forsa.com")
     superadmin = await _superadmin(harness)
     headers, super_h = await harness.login(user), await harness.login(superadmin)
+    await harness.add_open_advance(user)
     await harness.client.patch("/api/v1/settings", headers=super_h, json={"values": {"ai.primary_model": "google/nuevo"}})
     await harness.client.post("/api/v1/expenses", headers=headers, files={"file": ("f.jpg", make_jpeg(), "image/jpeg")})
     await harness.drain()

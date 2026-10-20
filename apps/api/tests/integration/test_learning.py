@@ -16,6 +16,14 @@ async def _team(harness: Harness):  # type: ignore[no-untyped-def]
     return company, await harness.login(accountant), await harness.login(approver), await harness.login(employee)
 
 
+async def _open_advance(harness: Harness, email: str = "juan@forsa.com", currency: str = "COP") -> None:
+    """Sin un anticipo aprobado no se registran facturas."""
+    async with harness.container.uow() as uow:
+        employee = await uow.employees.get_by_email(email)
+    assert employee is not None
+    await harness.add_open_advance(employee, currency=currency)
+
+
 async def _read(harness: Harness, headers: dict[str, str], seed: int, *lines: InvoiceLine, **data: object) -> str:
     total = sum((line.amount or Decimal(0) for line in lines), Decimal(0))
     harness.extractor.respond = lambda _r, _n: [
@@ -42,6 +50,7 @@ async def _set_concept(harness: Harness, headers: dict[str, str], expense_id: st
 
 async def test_a_reviewer_correction_is_remembered_exactly(harness: Harness) -> None:
     _, acc_h, appr_h, emp_h = await _team(harness)
+    await _open_advance(harness)
     first = await _read(harness, emp_h, 1, InvoiceLine("Almuerzo", Decimal("30000")), InvoiceLine("POKER x3", Decimal("12000")))
     # Las líneas las decide contabilidad (el jefe solo aprueba la solicitud).
     assert (await harness.client.get(f"/api/v1/expenses/{first}/lines", headers=appr_h)).status_code == 200
@@ -76,6 +85,7 @@ async def test_a_reviewer_correction_is_remembered_exactly(harness: Harness) -> 
 
 async def test_the_employee_cannot_teach_without_validation(harness: Harness) -> None:
     _, _, appr_h, emp_h = await _team(harness)
+    await _open_advance(harness)
     first = await _read(
         harness, emp_h, 1, InvoiceLine("Ron Viejo de Caldas", Decimal("40000"), concept_code="alcohol", concept_confidence=0.95)
     )
@@ -102,6 +112,7 @@ async def test_the_employee_cannot_teach_without_validation(harness: Harness) ->
 
 async def test_similar_lines_get_only_a_warning(harness: Harness) -> None:
     _, acc_h, _, emp_h = await _team(harness)
+    await _open_advance(harness)
     first = await _read(harness, emp_h, 1, InvoiceLine("Club Colombia Dorada", Decimal("9000")))
     await _set_concept(harness, acc_h, first, 1, "alcohol")
     second = await _read(harness, emp_h, 2, InvoiceLine("Club Colombia Roja", Decimal("9000")))
@@ -114,6 +125,7 @@ async def test_similar_lines_get_only_a_warning(harness: Harness) -> None:
 
 async def test_conflicts_history_deactivation_and_group_scope(harness: Harness) -> None:
     company, acc_h, _, emp_h = await _team(harness)
+    await _open_advance(harness)
     other_accountant = await harness.add_employee(company, "conta2@forsa.com", Role.ACCOUNTANT)
     first = await _read(harness, emp_h, 1, InvoiceLine("Frigobar", Decimal("15000")))
     await _set_concept(harness, await harness.login(other_accountant), first, 1, "minibar")
@@ -137,6 +149,7 @@ async def test_conflicts_history_deactivation_and_group_scope(harness: Harness) 
     other = await harness.add_company("Forsa México", "MX", "MXN")
     mexican = await harness.add_employee(other, "pepe@forsa.mx")
     mx_h = await harness.login(mexican)
+    await _open_advance(harness, "pepe@forsa.mx", "MXN")
     abroad = await _read(harness, mx_h, 4, InvoiceLine("Frigobar", Decimal("300")), currency="MXN")
     assert (await _lines(harness, mx_h, abroad))[0]["final_concept_code"] == "alcohol"
     assert company
@@ -163,6 +176,7 @@ async def test_vendor_category_is_learned_when_the_legalization_closes(harness: 
     await harness.client.post(f"/api/v1/expenses/{second}/discard", headers=emp_h)
     await harness.client.post(f"/api/v1/advances/{advance.json()['id']}/submit", headers=emp_h)
     await harness.client.post(f"/api/v1/advances/{advance.json()['id']}/close", headers=acc_h)
+    await _open_advance(harness)  # el siguiente viaje
     third = await _read(
         harness, emp_h, 3, InvoiceLine("Lavado", Decimal("9000")), vendor_tax_id="900.555.111-3", category="other"
     )

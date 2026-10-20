@@ -87,6 +87,9 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
   mensaje del empleado antes de los handlers. Si era el botón [Ver detalle] (payload `menu:menu`), ahí
   termina; si ya no hay nada, el menú lo atiende. Vence a los `whatsapp.notice_hold_days` y
   `close_idle` borra los vencidos.
+- Sin anticipo no hay facturas: `ExpenseService` (app y WhatsApp) exige un anticipo aprobado y abierto para
+  registrar una factura (`no_open_advance`, 409; no se guarda ni se lee con IA) y para confirmarla
+  (`advance_required`). El bot responde con [➕ Solicitar anticipo] y ya no ofrece «Sin anticipo».
 - 3b, menú (`whatsapp_menu.py`, `MenuHandler`): saludo al empezar la conversación, palabras clave
   (`whatsapp.keywords`), despedida que cierra la sesión, opciones por rol (Mis anticipos, Saldo,
   Pendientes, Mis gastos, Enviar legalización, Por aprobar con `AdvanceService.decision_queue`) y

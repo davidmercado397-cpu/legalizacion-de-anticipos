@@ -146,7 +146,7 @@ class MenuHandler(Handler):
                 if len(open_advances) == 1:
                     await self._submit_prompt(c, open_advances[0].id)
                 else:
-                    rows = advance_rows(open_advances, "submit", none_row=False)
+                    rows = advance_rows(open_advances, "submit")
                     await self._sender.send_list(c.address, msg.SUBMIT_PROMPT, msg.ASSIGN_BUTTON, rows)
             case "approvals":
                 return await self._approvals(c, fmt)

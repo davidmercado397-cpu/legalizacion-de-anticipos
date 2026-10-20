@@ -17,7 +17,7 @@ Canales: **App** (frontend), **WA** (WhatsApp) y **Sistema** (tareas automática
 | E5 | Solicitar un anticipo (valor calculado o propio con justificación; varios destinos solo en la App) | App / WA (Flow) | `POST /advances` |
 | E6 | Cancelar una solicitud aún sin aprobar | App | `DELETE /advances/{id}` |
 | E7 | Ver sus anticipos y el saldo (también en pesos si es en otra moneda) | App / WA (menú o "saldo") | `GET /advances`, `GET /me/balances` |
-| E8 | Registrar una factura con foto o PDF | App / WA (foto) | `POST /expenses` (multipart); por WA: enviar la foto |
+| E8 | Registrar una factura con foto o PDF (solo con un anticipo aprobado; sin él no se guarda ni se lee) | App / WA (foto) | `POST /expenses` (multipart); por WA: enviar la foto |
 | E9 | Ver el estado de lectura de sus facturas | App | `GET /expenses?updated_since=…` |
 | E10 | Corregir lo que leyó la IA (datos, impuestos, categoría; por WA: proveedor, NIT, número, fecha, total y categoría) | App / WA (Flow) | `PATCH /expenses/{id}` |
 | E11 | Corregir el concepto de una línea | App | `GET /expenses/{id}/lines`, `PATCH /expenses/{id}/lines/{line_id}` |

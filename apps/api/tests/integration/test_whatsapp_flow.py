@@ -422,3 +422,22 @@ async def test_whatsapp_flood_is_rate_limited(harness: Harness) -> None:
     await harness.drain()
     assert len(harness.extractor.calls) == 2
     assert any("Vas muy rápido" in t for t in harness.wa.texts())
+
+
+async def test_without_an_approved_advance_an_invoice_is_not_registered_nor_read(harness: Harness) -> None:
+    """Las facturas se legalizan contra un anticipo: sin uno aprobado no se guardan ni gastan IA."""
+    company = await harness.add_company()
+    employee = await harness.add_employee(company, "juan@forsa.com", phone=PHONE)
+    headers = await harness.login(employee)
+    harness.wa.media["M1"] = (make_jpeg(), "image/jpeg")
+    await harness.webhook(wa_message("wamid.NOADV", phone=PHONE, type="image", image={"id": "M1", "mime_type": "image/jpeg"}))
+    await harness.drain()
+    reply = harness.wa.of_kind("buttons")[-1]
+    assert reply.text.startswith("📭 Todavía no tienes un anticipo aprobado")
+    assert [(b.id, b.title) for b in reply.extra] == [("menu:request", "➕ Solicitar anticipo")]
+    assert harness.wa.of_kind("reaction") == [] and harness.extractor.calls == []
+    assert (await harness.client.get("/api/v1/expenses", headers=headers)).json()["data"] == []
+
+    # Por la app tampoco.
+    upload = await harness.client.post("/api/v1/expenses", headers=headers, files={"file": ("f.jpg", make_jpeg(), "image/jpeg")})
+    assert upload.status_code == 409 and upload.json()["error"]["code"] == "no_open_advance"
