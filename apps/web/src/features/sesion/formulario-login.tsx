@@ -56,7 +56,7 @@ function FormularioMfa() {
       <form noValidate className="space-y-4" onSubmit={handleSubmit(sinRechazo(async ({ codigo }) => verificar.mutateAsync(codigo)))}>
         <div>
           <h2 className="font-semibold text-slate-900">Verificación en dos pasos</h2>
-          <p className="text-sm text-slate-600">Escriba el código de su aplicación autenticadora, o uno de sus códigos de recuperación.</p>
+          <p className="text-sm text-slate-600">Escribe el código de tu aplicación autenticadora, o uno de tus códigos de recuperación.</p>
         </div>
         <Campo etiqueta="Código" error={formState.errors.codigo?.message}>
           {(p) => <Entrada {...p} {...register('codigo')} inputMode="numeric" autoComplete="one-time-code" autoFocus />}

@@ -199,7 +199,7 @@ export function FormularioSolicitud({ alCrear }: { alCrear: (anticipo: Anticipo)
             Calcular con las tarifas
           </Boton>
         </div>
-        {presupuesto.isError && <Alerta tono="aviso">{mensajeDeError(presupuesto.error)} Escriba el valor que necesita.</Alerta>}
+        {presupuesto.isError && <Alerta tono="aviso">{mensajeDeError(presupuesto.error)} Escribe el valor que necesitas.</Alerta>}
         {calculado && (
           <table className="w-full text-sm">
             <tbody className="divide-y divide-slate-100">
@@ -233,7 +233,7 @@ export function FormularioSolicitud({ alCrear }: { alCrear: (anticipo: Anticipo)
         </Campo>
         {(distinto || escala) && (
           <Campo
-            etiqueta={escala ? '¿Por qué necesita este valor? (también lo aprobará el jefe directivo)' : '¿Por qué necesita un valor distinto al sugerido?'}
+            etiqueta={escala ? '¿Por qué necesitas este valor? (también lo aprobará el jefe directivo)' : '¿Por qué necesitas un valor distinto al sugerido?'}
             error={formState.errors.justification?.message}
           >
             {(p) => <AreaTexto {...p} {...register('justification')} />}

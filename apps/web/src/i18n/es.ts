@@ -1,12 +1,12 @@
 /** Textos de los valores que manda la API (enums en inglés) y de las validaciones de los formularios. */
 export const es: Record<string, string> = {
   'validation.required': 'Este campo es obligatorio',
-  'validation.decimal': 'Ingrese un valor numérico con máximo 2 decimales',
+  'validation.decimal': 'Escribe un número con máximo 2 decimales',
   'validation.date': 'Fecha inválida',
   'validation.email': 'Correo electrónico inválido',
   'validation.minLength': 'El texto es demasiado corto',
   'validation.endBeforeStart': 'La fecha de regreso no puede ser anterior a la de salida',
-  'validation.codigoMfa': 'Escriba los 6 dígitos de la aplicación',
+  'validation.codigoMfa': 'Escribe los 6 dígitos de la aplicación',
   'validation.claveDistinta': 'Las contraseñas no coinciden',
 
   'rol.employee': 'Empleado',

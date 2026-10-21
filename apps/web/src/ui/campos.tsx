@@ -54,3 +54,38 @@ export const AreaTexto = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<
   ),
 );
 AreaTexto.displayName = 'AreaTexto';
+
+/** Encendido o apagado: un interruptor (`role="switch"`) con el estado escrito al lado, no solo el color. */
+export function Interruptor({
+  id,
+  activo,
+  alCambiar,
+  textos = ['Desactivado', 'Activado'],
+  ...aria
+}: {
+  id?: string;
+  activo: boolean;
+  alCambiar: (activo: boolean) => void;
+  textos?: [string, string];
+  'aria-label'?: string;
+  'aria-describedby'?: string;
+}) {
+  return (
+    <button
+      id={id}
+      type="button"
+      role="switch"
+      aria-checked={activo}
+      {...aria}
+      onClick={() => alCambiar(!activo)}
+      className="inline-flex min-h-11 items-center gap-3 text-sm font-semibold text-slate-900"
+    >
+      <span className={cx('relative h-6 w-10 shrink-0 rounded-full transition-colors', activo ? 'bg-marca-600' : 'bg-slate-300')} aria-hidden>
+        <span
+          className={cx('absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow-sm transition-transform', activo && 'translate-x-4')}
+        />
+      </span>
+      {textos[activo ? 1 : 0]}
+    </button>
+  );
+}

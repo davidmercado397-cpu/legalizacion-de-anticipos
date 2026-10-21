@@ -7,6 +7,7 @@ import { botonClases } from '../src/ui/boton';
 import { EstadoConsulta, type Consulta } from '../src/ui/estado-consulta';
 import { Alerta, EstadoVacio } from '../src/ui/superficies';
 import { Tabla } from '../src/ui/tabla';
+import { Interruptor } from '../src/ui/campos';
 import { PanelLateral } from '../src/ui/panel-lateral';
 import { BarraApilada } from '../src/features/reportes/graficos';
 
@@ -112,5 +113,17 @@ describe('PanelLateral', () => {
     expect(screen.getByRole('dialog', { name: 'Ana Analista' })).toHaveTextContent('Datos de Ana');
     await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
     expect(alCerrar).toHaveBeenCalled();
+  });
+});
+
+describe('Interruptor', () => {
+  it('es un switch con su estado escrito y avisa el cambio', async () => {
+    const alCambiar = vi.fn();
+    render(<Interruptor aria-label="WhatsApp habilitado" activo={false} alCambiar={alCambiar} />);
+    const interruptor = screen.getByRole('switch', { name: 'WhatsApp habilitado' });
+    expect(interruptor).toHaveAttribute('aria-checked', 'false');
+    expect(interruptor).toHaveTextContent('Desactivado');
+    await userEvent.click(interruptor);
+    expect(alCambiar).toHaveBeenCalledWith(true);
   });
 });

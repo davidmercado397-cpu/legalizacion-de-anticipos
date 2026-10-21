@@ -39,7 +39,7 @@ export function ActivarMfa({ alTerminar }: { alTerminar: () => void }) {
     return (
       <div className="space-y-4">
         <Alerta tono="exito" titulo="Verificación en dos pasos activada">
-          Guarde estos códigos de recuperación en un lugar seguro. Cada uno sirve una sola vez si pierde el celular. No se volverán a mostrar.
+          Guarda estos códigos de recuperación en un lugar seguro. Cada uno sirve una sola vez si pierdes el celular. No se volverán a mostrar.
         </Alerta>
         <ul className="grid grid-cols-2 gap-2 font-mono text-sm">
           {activar.data.map((codigo) => (
@@ -66,9 +66,9 @@ export function ActivarMfa({ alTerminar }: { alTerminar: () => void }) {
   return (
     <form noValidate className="space-y-4" onSubmit={handleSubmit(sinRechazo(({ codigo }) => activar.mutateAsync(codigo)))}>
       <ol className="list-decimal space-y-1 pl-5 text-sm text-slate-700">
-        <li>Instale una aplicación autenticadora (Google Authenticator, Microsoft Authenticator…).</li>
-        <li>Escanee el código QR o escriba la clave a mano.</li>
-        <li>Escriba el código de 6 dígitos que muestra la aplicación.</li>
+        <li>Instala una aplicación autenticadora (Google Authenticator, Microsoft Authenticator…).</li>
+        <li>Escanea el código QR o escribe la clave a mano.</li>
+        <li>Escribe el código de 6 dígitos que muestra la aplicación.</li>
       </ol>
       <div className="flex flex-col items-center gap-2">
         {qr && <img src={qr} alt="Código QR para la aplicación autenticadora" className="size-56" />}
