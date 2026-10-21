@@ -30,7 +30,7 @@ export function ReglasPolitica({ companiaId }: { companiaId: string }) {
 
   return (
     <div className="space-y-3">
-      <ul className="divide-y divide-slate-200 rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+      <ul className="divide-y divide-slate-200 rounded-xl bg-white ring-1 ring-slate-200">
         {borrador.map((regla, i) => (
           <li key={regla.rule_type} className="space-y-2 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">

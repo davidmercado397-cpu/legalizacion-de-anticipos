@@ -13,7 +13,8 @@ import { mensajeDeError } from '../../../lib/errores';
 import { formatoDinero, formatoFechaCalendario, formatoMomento, rangoFechas } from '../../../lib/formato';
 import { puede } from '../../../lib/roles';
 import { Boton } from '../../../ui/boton';
-import { Alerta, Cargando, Tarjeta } from '../../../ui/superficies';
+import { EncabezadoPagina } from '../../../ui/pagina';
+import { Alerta, Esqueleto, Tarjeta } from '../../../ui/superficies';
 import { sinRechazo } from '../../../lib/sin-rechazo';
 
 export const Route = createFileRoute('/_app/anticipos/$anticipoId')({ component: DetalleAnticipo });
@@ -24,7 +25,7 @@ function DetalleAnticipo() {
   const { data: anticipo, isPending, error } = useAnticipo(anticipoId);
   const excel = useDescargarExcel();
 
-  if (isPending) return <Cargando />;
+  if (isPending) return <Esqueleto filas={6} />;
   if (error) return <Alerta tono="peligro">{mensajeDeError(error)}</Alerta>;
 
   const propio = usuario?.id === anticipo.employee_id;
@@ -40,16 +41,17 @@ function DetalleAnticipo() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold">{anticipo.destination ?? anticipo.purpose}</h1>
-          <p className="text-sm text-slate-600">
+      <EncabezadoPagina
+        titulo={anticipo.destination ?? anticipo.purpose}
+        junto={<InsigniaAnticipo estado={anticipo.status} />}
+        volver={propio ? { to: '/anticipos', texto: 'Mis anticipos' } : undefined}
+        descripcion={
+          <>
             {!propio && `${anticipo.employee.full_name} · `}
             {rangoFechas(anticipo.start_date, anticipo.end_date)} · {etiqueta('tipo', anticipo.kind)}
-          </p>
-        </div>
-        <InsigniaAnticipo estado={anticipo.status} />
-      </div>
+          </>
+        }
+      />
 
       <Tarjeta className="space-y-4">
         <p className="text-sm text-slate-700">{anticipo.purpose}</p>

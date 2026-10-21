@@ -85,7 +85,7 @@ function ListaAprendizajes({ filtros, companiaId, gestiona }: { filtros: Filtros
   return (
     <>
       {accion.isError && <Alerta tono="peligro">{mensajeDeError(accion.error)}</Alerta>}
-      <ul className="divide-y divide-slate-200 rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+      <ul className="divide-y divide-slate-200 rounded-xl bg-white ring-1 ring-slate-200">
         {lista.data.data.map((a) => (
           <Fila key={a.id} aprendizaje={a} etiquetas={etiquetas} gestiona={gestiona} accion={accion} />
         ))}

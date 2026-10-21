@@ -1,0 +1,74 @@
+import { ApiError } from '@viaticos/client-api';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
+import { botonClases } from '../src/ui/boton';
+import { EstadoConsulta, type Consulta } from '../src/ui/estado-consulta';
+import { Alerta, EstadoVacio } from '../src/ui/superficies';
+import { Tabla } from '../src/ui/tabla';
+
+const consulta = <T,>(cambios: Partial<Consulta<T>>): Consulta<T> => ({
+  isPending: false,
+  isError: false,
+  error: null,
+  data: undefined,
+  refetch: vi.fn(),
+  ...cambios,
+});
+
+describe('Tabla', () => {
+  it('alinea los montos a la derecha y deja el encabezado de acciones solo para el lector de pantalla', () => {
+    render(
+      <Tabla
+        columnas={['Proveedor', { titulo: 'Valor', numerica: true }, { titulo: 'Acciones', oculta: true }]}
+        filas={[['Hotel Dann', '$540.000', <button key="b">Ver</button>]]}
+        pie={['Total', '$540.000', null]}
+      />,
+    );
+    const [encabezado, fila, pie] = screen.getAllByRole('row');
+    expect(within(encabezado!).getByText('Acciones')).toHaveClass('sr-only');
+    expect(within(fila!).getByText('$540.000')).toHaveClass('text-right', 'tabular-nums');
+    expect(within(pie!).getByText('Total')).toBeInTheDocument();
+  });
+});
+
+describe('EstadoConsulta', () => {
+  it('muestra un esqueleto mientras carga y el contenido cuando llega', () => {
+    const { rerender } = render(<EstadoConsulta consulta={consulta<string[]>({ isPending: true })}>{(d) => d.join(', ')}</EstadoConsulta>);
+    expect(screen.getByRole('status', { name: 'Cargando' })).toBeInTheDocument();
+    rerender(<EstadoConsulta consulta={consulta({ data: ['Cali', 'Pasto'] })}>{(d) => d.join(', ')}</EstadoConsulta>);
+    expect(screen.getByText('Cali, Pasto')).toBeInTheDocument();
+  });
+
+  it('ante un error explica el motivo y deja reintentar', async () => {
+    const refetch = vi.fn();
+    const error = new ApiError(503, 'whatsapp_unavailable', 'No pudimos comunicarnos con WhatsApp.');
+    render(<EstadoConsulta consulta={consulta({ isError: true, error, refetch })}>{() => 'nunca'}</EstadoConsulta>);
+    expect(screen.getByRole('alert')).toHaveTextContent('No pudimos comunicarnos con WhatsApp.');
+    await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(refetch).toHaveBeenCalledOnce();
+  });
+});
+
+describe('superficies', () => {
+  it('solo un error interrumpe al lector de pantalla', () => {
+    render(
+      <>
+        <Alerta tono="peligro">Falló</Alerta>
+        <Alerta tono="aviso">Ojo</Alerta>
+      </>,
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('Falló');
+    expect(screen.getByRole('status')).toHaveTextContent('Ojo');
+  });
+
+  it('un estado vacío ofrece la acción para salir de él', () => {
+    render(<EstadoVacio titulo="Todavía no has solicitado anticipos" accion={<button>Solicitar anticipo</button>} />);
+    expect(screen.getByRole('button', { name: 'Solicitar anticipo' })).toBeInTheDocument();
+  });
+
+  it('un enlace puede verse como botón sin copiar sus clases', () => {
+    expect(botonClases({ variante: 'secundario', tamano: 'pequeno' })).toContain('ring-slate-300');
+    expect(botonClases()).toContain('bg-navy-950');
+  });
+});

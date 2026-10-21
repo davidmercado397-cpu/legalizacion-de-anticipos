@@ -58,7 +58,7 @@ export function ListaAnticipos({
 }) {
   if (anticipos.length === 0) return <EstadoVacio titulo={vacio} />;
   return (
-    <ul className="divide-y divide-slate-200 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+    <ul className="divide-y divide-slate-200 overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
       {anticipos.map((a) => (
         <li key={a.id}>
           <Link

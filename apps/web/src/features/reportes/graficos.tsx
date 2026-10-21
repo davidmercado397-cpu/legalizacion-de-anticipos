@@ -4,7 +4,7 @@ import { cx } from '../../lib/cx';
 /** Un número con su etiqueta. El valor va en la tinta del texto; `alerta` solo agrega una marca, nunca color al número. */
 export function Indicador({ titulo, valor, detalle, alerta = false }: { titulo: string; valor: string; detalle?: string; alerta?: boolean }) {
   return (
-    <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+    <div className="rounded-xl bg-white p-4 ring-1 ring-slate-200">
       <dt className="flex items-center gap-1.5 text-sm text-slate-500">
         {alerta && <span aria-label="Requiere atención" className="size-2 rounded-full bg-amber-500" />}
         {titulo}

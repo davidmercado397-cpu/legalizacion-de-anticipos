@@ -39,7 +39,7 @@ export function ListaGastos({ anticipoId, gastos }: { anticipoId: string; gastos
             <Link
               to="/anticipos/$anticipoId/gastos/$gastoId"
               params={{ anticipoId, gastoId: g.id }}
-              className="flex gap-3 rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200 hover:ring-marca-600"
+              className="flex gap-3 rounded-xl bg-white p-3 ring-1 ring-slate-200 hover:ring-marca-600"
             >
               <div className="size-16 shrink-0 overflow-hidden rounded-lg bg-slate-100">
                 {g.file?.thumbnail_url && <img src={g.file.thumbnail_url} alt="" className="size-full object-cover" loading="lazy" />}

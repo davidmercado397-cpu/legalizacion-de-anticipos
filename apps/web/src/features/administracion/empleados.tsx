@@ -9,7 +9,7 @@ import { mensajeDeError } from '../../lib/errores';
 import { useValorDiferido } from '../../lib/use-valor-diferido';
 import { Boton } from '../../ui/boton';
 import { Campo, Entrada, Seleccion } from '../../ui/campos';
-import { Alerta, Cargando, Insignia, Tarjeta } from '../../ui/superficies';
+import { Alerta, Insignia, Tarjeta, Esqueleto } from '../../ui/superficies';
 import { sinRechazo } from '../../lib/sin-rechazo';
 import { DetalleUsuario, tieneSuplentes } from './detalle-usuario';
 
@@ -62,11 +62,11 @@ export function Empleados() {
       )}
       {accion.isError && <Alerta tono="peligro">{mensajeDeError(accion.error)}</Alerta>}
       {empleados.isPending ? (
-        <Cargando />
+        <Esqueleto />
       ) : empleados.isError ? (
         <Alerta tono="peligro">{mensajeDeError(empleados.error)}</Alerta>
       ) : (
-        <ul className="divide-y divide-slate-200 rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+        <ul className="divide-y divide-slate-200 rounded-xl bg-white ring-1 ring-slate-200">
           {empleados.data.data.map((e) => (
             <li key={e.id}>
               <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">

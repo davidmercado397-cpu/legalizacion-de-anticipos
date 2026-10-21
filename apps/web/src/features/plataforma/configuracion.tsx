@@ -102,7 +102,7 @@ export function ConfiguracionSistema() {
       {areas.map((area) => (
         <section key={area} className="space-y-2">
           <h2 className="font-semibold text-slate-700">{AREAS[area] ?? area}</h2>
-          <ul className="divide-y divide-slate-200 rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+          <ul className="divide-y divide-slate-200 rounded-xl bg-white ring-1 ring-slate-200">
             {visibles
               .filter((c) => c.key.startsWith(`${area}.`))
               .map((c) => (

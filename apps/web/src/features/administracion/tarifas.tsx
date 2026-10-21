@@ -15,7 +15,7 @@ import { mensajeDeError } from '../../lib/errores';
 import { formatoDinero, formatoFechaCalendario } from '../../lib/formato';
 import { Boton } from '../../ui/boton';
 import { Campo, Entrada, Seleccion } from '../../ui/campos';
-import { Alerta, Cargando, EstadoVacio, Insignia, Tarjeta } from '../../ui/superficies';
+import { Alerta, EstadoVacio, Insignia, Tarjeta, Esqueleto } from '../../ui/superficies';
 
 const TIPOS: TipoPersonal[] = ['administrative', 'operational'];
 const UNIDADES: UnidadTarifa[] = ['per_day', 'per_night', 'per_trip'];
@@ -31,7 +31,7 @@ const lugares = (texto: string) =>
  */
 export function TarifasViaje({ companiaId }: { companiaId: string }) {
   const zonas = useZonas(companiaId);
-  if (zonas.isPending) return <Cargando />;
+  if (zonas.isPending) return <Esqueleto />;
   if (zonas.isError) return <Alerta tono="peligro">{mensajeDeError(zonas.error)}</Alerta>;
   return (
     <div className="space-y-8">
@@ -77,7 +77,7 @@ function Zonas({ companiaId, zonas }: { companiaId: string; zonas: ZonaViaje[] }
         />
       )}
       {zonas.length > 0 && (
-        <ul className="divide-y divide-slate-200 rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+        <ul className="divide-y divide-slate-200 rounded-xl bg-white ring-1 ring-slate-200">
           {zonas.map((z) => (
             <li key={z.id} className="flex flex-wrap items-start justify-between gap-2 p-4">
               <div className="min-w-0">
@@ -170,15 +170,15 @@ function Tarifas({ companiaId, zonas }: { companiaId: string; zonas: ZonaViaje[]
       {nueva && <FormularioTarifa companiaId={companiaId} zonas={zonas} zonaInicial={zona} alTerminar={() => setNueva(false)} />}
       {desactivar.isError && <Alerta tono="peligro">{mensajeDeError(desactivar.error)}</Alerta>}
       {tarifas.isPending ? (
-        <Cargando />
+        <Esqueleto />
       ) : tarifas.isError ? (
         <Alerta tono="peligro">{mensajeDeError(tarifas.error)}</Alerta>
       ) : visibles.length === 0 ? (
         <EstadoVacio titulo="No hay tarifas">{zonas.length ? 'Agréguelas una por una o cárguelas desde Excel.' : 'Cree primero una zona.'}</EstadoVacio>
       ) : (
-        <div className="overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+        <div className="overflow-x-auto rounded-xl bg-white ring-1 ring-slate-200">
           <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase text-slate-500">
+            <thead className="text-xs font-semibold text-slate-600">
               <tr>
                 <th className="px-4 py-2">Zona</th>
                 <th className="px-4 py-2">Personal</th>

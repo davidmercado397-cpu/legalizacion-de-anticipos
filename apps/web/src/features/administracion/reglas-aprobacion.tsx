@@ -24,7 +24,7 @@ export function ReglasAprobacion({ companiaId }: { companiaId: string }) {
   if (reglas.isError) return <Alerta tono="peligro">{mensajeDeError(reglas.error)}</Alerta>;
 
   return (
-    <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+    <div className="space-y-4 rounded-xl bg-white p-4 ring-1 ring-slate-200">
       <p className="text-sm text-slate-600">
         La solicitud la aprueba el jefe inmediato. También necesita al jefe directivo, que puede aprobarla sin esperar, si supera el presupuesto
         calculado en más de la tolerancia o si supera el monto total de su moneda. Vacío = sin límite por monto.

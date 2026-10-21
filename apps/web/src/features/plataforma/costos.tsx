@@ -55,9 +55,9 @@ export function CostosIa() {
             <h2 className="font-semibold text-slate-700">
               {nombreMes(m.month)} · {usd(m.totals.cost_usd)}
             </h2>
-            <div className="overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+            <div className="overflow-x-auto rounded-xl bg-white ring-1 ring-slate-200">
               <table className="w-full text-left text-sm">
-                <thead className="text-xs uppercase text-slate-500">
+                <thead className="text-xs font-semibold text-slate-600">
                   <tr>
                     <th className="px-4 py-2">Modelo</th>
                     <th className="px-4 py-2">Compañía</th>

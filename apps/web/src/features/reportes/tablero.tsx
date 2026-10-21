@@ -11,11 +11,14 @@ import {
 } from '@viaticos/client-app';
 import type { CumplimientoPresupuesto, GastoPorConcepto, SaldoPendiente } from '@viaticos/contracts';
 import { Link } from '@tanstack/react-router';
+import { Download } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { mensajeDeError } from '../../lib/errores';
 import { formatoDinero, formatoFechaCalendario } from '../../lib/formato';
-import { Boton } from '../../ui/boton';
-import { Alerta, Cargando, EstadoVacio, Insignia, Tarjeta } from '../../ui/superficies';
+import { Boton, botonClases } from '../../ui/boton';
+import { Seccion } from '../../ui/pagina';
+import { Alerta, EstadoVacio, Esqueleto, Insignia, Tarjeta } from '../../ui/superficies';
+import { Tabla } from '../../ui/tabla';
 import { BarrasHorizontales, Indicador, Medidor } from './graficos';
 
 /** Tableros de contabilidad para un periodo y, si se elige, una compañía. Cada uno descarga su Excel. */
@@ -38,23 +41,23 @@ export function Tablero({ periodo, moneda, companiaId }: { periodo: Periodo; mon
         <Indicador titulo="Facturas a otra compañía" valor={String(otra.data?.length ?? 0)} detalle="del grupo" alerta={(otra.data?.length ?? 0) > 0} />
       </dl>
 
-      <Seccion titulo="Saldos por legalizar" reporte="pending-balances" parametros={{ company_id: periodo.company_id }} consulta={saldos}>
+      <SeccionReporte titulo="Saldos por legalizar" reporte="pending-balances" parametros={{ company_id: periodo.company_id }} consulta={saldos}>
         {saldos.data && <Saldos filas={saldos.data} />}
-      </Seccion>
+      </SeccionReporte>
 
-      <Seccion titulo="Gasto por categoría" reporte="spend" parametros={periodo} consulta={gasto}>
+      <SeccionReporte titulo="Gasto por categoría" reporte="spend" parametros={periodo} consulta={gasto}>
         {gasto.data && <Gasto filas={gasto.data} moneda={moneda} companiaId={companiaId} />}
-      </Seccion>
+      </SeccionReporte>
 
       <Cumplimiento periodo={periodo} />
 
-      <Seccion titulo="Facturas a nombre de otra compañía del grupo" reporte="intercompany-invoices" parametros={periodo} consulta={otra}>
+      <SeccionReporte titulo="Facturas a nombre de otra compañía del grupo" reporte="intercompany-invoices" parametros={periodo} consulta={otra}>
         {otra.data &&
           (otra.data.length === 0 ? (
             <EstadoVacio titulo="Ninguna en el periodo" />
           ) : (
             <Tabla
-              columnas={['Fecha', 'Proveedor', 'Viajero', 'A nombre de', 'Total']}
+              columnas={['Fecha', 'Proveedor', 'Viajero', 'A nombre de', { titulo: 'Total', numerica: true }]}
               filas={otra.data.map((f) => [
                 formatoFechaCalendario(f.invoice_date),
                 f.vendor_name ?? '—',
@@ -64,7 +67,7 @@ export function Tablero({ periodo, moneda, companiaId }: { periodo: Periodo; mon
               ])}
             />
           ))}
-      </Seccion>
+      </SeccionReporte>
 
       <LecturaIa companiaId={companiaId} mes={mes} />
     </div>
@@ -77,7 +80,7 @@ const sumar = (filas: SaldoPendiente[], campo: 'pending') => filas.reduce((s, f)
 const sumarCampo = (filas: GastoPorConcepto[] | undefined, campo: 'expenses') => (filas ?? []).reduce((s, f) => s + f[campo], 0);
 const contar = (n: number | undefined, palabra: string) => (n === undefined ? '' : `${n} ${palabra}${n === 1 ? '' : 's'}`);
 
-function Seccion({
+function SeccionReporte({
   titulo,
   reporte,
   parametros,
@@ -103,52 +106,24 @@ function Seccion({
       },
     );
   return (
-    <section className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold text-slate-700">{titulo}</h2>
-        <Boton variante="secundario" cargando={descargar.isPending} onClick={bajar}>
+    <Seccion
+      titulo={titulo}
+      acciones={
+        <Boton variante="secundario" tamano="pequeno" cargando={descargar.isPending} onClick={bajar}>
+          <Download aria-hidden />
           Excel
         </Boton>
-      </div>
+      }
+    >
       {descargar.isError && <Alerta tono="peligro">{mensajeDeError(descargar.error)}</Alerta>}
       {consulta.isPending ? (
-        <Cargando />
+        <Esqueleto />
       ) : consulta.isError ? (
         <Alerta tono="peligro">{mensajeDeError(consulta.error)}</Alerta>
       ) : (
         <div className={consulta.isPlaceholderData ? 'opacity-60 transition-opacity' : 'transition-opacity'}>{children}</div>
       )}
-    </section>
-  );
-}
-
-function Tabla({ columnas, filas, numericas = [] }: { columnas: string[]; filas: ReactNode[][]; numericas?: number[] }) {
-  const derecha = (i: number) => numericas.includes(i) || i === columnas.length - 1;
-  return (
-    <div className="overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-      <table className="w-full text-left text-sm">
-        <thead className="text-xs uppercase text-slate-500">
-          <tr>
-            {columnas.map((c, i) => (
-              <th key={c} className={`px-4 py-2 ${derecha(i) ? 'text-right' : ''}`}>
-                {c}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {filas.map((fila, i) => (
-            <tr key={i}>
-              {fila.map((celda, j) => (
-                <td key={j} className={`px-4 py-2 ${derecha(j) ? 'whitespace-nowrap text-right tabular-nums' : ''}`}>
-                  {celda}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    </Seccion>
   );
 }
 
@@ -165,8 +140,7 @@ function Saldos({ filas }: { filas: SaldoPendiente[] }) {
         ))}
       </div>
       <Tabla
-        columnas={['Viajero', 'Destino', 'Regreso', 'Días', 'Por legalizar']}
-        numericas={[3]}
+        columnas={['Viajero', 'Destino', 'Regreso', { titulo: 'Días', numerica: true }, { titulo: 'Por legalizar', numerica: true }]}
         filas={[...filas]
           .sort((a, b) => (b.days ?? 0) - (a.days ?? 0))
           .slice(0, 50)
@@ -222,17 +196,16 @@ function Cumplimiento({ periodo }: { periodo: Periodo }) {
   }
   const filas = [...porAnticipo.values()].sort((a, b) => b.gastado - b.presupuesto - (a.gastado - a.presupuesto));
   return (
-    <Seccion titulo="Cumplimiento del presupuesto" reporte="budget-compliance" parametros={periodo} consulta={consulta}>
+    <SeccionReporte titulo="Cumplimiento del presupuesto" reporte="budget-compliance" parametros={periodo} consulta={consulta}>
       {filas.length === 0 ? (
         <EstadoVacio titulo="No hay viajes con presupuesto calculado en el periodo" />
       ) : (
         <Tabla
-          columnas={['Viajero', 'Anticipo', 'Presupuesto', 'Legalizado', 'Diferencia']}
-          numericas={[2, 3]}
+          columnas={['Viajero', { titulo: 'Anticipo', oculta: true }, { titulo: 'Presupuesto', numerica: true }, { titulo: 'Legalizado', numerica: true }, { titulo: 'Diferencia', numerica: true }]}
           filas={filas.map(({ fila, presupuesto, gastado }) => [
             fila.employee_name,
-            <Link key="a" to="/anticipos/$anticipoId" params={{ anticipoId: fila.advance_id }} className="text-marca-700 hover:underline">
-              Ver
+            <Link key="a" to="/anticipos/$anticipoId" params={{ anticipoId: fila.advance_id }} className={botonClases({ variante: 'secundario', tamano: 'pequeno' })}>
+              Ver anticipo
             </Link>,
             formatoDinero(presupuesto, fila.currency),
             formatoDinero(gastado, fila.currency),
@@ -243,7 +216,7 @@ function Cumplimiento({ periodo }: { periodo: Periodo }) {
           ])}
         />
       )}
-    </Seccion>
+    </SeccionReporte>
   );
 }
 
@@ -263,8 +236,7 @@ function LecturaIa({ companiaId, mes }: { companiaId: string | undefined; mes: s
   const p = precision.data;
   const lineas = p && p.lines > 0 ? p.lines_matched / p.lines : null;
   return (
-    <section className="space-y-3">
-      <h2 className="font-semibold text-slate-700">Lectura con IA en {nombreMes(mes)}</h2>
+    <Seccion titulo={`Lectura con IA en ${nombreMes(mes)}`}>
       {(precision.isError || uso.isError) && <Alerta tono="peligro">{mensajeDeError(precision.error ?? uso.error)}</Alerta>}
       <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Indicador titulo="Documentos leídos" valor={String(uso.data?.documents ?? '—')} detalle={uso.data ? `${uso.data.included_documents} incluidos en el plan` : ''} />
@@ -280,6 +252,6 @@ function LecturaIa({ companiaId, mes }: { companiaId: string | undefined; mes: s
           ))}
         </Tarjeta>
       )}
-    </section>
+    </Seccion>
   );
 }

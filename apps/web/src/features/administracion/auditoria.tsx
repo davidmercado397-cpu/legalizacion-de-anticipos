@@ -8,7 +8,7 @@ import { formatoMomento } from '../../lib/formato';
 import { useValorDiferido } from '../../lib/use-valor-diferido';
 import { Boton } from '../../ui/boton';
 import { Entrada, Seleccion } from '../../ui/campos';
-import { Alerta, Cargando, EstadoVacio } from '../../ui/superficies';
+import { Alerta, EstadoVacio, Esqueleto } from '../../ui/superficies';
 
 const TIPOS: Record<string, string> = {
   advance: 'Anticipos',
@@ -60,14 +60,14 @@ export function Auditoria() {
         <Entrada aria-label="Hasta" type="date" className="w-auto" value={hasta} onChange={(e) => cambiar(() => setHasta(e.target.value))} />
       </div>
       {registros.isPending ? (
-        <Cargando />
+        <Esqueleto />
       ) : registros.isError ? (
         <Alerta tono="peligro">{mensajeDeError(registros.error)}</Alerta>
       ) : registros.data.data.length === 0 ? (
         <EstadoVacio titulo="No hay registros con estos filtros" />
       ) : (
         <>
-          <ul className={`divide-y divide-slate-200 rounded-xl bg-white shadow-sm ring-1 ring-slate-200 ${registros.isPlaceholderData ? 'opacity-60' : ''}`}>
+          <ul className={`divide-y divide-slate-200 rounded-xl bg-white ring-1 ring-slate-200 ${registros.isPlaceholderData ? 'opacity-60' : ''}`}>
             {registros.data.data.map((r) => (
               <Registro key={r.id} registro={r} actor={nombre(r.actor_id)} />
             ))}

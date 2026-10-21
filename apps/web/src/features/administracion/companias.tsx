@@ -36,7 +36,7 @@ export function Companias() {
 
   return (
     <div className="space-y-4">
-      <ul className="divide-y divide-slate-200 rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+      <ul className="divide-y divide-slate-200 rounded-xl bg-white ring-1 ring-slate-200">
         {companias.data.map((c) => (
           <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
             <div>

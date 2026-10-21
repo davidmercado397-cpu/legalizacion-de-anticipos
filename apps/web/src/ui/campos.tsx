@@ -3,7 +3,7 @@ import { t } from '../i18n';
 import { cx } from '../lib/cx';
 
 const BASE =
-  'block min-h-11 rounded-lg border bg-white px-3 text-base text-slate-900 shadow-sm placeholder:text-slate-400 sm:text-sm';
+  'block min-h-11 rounded-[10px] border bg-white px-3 text-base text-slate-900 placeholder:text-slate-400 sm:text-sm';
 /** Ancho completo salvo que quien lo usa pida otro (`w-auto`, `sm:w-64`…): `cx` no resuelve choques de clases. */
 const base = (className?: string) => cx(BASE, !/(^|\s)([a-z]+:)?w-/.test(className ?? '') && 'w-full');
 const estado = (error?: string) => (error ? 'border-red-600' : 'border-slate-300 focus:border-marca-600');
@@ -23,7 +23,7 @@ export function Campo({ etiqueta, error, ayuda, className, children }: CampoProp
   const idMensaje = `${id}-mensaje`;
   return (
     <div className={cx('space-y-1', className)}>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="block text-sm font-semibold text-slate-700">
         {etiqueta}
       </label>
       {children({ id, ...(error ? { 'aria-invalid': true, 'aria-describedby': idMensaje } : {}) })}
