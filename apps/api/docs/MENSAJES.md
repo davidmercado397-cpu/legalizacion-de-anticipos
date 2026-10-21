@@ -111,6 +111,8 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `JUSTIFY_IN_APP` | ✍️ Escribe la justificación en la app y confirma el gasto desde ahí. |
 | `MOVE_PROMPT` | ¿A qué anticipo paso este gasto? |
 | `MOVED` | 📌 Listo, quedó en {label}. |
+| `PICK_ADVANCE_PROMPT` | 📌 Primero dime a qué anticipo va este gasto. Lo eliges y sigo con la confirmación. |
+| `ADVANCE_NOT_RECOGNIZED` | 🤔 No encontré «{text}» entre tus anticipos abiertos: {labels}. Escribe el destino de uno de ellos. |
 | `SUBMITTED` | 📤 Listo, envié tu legalización a revisión. Te aviso cuando tu aprobador la revise. |
 | `NOTICE_APPROVED` | ✅ {approver} aprobó tu anticipo {label} por {amount}. |
 | `NOTICE_INVOICE_TO` | 🧾 Pide tus facturas a nombre de *{legal_name}*, NIT {tax_id}. |

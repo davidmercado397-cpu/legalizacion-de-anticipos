@@ -187,3 +187,77 @@ async def test_without_the_withdrawal_flow_the_bot_points_to_the_app(harness: Ha
     await juan.tap("menu:withdraw")
     assert juan.last("text").text.startswith("🏧")
     assert not [s for s in harness.wa.of_kind("flow") if s.to and s.to.phone == PHONE]
+
+
+async def _two_advances(harness: Harness, *, with_alcohol: bool = False) -> tuple[Chat, dict[str, str], str]:
+    """Juan con dos anticipos abiertos y una factura fuera de las fechas de ambos: no se puede asignar sola."""
+    juan, _, emp_h, _ = await _scenario(harness)
+    await _configure_flows(harness)
+    async with harness.container.uow() as uow:
+        employee = await uow.employees.get_by_email("juan@forsa.com")
+    assert employee is not None
+    bogota = await harness.add_open_advance(employee, purpose="Visita Bogotá")
+    lines = (InvoiceLine("Cerveza", Decimal("45000"), concept_code="alcohol", concept_confidence=0.9),) if with_alcohol else ()
+    harness.extractor.respond = lambda _r, _n: [invoice(invoice_date=date(2026, 9, 1), **({"lines": lines} if lines else {}))]
+    await juan.photo(1)
+    return juan, emp_h, str(bogota.id)
+
+
+async def _expense(harness: Harness, emp_h: dict[str, str]) -> dict[str, Any]:
+    expense: dict[str, Any] = (await harness.client.get("/api/v1/expenses", headers=emp_h)).json()["data"][0]
+    return expense
+
+
+async def test_justifying_an_invoice_without_advance_asks_which_one_and_then_opens_the_flow(harness: Harness) -> None:
+    juan, emp_h, bogota = await _two_advances(harness, with_alcohol=True)
+    detail = next(m for m in reversed(harness.wa.sent) if m.kind == "buttons")
+    await juan.tap(detail.extra[0].id)  # Justificar, antes de elegir el anticipo
+
+    pick = juan.last("list")
+    assert pick.text.startswith("📌 Primero dime a qué anticipo va este gasto")
+    row = next(r for r in pick.extra if r.id.endswith(bogota))
+    assert row.id.startswith("pick:")
+    await juan.tap(row.id)
+    assert juan.last("text").text == "📌 Listo, quedó en Visita Bogotá."
+    flow = _flow(juan)
+    assert flow.screen == "JUSTIFY"
+
+    await flow_reply(harness, juan, {"flow_token": flow.token, "justification": "Cena con el cliente"})
+    assert juan.last("text").text.startswith("✅ Gasto confirmado.")
+    expense = await _expense(harness, emp_h)
+    assert expense["status"] == "confirmed" and expense["advance_id"] == bogota
+
+
+async def test_confirming_an_invoice_without_advance_lists_them_instead_of_failing(harness: Harness) -> None:
+    juan, emp_h, bogota = await _two_advances(harness)
+    detail = next(m for m in reversed(harness.wa.sent) if m.kind == "buttons")
+    await juan.tap(detail.extra[0].id)  # Está bien
+
+    pick = juan.last("list")
+    assert pick.text.startswith("📌 Primero dime a qué anticipo va este gasto")
+    await juan.tap(next(r.id for r in pick.extra if r.id.endswith(bogota)))
+    assert juan.last("text").text.startswith("📌 Listo, quedó en Visita Bogotá.\n✅ Gasto confirmado.")
+    assert (await _expense(harness, emp_h))["advance_id"] == bogota
+
+
+async def test_typing_the_destination_assigns_the_waiting_invoice(harness: Harness) -> None:
+    juan, emp_h, bogota = await _two_advances(harness)
+
+    await juan.say("bogota")
+    texts = [m.text for m in harness.wa.sent if m.kind == "text"]
+    assert "📌 Listo, quedó en Visita Bogotá." in texts
+    assert (await _expense(harness, emp_h))["advance_id"] == bogota
+    detail = juan.last("buttons")  # la factura otra vez, para confirmarla
+    await juan.tap(detail.extra[0].id)
+    assert (await _expense(harness, emp_h))["status"] == "confirmed"
+
+
+async def test_a_text_that_is_no_open_advance_lists_them(harness: Harness) -> None:
+    juan, emp_h, _ = await _two_advances(harness)
+
+    await juan.say("barranquilla")
+    pick = juan.last("list")
+    assert pick.text.startswith("🤔 No encontré «barranquilla» entre tus anticipos abiertos:")
+    assert "Visita Bogotá" in pick.text and "Medellín" in pick.text
+    assert all(r.id.startswith("move:") for r in pick.extra)
+    assert (await _expense(harness, emp_h))["advance_id"] is None

@@ -115,7 +115,14 @@ class ReplyHandler(Handler):
         employee = c.employee
         match action:
             case "exp_confirm":
-                expense = await self._expenses.confirm(employee, uuid.UUID(rest), None, None, channel=Channel.WHATSAPP)
+                to_confirm = uuid.UUID(rest)
+                try:
+                    expense = await self._expenses.confirm(employee, to_confirm, None, None, channel=Channel.WHATSAPP)
+                except InvalidOperationError as exc:
+                    if exc.code != ADVANCE_REQUIRED:
+                        raise
+                    await ask_advance(self._sender, self._advances, employee, c.address, to_confirm)
+                    return None
                 return msg.CONFIRMED_ONE + await balance_line(self._advances, employee, expense.advance_id)
             case "exp_discard":
                 expense = await self._expenses.discard(employee, uuid.UUID(rest), channel=Channel.WHATSAPP)
@@ -160,7 +167,21 @@ class ReplyHandler(Handler):
 
 
 MENU_ACTIONS = ("menu", "exp_view", "submit")  # respuestas que atiende el menú
-FLOW_ACTIONS = ("exp_correct", "exp_justify", "withdraw")  # botones y filas que abren un WhatsApp Flow
+# Botones y filas que abren (o pueden terminar abriendo) un WhatsApp Flow. «pick» elige el anticipo de
+# un gasto y sigue con su confirmación, que puede pedir el Flow de justificación.
+FLOW_ACTIONS = ("exp_correct", "exp_justify", "withdraw", "pick")
+ADVANCE_REQUIRED = "advance_required"
+
+
+async def ask_advance(
+    sender: MessageSender, advances: AdvanceService, employee: Employee, to: WhatsAppAddress, expense_id: uuid.UUID
+) -> None:
+    """Un gasto sin anticipo no se confirma: en vez del error, la lista para elegirlo y seguir."""
+    rows = advance_rows([b.advance for b in await advances.open_balances(employee.id)], f"pick:{expense_id}")
+    if rows:
+        await sender.send_list(to, msg.PICK_ADVANCE_PROMPT, msg.ASSIGN_BUTTON, rows)
+    else:
+        await sender.send_text(to, msg.NO_OPEN_ADVANCES)
 
 
 async def balance_line(advances: AdvanceService, employee: Employee, advance_id: uuid.UUID | None) -> str:

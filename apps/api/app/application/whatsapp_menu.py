@@ -29,7 +29,7 @@ from app.application.whatsapp_presenter import (
     short_date,
     submit_summary,
 )
-from app.domain.entities import Employee
+from app.domain.entities import Advance, Employee, Expense
 from app.domain.enums import ExpenseStatus
 from app.domain.errors import NotFoundError
 from app.domain.permissions import Permission, has_permission
@@ -78,6 +78,10 @@ class MenuHandler(Handler):
             await run_action(self._sender, conversation.address, action, self._reply(conversation, action, rest))
             return
         option = await self._keyword(m.text) if m.kind == MessageKind.TEXT else None
+        if m.kind == MessageKind.TEXT and option is None and (waiting := await self._waiting_advance(conversation.employee)):
+            work = self._advance_by_text(conversation, waiting)
+            await run_action(self._sender, conversation.address, "advance_by_text", work)
+            return
         if option == "farewell":
             await self._sessions.close(conversation.employee.id)
             await self._sender.send_text(conversation.address, msg.FAREWELL.format(name=conversation.employee.first_name))
@@ -85,6 +89,32 @@ class MenuHandler(Handler):
             await run_action(self._sender, conversation.address, option, self._option(conversation, option))
         else:
             await self._show_menu(conversation)
+
+    async def _waiting_advance(self, employee: Employee) -> list[Expense]:
+        """Facturas leídas que no se pudieron asignar solas (varios anticipos abiertos): esperan que diga cuál."""
+        return [e for e in await self._expenses.pending_for(employee.id) if e.advance_id is None]
+
+    async def _advance_by_text(self, c: Conversation, waiting: list[Expense]) -> str | None:
+        """Con una factura esperando su anticipo, lo que escribe es la respuesta (p. ej. «bogota»)."""
+        open_advances = [b.advance for b in await self._advances.open_balances(c.employee.id)]
+        text = normalize_command(c.message.text)
+        matches = [a for a in open_advances if len(text) >= 3 and any(text in normalize_command(n) for n in _names(a))]
+        if len(matches) != 1:
+            labels = ", ".join(a.label for a in open_advances)
+            body = msg.ADVANCE_NOT_RECOGNIZED.format(text=(c.message.text or "").strip()[:40], labels=labels)
+            if len(waiting) == 1:
+                rows = advance_rows(open_advances, f"move:{waiting[0].id}")
+                await self._sender.send_list(c.address, body, msg.ASSIGN_BUTTON, rows)
+                return None
+            return body
+        advance = matches[0]
+        for expense in waiting:
+            await self._expenses.assign(c.employee, expense.id, advance.id)
+        await self._sender.send_text(c.address, msg.MOVED.format(label=advance.label))
+        # De nuevo la factura con sus botones: lo que sigue es confirmarla (o justificarla).
+        for expense in waiting:
+            await self._show_expense(c, expense.id)
+        return None
 
     async def _keyword(self, text: str | None) -> str | None:
         command = normalize_command(text)
@@ -224,3 +254,9 @@ class MenuHandler(Handler):
         if queue.requested_total > len(queue.requested):
             return msg.APPROVALS_MORE.format(count=queue.requested_total - len(queue.requested))
         return None
+
+
+def _names(advance: Advance) -> list[str]:
+    """Cómo puede nombrar el usuario un anticipo: destino, cada tramo, propósito o la etiqueta completa."""
+    legs = [str(leg.get("destination") or "") for leg in advance.legs]
+    return [advance.destination or "", advance.purpose, advance.label, *legs]

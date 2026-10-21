@@ -19,13 +19,27 @@ from app.application.budgets import TravelBudgetService, TripQuery
 from app.application.expenses import ExpenseService
 from app.application.notifications import ExpenseNotifier
 from app.application.settings import SettingsService
-from app.application.whatsapp_bot import FLOW_ACTIONS, Conversation, Handler, balance_line, run_action
+from app.application.whatsapp_bot import (
+    ADVANCE_REQUIRED,
+    FLOW_ACTIONS,
+    Conversation,
+    Handler,
+    ask_advance,
+    balance_line,
+    run_action,
+)
 from app.application.whatsapp_events import InboundMessage, MessageKind
 from app.application.whatsapp_presenter import finding_text
 from app.application.withdrawals import WithdrawalData, WithdrawalService
 from app.domain.entities import Employee, Expense
 from app.domain.enums import AdvanceKind, Channel, DocumentType, PaymentMethod, PolicyAction
-from app.domain.errors import AuthenticationError, DomainError, JustificationRequiredError, NotFoundError
+from app.domain.errors import (
+    AuthenticationError,
+    DomainError,
+    InvalidOperationError,
+    JustificationRequiredError,
+    NotFoundError,
+)
 from app.domain.ports import Clock, FlowMessage, MessageSender, TokenService, UnitOfWork, UnitOfWorkFactory
 from app.domain.values import WhatsAppAddress
 
@@ -338,8 +352,30 @@ class FlowHandler(Handler):
             await run_action(self._sender, to, action, self._launcher.correction(employee, to, uuid.UUID(rest)))
         elif action == "withdraw":
             await run_action(self._sender, to, action, self._launcher.withdrawal(employee, to, uuid.UUID(rest)))
+        elif action == "pick":
+            await run_action(self._sender, to, action, self._pick(employee, to, rest))
         else:
-            await run_action(self._sender, to, action, self._launcher.justification(employee, to, uuid.UUID(rest)))
+            await run_action(self._sender, to, action, self._justify(employee, to, uuid.UUID(rest)))
+
+    async def _justify(self, employee: Employee, to: WhatsAppAddress, expense_id: uuid.UUID) -> str | None:
+        # Sin anticipo la justificación no serviría: al enviarla, la confirmación fallaría. Primero se elige.
+        if (await self._expenses.get(employee, expense_id)).advance_id is None:
+            await ask_advance(self._sender, self._advances, employee, to, expense_id)
+            return None
+        return await self._launcher.justification(employee, to, expense_id)
+
+    async def _pick(self, employee: Employee, to: WhatsAppAddress, rest: str) -> str | None:
+        """Fila de la lista de anticipos: asigna el gasto y sigue con la confirmación que estaba pendiente."""
+        expense_id, _, advance_id = rest.partition(":")
+        expense_uuid = uuid.UUID(expense_id)
+        advance = await self._expenses.assign(employee, expense_uuid, uuid.UUID(advance_id))
+        moved = msg.MOVED.format(label=advance.label)
+        try:
+            expense = await self._expenses.confirm(employee, expense_uuid, None, None, channel=Channel.WHATSAPP)
+        except JustificationRequiredError:
+            await self._sender.send_text(to, moved)
+            return await self._launcher.justification(employee, to, expense_uuid)
+        return f"{moved}\n{msg.CONFIRMED_ONE}" + await balance_line(self._advances, employee, expense.advance_id)
 
     async def _submit(self, c: Conversation, response: dict[str, Any]) -> str | None:
         employee = c.employee
@@ -367,12 +403,25 @@ class FlowHandler(Handler):
                         )
                     except JustificationRequiredError:
                         return await self._launcher.justification(employee, c.address, expense_id)
+                    except InvalidOperationError as exc:
+                        if exc.code != ADVANCE_REQUIRED:
+                            raise
+                        await ask_advance(self._sender, self._advances, employee, c.address, expense_id)
+                        return None
                     return msg.CORRECTED_CONFIRMED + await balance_line(self._advances, employee, expense.advance_id)
                 case "justification":
                     text = str(response.get("justification") or "").strip()
-                    expense = await self._expenses.confirm(
-                        employee, uuid.UUID(str(claims.entity_id)), None, None, justification=text, channel=Channel.WHATSAPP
-                    )
+                    expense_id = uuid.UUID(str(claims.entity_id))
+                    try:
+                        expense = await self._expenses.confirm(
+                            employee, expense_id, None, None, justification=text, channel=Channel.WHATSAPP
+                        )
+                    except InvalidOperationError as exc:
+                        # Un formulario abierto antes de elegir el anticipo: se elige y se vuelve a pedir.
+                        if exc.code != ADVANCE_REQUIRED:
+                            raise
+                        await ask_advance(self._sender, self._advances, employee, c.address, expense_id)
+                        return None
                     return msg.CONFIRMED_ONE + await balance_line(self._advances, employee, expense.advance_id)
                 case "cash_withdrawal" if self._withdrawals is not None:
                     withdrawal = await self._withdrawals.create(employee, uuid.UUID(str(claims.entity_id)), _withdrawal(response))
