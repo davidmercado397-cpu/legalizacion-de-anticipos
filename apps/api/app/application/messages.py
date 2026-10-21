@@ -204,7 +204,7 @@ JUSTIFY_IN_APP = "✍️ Escribe la justificación en la app y confirma el gasto
 MOVE_PROMPT = "¿A qué anticipo paso este gasto?"
 MOVED = "📌 Listo, quedó en {label}."
 PICK_ADVANCE_PROMPT = "📌 Primero dime a qué anticipo va este gasto. Lo eliges y sigo con la confirmación."
-ADVANCE_NOT_RECOGNIZED = "🤔 No encontré «{text}» entre tus anticipos abiertos: {labels}. Escribe el destino de uno de ellos."
+PICK_FROM_LIST = "📌 Elige de la lista a qué anticipo va {what}."
 SUBMITTED = "📤 Listo, envié tu legalización a revisión. Te aviso cuando tu aprobador la revise."
 
 # Avisos de estado del anticipo. Cada uno tiene su versión de una línea para la plantilla de aviso.

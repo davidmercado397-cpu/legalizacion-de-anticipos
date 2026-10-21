@@ -7,6 +7,7 @@ así SQLAlchemy nunca se filtra aquí."""
 from __future__ import annotations
 
 import uuid
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
@@ -411,6 +412,13 @@ def advance_for_date(advances: list[Advance], day: date | None, days_before: int
         if matches:
             return matches[0] if len(matches) == 1 else None
     return None
+
+
+def choosable(advances: list[Advance], today: Callable[[Advance], date]) -> list[Advance]:
+    """Entre qué anticipos elige el usuario a dónde va un gasto: los viajes en curso o ya terminados por
+    legalizar, no los que todavía no empiezan. Si solo tiene futuros, esos, para que el gasto tenga a dónde ir."""
+    started = [a for a in advances if a.start_date is None or a.start_date <= today(a)]
+    return started or advances
 
 
 # Meta solo permite mensajes libres hasta 24 h después del último mensaje del usuario; después, plantilla.

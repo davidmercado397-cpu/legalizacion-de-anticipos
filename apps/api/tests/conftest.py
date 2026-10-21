@@ -109,8 +109,10 @@ class Harness:
             await uow.commit()
         await self.container.runtime._cache.invalidate()
 
-    async def add_open_advance(self, employee: Employee, currency: str = "COP", purpose: str = "Viaje de trabajo") -> Advance:
-        """Anticipo ya aprobado, sin fechas: sin uno abierto el empleado no puede registrar facturas."""
+    async def add_open_advance(
+        self, employee: Employee, currency: str = "COP", purpose: str = "Viaje de trabajo", **fields: Any
+    ) -> Advance:
+        """Anticipo ya aprobado (sin fechas, salvo que se den): sin uno abierto el empleado no puede registrar facturas."""
         advance = Advance(
             employee.id,
             employee.company_ids[0],
@@ -119,6 +121,7 @@ class Harness:
             Decimal("1000000"),
             purpose,
             status=AdvanceStatus.APPROVED,
+            **fields,
         )
         async with self.container.uow() as uow:
             await uow.advances.add(advance)

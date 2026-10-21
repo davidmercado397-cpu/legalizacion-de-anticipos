@@ -8,6 +8,7 @@ import logging
 import uuid
 
 from app.application import messages as msg
+from app.application.advances import choosable_advances
 from app.application.messages import NumberFormat
 from app.application.policies import CompanyContextProvider
 from app.application.settings import SettingsService
@@ -77,6 +78,7 @@ class ExpenseNotifier:
             in_advances = await uow.expenses.list_for_advances([a.id for a in advances])
             lines = await uow.lines.list_for_expenses([e.id for e in expenses])
             originals = {e.duplicate_of_id: await uow.expenses.get(e.duplicate_of_id) for e in expenses if e.duplicate_of_id}
+            choosing = await choosable_advances(uow, advances, self._clock.now())
             await uow.commit()
         pending = {a.id: a.balance(in_advances).pending for a in advances}
         by_id = {a.id: a for a in advances}
@@ -101,7 +103,7 @@ class ExpenseNotifier:
         unassigned = [e for e in expenses if e.status == ExpenseStatus.EXTRACTED and e.advance_id is None]
         if unassigned and len(advances) > 1:
             what = "este gasto" if len(unassigned) == 1 else f"estos {len(unassigned)} gastos"
-            rows = advance_rows(advances, f"assign:{batch_id}")
+            rows = advance_rows(choosing, f"assign:{batch_id}")
             await self._safe(self._sender.send_list(address, msg.ASSIGN_PROMPT.format(what=what), msg.ASSIGN_BUTTON, rows))
 
     async def categories_of(self, company_id: uuid.UUID | None) -> dict[str, CategoryHint]:

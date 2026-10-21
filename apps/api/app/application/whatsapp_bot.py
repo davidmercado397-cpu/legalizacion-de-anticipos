@@ -129,8 +129,7 @@ class ReplyHandler(Handler):
                 return msg.DISCARDED + await balance_line(self._advances, employee, expense.advance_id)
             case "exp_move":
                 expense = await self._expenses.get(employee, uuid.UUID(rest))
-                advances = [b.advance for b in await self._advances.open_balances(employee.id)]
-                rows = advance_rows(advances, f"move:{expense.id}")
+                rows = advance_rows(await self._advances.choosable(employee.id), f"move:{expense.id}")
                 await self._sender.send_list(c.address, msg.MOVE_PROMPT, msg.ASSIGN_BUTTON, rows)
                 return None
             case "move":
@@ -177,7 +176,7 @@ async def ask_advance(
     sender: MessageSender, advances: AdvanceService, employee: Employee, to: WhatsAppAddress, expense_id: uuid.UUID
 ) -> None:
     """Un gasto sin anticipo no se confirma: en vez del error, la lista para elegirlo y seguir."""
-    rows = advance_rows([b.advance for b in await advances.open_balances(employee.id)], f"pick:{expense_id}")
+    rows = advance_rows(await advances.choosable(employee.id), f"pick:{expense_id}")
     if rows:
         await sender.send_list(to, msg.PICK_ADVANCE_PROMPT, msg.ASSIGN_BUTTON, rows)
     else:

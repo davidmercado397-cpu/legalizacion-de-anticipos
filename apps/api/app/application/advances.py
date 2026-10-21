@@ -6,7 +6,7 @@ import uuid
 from collections import defaultdict
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Any
@@ -21,7 +21,7 @@ from app.application.settings import SettingsService, check_currency
 from app.application.withdrawals import WithdrawalService, WithdrawalView
 from app.domain.approvals import Approver, build_route, escalation_reasons
 from app.domain.budgets import TripLeg
-from app.domain.entities import Advance, AdvanceBalance, AuditEntry, Company, Employee, Expense
+from app.domain.entities import Advance, AdvanceBalance, AuditEntry, Company, Employee, Expense, choosable
 from app.domain.enums import AdvanceKind, AdvanceStatus, ApprovalLevel, Channel, ExpenseStatus, ReviewStatus, Role, StepStatus
 from app.domain.errors import InvalidOperationError, NotFoundError, PermissionDeniedError, ValidationError
 from app.domain.permissions import Permission
@@ -315,6 +315,11 @@ class AdvanceService:
             withdrawals = await self._withdrawals.views(uow, advance, expenses) if self._withdrawals else []
         return AdvanceDetail(advance, balance, expenses, functional, withdrawals)
 
+    async def choosable(self, employee_id: uuid.UUID) -> list[Advance]:
+        """Los anticipos abiertos que se ofrecen para asignar un gasto (sin los viajes que no han empezado)."""
+        async with self._uow() as uow:
+            return await choosable_advances(uow, await uow.advances.list_open_for(employee_id), self._clock.now())
+
     async def open_balances(self, employee_id: uuid.UUID) -> list[OpenBalance]:
         async with self._uow() as uow:
             advances = await uow.advances.list_open_for(employee_id)
@@ -507,3 +512,9 @@ def _required_note(note: str | None) -> str:
 
 def _approver(employee: Employee | None) -> Approver | None:
     return Approver(employee.id, employee.full_name) if employee is not None and employee.active else None
+
+
+async def choosable_advances(uow: UnitOfWork, advances: list[Advance], now: datetime) -> list[Advance]:
+    """`choosable` con la fecha de hoy en la zona de la compañía de cada anticipo."""
+    zones = {c.id: c.timezone for c in await uow.companies.find()}
+    return choosable(advances, lambda a: local_date(now, zones.get(a.company_id, "UTC")))

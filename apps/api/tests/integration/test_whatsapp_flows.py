@@ -197,6 +197,8 @@ async def _two_advances(harness: Harness, *, with_alcohol: bool = False) -> tupl
         employee = await uow.employees.get_by_email("juan@forsa.com")
     assert employee is not None
     bogota = await harness.add_open_advance(employee, purpose="Visita Bogotá")
+    # Un viaje que todavía no empieza no se ofrece para asignar gastos.
+    await harness.add_open_advance(employee, purpose="Feria Cartagena", start_date=date(2027, 6, 1), end_date=date(2027, 6, 3))
     lines = (InvoiceLine("Cerveza", Decimal("45000"), concept_code="alcohol", concept_confidence=0.9),) if with_alcohol else ()
     harness.extractor.respond = lambda _r, _n: [invoice(invoice_date=date(2026, 9, 1), **({"lines": lines} if lines else {}))]
     await juan.photo(1)
@@ -216,7 +218,7 @@ async def test_justifying_an_invoice_without_advance_asks_which_one_and_then_ope
     pick = juan.last("list")
     assert pick.text.startswith("📌 Primero dime a qué anticipo va este gasto")
     row = next(r for r in pick.extra if r.id.endswith(bogota))
-    assert row.id.startswith("pick:")
+    assert row.id.startswith("pick:") and len(pick.extra) == 2  # Medellín y Bogotá; Cartagena aún no empieza
     await juan.tap(row.id)
     assert juan.last("text").text == "📌 Listo, quedó en Visita Bogotá."
     flow = _flow(juan)
@@ -240,24 +242,15 @@ async def test_confirming_an_invoice_without_advance_lists_them_instead_of_faili
     assert (await _expense(harness, emp_h))["advance_id"] == bogota
 
 
-async def test_typing_the_destination_assigns_the_waiting_invoice(harness: Harness) -> None:
+async def test_typing_while_an_invoice_waits_for_its_advance_shows_the_list_again(harness: Harness) -> None:
     juan, emp_h, bogota = await _two_advances(harness)
 
-    await juan.say("bogota")
-    texts = [m.text for m in harness.wa.sent if m.kind == "text"]
-    assert "📌 Listo, quedó en Visita Bogotá." in texts
-    assert (await _expense(harness, emp_h))["advance_id"] == bogota
-    detail = juan.last("buttons")  # la factura otra vez, para confirmarla
-    await juan.tap(detail.extra[0].id)
-    assert (await _expense(harness, emp_h))["status"] == "confirmed"
-
-
-async def test_a_text_that_is_no_open_advance_lists_them(harness: Harness) -> None:
-    juan, emp_h, _ = await _two_advances(harness)
-
-    await juan.say("barranquilla")
+    await juan.say("bogota")  # no se interpreta texto libre: la respuesta se elige de la lista
     pick = juan.last("list")
-    assert pick.text.startswith("🤔 No encontré «barranquilla» entre tus anticipos abiertos:")
-    assert "Visita Bogotá" in pick.text and "Medellín" in pick.text
-    assert all(r.id.startswith("move:") for r in pick.extra)
+    assert pick.text == "📌 Elige de la lista a qué anticipo va la factura de Restaurante El Cielo."
+    assert all(r.id.startswith("move:") for r in pick.extra) and len(pick.extra) == 2
     assert (await _expense(harness, emp_h))["advance_id"] is None
+
+    await juan.tap(next(r.id for r in pick.extra if r.id.endswith(bogota)))
+    assert juan.last("text").text == "📌 Listo, quedó en Visita Bogotá."
+    assert (await _expense(harness, emp_h))["advance_id"] == bogota

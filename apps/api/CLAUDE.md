@@ -101,8 +101,9 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
   (`advance_required`). El bot responde con [➕ Solicitar anticipo] y ya no ofrece «Sin anticipo».
   Con varios anticipos abiertos y una factura que no se asigna sola por la fecha, el bot nunca se queda en el
   error: [Está bien], [Justificar] o un Flow que choca con `advance_required` mandan la lista de anticipos
-  (`pick:<gasto>:<anticipo>`, que asigna y sigue con la confirmación o abre la justificación), y si el usuario
-  escribe el destino («bogota») mientras una factura espera su anticipo, `MenuHandler` la asigna y se la vuelve a mostrar.
+  (`pick:<gasto>:<anticipo>`, que asigna y sigue con la confirmación o abre la justificación). No se interpreta texto
+  libre: si escribe mientras una factura espera su anticipo, `MenuHandler` le vuelve a mostrar la lista. Las listas
+  solo traen anticipos abiertos ya en curso (`choosable`: sin los viajes que no han empezado; si solo hay futuros, esos).
 - 3b, menú (`whatsapp_menu.py`, `MenuHandler`): saludo al empezar la conversación, palabras clave
   (`whatsapp.keywords`), despedida que cierra la sesión, opciones por rol (Mis anticipos, Saldo,
   Pendientes, Mis gastos, Enviar legalización, Por aprobar con `AdvanceService.decision_queue`) y
