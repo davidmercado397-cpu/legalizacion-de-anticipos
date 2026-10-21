@@ -83,7 +83,7 @@ export function ConfiguracionSistema() {
 
   return (
     <div className="space-y-6">
-      <div className="sticky top-14 z-[5] flex flex-wrap items-center justify-between gap-2 bg-slate-50/95 py-2 backdrop-blur">
+      <div className="sticky top-14 z-[5] flex flex-wrap items-center justify-between gap-2 bg-white/95 py-2 backdrop-blur">
         <Entrada aria-label="Buscar llave" placeholder="Buscar (p. ej. modelo, plantilla)" className="max-w-xs" value={buscar} onChange={(e) => setBuscar(e.target.value)} />
         <div className="flex items-center gap-2">
           {cambiadas.length > 0 && (

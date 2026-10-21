@@ -1,15 +1,41 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/plus-jakarta-sans';
 
-/* Tokens de marca (nextv.ia): se cambian aquí y se propagan a toda la app (y a NativeWind en móvil).
-   700 es el azul intenso de la marca sobre fondo claro (#3A5FE0, contraste 5,4:1 con blanco); 600 solo para
-   barras y foco, nunca para texto. El azul noche (#0B1020) es el del logo y el color del navegador. */
+/* Tokens de marca (nextv.ia). Las reglas de uso están en apps/web/DESIGN.md.
+   - navy: el del logo; texto principal y botón primario.
+   - marca: el azul del logo; enlaces, selección y foco. 700 es el que va como texto (5,4:1 sobre blanco);
+     600 solo para barras y foco, nunca para texto.
+   - destello: el de la estrella del logo; acento puntual en gráficos, nunca para texto sobre blanco.
+   - slate: se redefine con neutros teñidos de navy (en vez del gris frío de Tailwind), así toda la app
+     comparte la misma familia. Desde 400 hacia arriba pasa 4,5:1 sobre blanco y sirve para texto. */
 @theme {
+  --color-navy-950: #0b1020;
+  --color-navy-900: #141b31;
+  --color-navy-800: #1c2540;
+  --color-navy-700: #253052;
+
   --color-marca-50: #eef2fd;
   --color-marca-100: #dbe3fb;
+  --color-marca-200: #c4d1fa;
   --color-marca-600: #4a6ce6;
   --color-marca-700: #3a5fe0;
   --color-marca-800: #2b48b8;
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --color-destello: #7fa0ff;
+
+  --color-slate-50: #f7f8fc;
+  --color-slate-100: #f0f2f8;
+  --color-slate-200: #e4e8f1;
+  --color-slate-300: #d3d9e6;
+  --color-slate-400: #6b7490;
+  --color-slate-500: #5a6380;
+  --color-slate-600: #4f5873;
+  --color-slate-700: #3a4560;
+  --color-slate-800: #1c2540;
+  --color-slate-900: #0b1020;
+  --color-slate-950: #060912;
+
+  --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 @layer base {
@@ -17,9 +43,25 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply bg-slate-50 text-slate-900 antialiased;
+    @apply bg-white text-slate-900 antialiased;
+  }
+  ::selection {
+    @apply bg-marca-100 text-navy-950;
+  }
+  input,
+  textarea {
+    caret-color: var(--color-marca-700);
   }
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-marca-600;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
