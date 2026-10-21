@@ -7,6 +7,7 @@ import { botonClases } from '../src/ui/boton';
 import { EstadoConsulta, type Consulta } from '../src/ui/estado-consulta';
 import { Alerta, EstadoVacio } from '../src/ui/superficies';
 import { Tabla } from '../src/ui/tabla';
+import { PanelLateral } from '../src/ui/panel-lateral';
 import { BarraApilada } from '../src/features/reportes/graficos';
 
 const consulta = <T,>(cambios: Partial<Consulta<T>>): Consulta<T> => ({
@@ -97,5 +98,19 @@ describe('BarraApilada', () => {
     expect(screen.getByRole('img')).toHaveAccessibleName('Saldos por antigüedad: 0–15 días 20 %, Más de 30 días 80 %');
     expect(screen.getByText('Más de 30 días')).toBeInTheDocument();
     expect(screen.getByText('$ 1.070.000')).toBeInTheDocument();
+  });
+});
+
+describe('PanelLateral', () => {
+  it('muestra su contenido con título y se cierra con la X', async () => {
+    const alCerrar = vi.fn();
+    render(
+      <PanelLateral abierto titulo="Ana Analista" alCerrar={alCerrar}>
+        <p>Datos de Ana</p>
+      </PanelLateral>,
+    );
+    expect(screen.getByRole('dialog', { name: 'Ana Analista' })).toHaveTextContent('Datos de Ana');
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
+    expect(alCerrar).toHaveBeenCalled();
   });
 });

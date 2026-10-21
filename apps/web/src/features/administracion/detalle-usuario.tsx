@@ -7,7 +7,7 @@ import { Boton } from '../../ui/boton';
 import { Campo, Entrada, Seleccion } from '../../ui/campos';
 import { Alerta, Insignia } from '../../ui/superficies';
 
-const WHATSAPP = {
+export const ESTADO_WHATSAPP = {
   none: { texto: 'Sin vincular', tono: 'neutro' },
   pending: { texto: 'Bienvenida enviada, falta que confirme', tono: 'aviso' },
   active: { texto: 'Vinculado', tono: 'exito' },
@@ -16,49 +16,40 @@ const WHATSAPP = {
 /** Quienes aprueban solicitudes pueden tener suplentes. */
 export const tieneSuplentes = (empleado: Empleado) => empleado.role === 'approver' || empleado.role === 'management';
 
-/** WhatsApp del usuario y, si aprueba, sus suplentes. */
-export function DetalleUsuario({ empleado, aprobadores }: { empleado: Empleado; aprobadores: Empleado[] }) {
-  const aprueba = tieneSuplentes(empleado);
-  return (
-    <div className="grid gap-4 border-t border-slate-100 bg-slate-50 px-4 py-4 md:grid-cols-2">
-      <WhatsApp empleado={empleado} />
-      {aprueba && <Suplentes empleado={empleado} aprobadores={aprobadores} />}
-    </div>
-  );
-}
-
-function WhatsApp({ empleado: e }: { empleado: Empleado }) {
+/** El WhatsApp del usuario: su estado de vinculación y cómo vincularlo o desvincularlo. */
+export function WhatsApp({ empleado: e }: { empleado: Empleado }) {
   const accion = useAccionWhatsApp(e.id);
-  const estado = WHATSAPP[e.wa_link_status];
+  const estado = ESTADO_WHATSAPP[e.wa_link_status];
   const codigo = accion.data;
   return (
-    <section className="space-y-2">
-      <h3 className="text-sm font-semibold text-slate-700">WhatsApp</h3>
+    <section className="space-y-3">
+      <h3 className="text-sm font-bold text-slate-900">WhatsApp</h3>
       <p className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
         {e.phone ?? 'Sin celular'}
         <Insignia tono={estado.tono}>{estado.texto}</Insignia>
         {e.wa_profile_name && <span>· {e.wa_profile_name}</span>}
       </p>
       {e.privacy_accepted_at && <p className="text-xs text-slate-500">Aceptó el aviso de privacidad el {formatoMomento(e.privacy_accepted_at)}.</p>}
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-2">
         {e.phone && e.active && e.wa_link_status !== 'active' && (
-          <Boton variante="secundario" cargando={accion.isPending && accion.variables === 'bienvenida'} onClick={() => accion.mutate('bienvenida')}>
+          <Boton variante="secundario" tamano="pequeno" cargando={accion.isPending && accion.variables === 'bienvenida'} onClick={() => accion.mutate('bienvenida')}>
             Enviar bienvenida
           </Boton>
         )}
         {e.active && e.wa_link_status !== 'active' && (
-          <Boton variante="fantasma" cargando={accion.isPending && accion.variables === 'codigo'} onClick={() => accion.mutate('codigo')}>
+          <Boton variante="secundario" tamano="pequeno" cargando={accion.isPending && accion.variables === 'codigo'} onClick={() => accion.mutate('codigo')}>
             Código para vincular
           </Boton>
         )}
         {e.wa_link_status !== 'none' && (
-          <Boton variante="fantasma" cargando={accion.isPending && accion.variables === 'desvincular'} onClick={() => accion.mutate('desvincular')}>
+          <Boton variante="secundario" tamano="pequeno" cargando={accion.isPending && accion.variables === 'desvincular'} onClick={() => accion.mutate('desvincular')}>
             Desvincular
           </Boton>
         )}
         {!e.active && (e.phone || e.wa_link_status !== 'none') && (
           <Boton
-            variante="fantasma"
+            variante="secundario"
+            tamano="pequeno"
             className="text-red-700"
             cargando={accion.isPending && accion.variables === 'borrar_contacto'}
             onClick={() => accion.mutate('borrar_contacto')}
@@ -80,7 +71,8 @@ function WhatsApp({ empleado: e }: { empleado: Empleado }) {
 
 const ahora = () => new Date().toISOString().slice(0, 16);
 
-function Suplentes({ empleado, aprobadores }: { empleado: Empleado; aprobadores: Empleado[] }) {
+/** Quien aprueba puede dejar un suplente mientras no está. */
+export function Suplentes({ empleado, aprobadores }: { empleado: Empleado; aprobadores: Empleado[] }) {
   const suplencias = useSuplencias(empleado.id);
   const accion = useAccionSuplencia(empleado.id);
   const candidatos = aprobadores.filter((a) => a.role === 'approver' && a.active && a.id !== empleado.id);
@@ -91,9 +83,9 @@ function Suplentes({ empleado, aprobadores }: { empleado: Empleado; aprobadores:
   const vigentes = (suplencias.data ?? []).filter((s) => !s.revoked_at && new Date(s.ends_at) > new Date());
 
   return (
-    <section className="space-y-2">
-      <h3 className="text-sm font-semibold text-slate-700">Suplentes</h3>
-      <p className="text-xs text-slate-500">Mientras dure la suplencia, el suplente aprueba lo que le llega a {empleado.full_name}.</p>
+    <section className="space-y-3">
+      <h3 className="text-sm font-bold text-slate-900">Suplentes</h3>
+      <p className="text-sm text-slate-600">Mientras dure la suplencia, el suplente aprueba lo que le llega a {empleado.full_name}.</p>
       {vigentes.length > 0 ? (
         <ul className="space-y-1 text-sm">
           {vigentes.map((s) => (
@@ -102,7 +94,8 @@ function Suplentes({ empleado, aprobadores }: { empleado: Empleado; aprobadores:
                 <span className="font-medium">{nombre(s.delegate_id)}</span> · {formatoMomento(s.starts_at)} – {formatoMomento(s.ends_at)}
               </span>
               <Boton
-                variante="fantasma"
+                variante="secundario"
+                tamano="pequeno"
                 cargando={accion.isPending && accion.variables?.tipo === 'revocar' && accion.variables.id === s.id}
                 onClick={() => accion.mutate({ tipo: 'revocar', id: s.id })}
               >
@@ -115,8 +108,8 @@ function Suplentes({ empleado, aprobadores }: { empleado: Empleado; aprobadores:
         <p className="text-sm text-slate-500">Sin suplentes vigentes.</p>
       )}
       {candidatos.length > 0 ? (
-        <div className="grid gap-2 sm:grid-cols-3 sm:items-end">
-          <Campo etiqueta="Suplente">
+        <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
+          <Campo etiqueta="Suplente" className="sm:col-span-2">
             {(p) => (
               <Seleccion {...p} value={suplente} onChange={(ev) => setSuplente(ev.target.value)}>
                 <option value="">—</option>
@@ -130,7 +123,7 @@ function Suplentes({ empleado, aprobadores }: { empleado: Empleado; aprobadores:
           </Campo>
           <Campo etiqueta="Desde">{(p) => <Entrada {...p} type="datetime-local" value={desde} onChange={(ev) => setDesde(ev.target.value)} />}</Campo>
           <Campo etiqueta="Hasta">{(p) => <Entrada {...p} type="datetime-local" value={hasta} onChange={(ev) => setHasta(ev.target.value)} />}</Campo>
-          <div className="sm:col-span-3">
+          <div className="sm:col-span-2">
             <Boton
               variante="secundario"
               disabled={!suplente || !desde || !hasta}

@@ -5,7 +5,7 @@ import { mensajeDeError } from '../../lib/errores';
 import { opcionesDeMoneda } from '../../lib/monedas';
 import { Boton } from '../../ui/boton';
 import { Campo, Entrada, Seleccion } from '../../ui/campos';
-import { Alerta, Cargando, Insignia, Tarjeta } from '../../ui/superficies';
+import { Alerta, Esqueleto, Insignia, Tarjeta } from '../../ui/superficies';
 
 type Datos = {
   name: string;
@@ -31,12 +31,12 @@ export function Companias() {
   const companias = useCompanias();
   const [editando, setEditando] = useState<{ id?: string; datos: Datos } | null>(null);
 
-  if (companias.isPending) return <Cargando />;
+  if (companias.isPending) return <Esqueleto filas={2} />;
   if (companias.isError) return <Alerta tono="peligro">{mensajeDeError(companias.error)}</Alerta>;
 
   return (
     <div className="space-y-4">
-      <ul className="divide-y divide-slate-200 rounded-xl bg-white ring-1 ring-slate-200">
+      <ul className="divide-y divide-slate-200 rounded-xl ring-1 ring-slate-200">
         {companias.data.map((c) => (
           <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
             <div>
@@ -47,7 +47,7 @@ export function Companias() {
                 {c.legal_name ?? '—'} · NIT {c.tax_id ?? '—'} · {c.country} · Moneda {c.currency}
               </p>
             </div>
-            <Boton variante="fantasma" onClick={() => setEditando({ id: c.id, datos: aDatos(c) })}>
+            <Boton variante="secundario" tamano="pequeno" onClick={() => setEditando({ id: c.id, datos: aDatos(c) })}>
               Editar
             </Boton>
           </li>
