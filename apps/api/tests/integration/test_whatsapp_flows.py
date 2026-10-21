@@ -254,3 +254,21 @@ async def test_typing_while_an_invoice_waits_for_its_advance_shows_the_list_agai
     await juan.tap(next(r.id for r in pick.extra if r.id.endswith(bogota)))
     assert juan.last("text").text == "📌 Listo, quedó en Visita Bogotá."
     assert (await _expense(harness, emp_h))["advance_id"] == bogota
+
+
+async def test_with_only_future_trips_there_is_no_advance_in_progress_to_choose(harness: Harness) -> None:
+    company = await harness.add_company()
+    employee = await harness.add_employee(company, "juan@forsa.com", phone=PHONE)
+    for destino, mes in (("Cartagena", 6), ("Lima", 8)):
+        await harness.add_open_advance(employee, purpose=destino, start_date=date(2027, mes, 1), end_date=date(2027, mes, 3))
+    harness.extractor.respond = lambda _r, _n: [invoice(invoice_date=date(2026, 9, 1))]
+    juan = Chat(harness, PHONE)
+
+    await juan.photo(1)  # la fecha no cae en ningún viaje y ninguno ha empezado: no hay lista que ofrecer
+    aviso = "📅 No tienes un anticipo en curso: los que tienes abiertos son de viajes que todavía no empiezan."
+    assert juan.last("text").text == aviso
+    assert not harness.wa.of_kind("list")
+
+    detail = next(m for m in reversed(harness.wa.sent) if m.kind == "buttons")
+    await juan.tap(detail.extra[0].id)  # Está bien
+    assert juan.last("text").text == aviso

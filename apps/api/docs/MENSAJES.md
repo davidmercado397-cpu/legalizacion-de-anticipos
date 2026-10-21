@@ -112,6 +112,7 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `MOVE_PROMPT` | ¿A qué anticipo paso este gasto? |
 | `MOVED` | 📌 Listo, quedó en {label}. |
 | `PICK_ADVANCE_PROMPT` | 📌 Primero dime a qué anticipo va este gasto. Lo eliges y sigo con la confirmación. |
+| `NO_ADVANCE_IN_PROGRESS` | 📅 No tienes un anticipo en curso: los que tienes abiertos son de viajes que todavía no empiezan. |
 | `PICK_FROM_LIST` | 📌 Elige de la lista a qué anticipo va {what}. |
 | `SUBMITTED` | 📤 Listo, envié tu legalización a revisión. Te aviso cuando tu aprobador la revise. |
 | `NOTICE_APPROVED` | ✅ {approver} aprobó tu anticipo {label} por {amount}. |

@@ -95,11 +95,14 @@ class MenuHandler(Handler):
 
     async def _ask_for_waiting(self, c: Conversation, waiting: list[Expense]) -> None:
         """Mientras una factura espera su anticipo, la respuesta es la lista, no texto libre: se vuelve a mostrar."""
-        rows = await self._advances.choosable(c.employee.id)
+        choosing = await self._advances.choosable(c.employee.id)
+        if not choosing:
+            await self._sender.send_text(c.address, msg.NO_ADVANCE_IN_PROGRESS)
+            return
         for expense in waiting:
             what = f"la factura de {expense.vendor_name}" if expense.vendor_name else "este gasto"
             prompt = msg.PICK_FROM_LIST.format(what=what)
-            await self._sender.send_list(c.address, prompt, msg.ASSIGN_BUTTON, advance_rows(rows, f"move:{expense.id}"))
+            await self._sender.send_list(c.address, prompt, msg.ASSIGN_BUTTON, advance_rows(choosing, f"move:{expense.id}"))
 
     async def _keyword(self, text: str | None) -> str | None:
         command = normalize_command(text)

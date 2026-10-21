@@ -104,7 +104,10 @@ class ExpenseNotifier:
         if unassigned and len(advances) > 1:
             what = "este gasto" if len(unassigned) == 1 else f"estos {len(unassigned)} gastos"
             rows = advance_rows(choosing, f"assign:{batch_id}")
-            await self._safe(self._sender.send_list(address, msg.ASSIGN_PROMPT.format(what=what), msg.ASSIGN_BUTTON, rows))
+            if rows:
+                await self._safe(self._sender.send_list(address, msg.ASSIGN_PROMPT.format(what=what), msg.ASSIGN_BUTTON, rows))
+            else:
+                await self._safe(self._sender.send_text(address, msg.NO_ADVANCE_IN_PROGRESS))
 
     async def categories_of(self, company_id: uuid.UUID | None) -> dict[str, CategoryHint]:
         return {c.code: c for c in (await self._contexts.get(company_id)).categories}

@@ -22,7 +22,7 @@ from app.domain.entities import Employee
 from app.domain.enums import AdvanceStatus, Channel
 from app.domain.errors import DomainError, InvalidOperationError, JustificationRequiredError, PolicyBlockedError
 from app.domain.permissions import Permission, has_permission
-from app.domain.ports import Button, MessageSender, RateLimiter, UnitOfWorkFactory
+from app.domain.ports import Button, ListRow, MessageSender, RateLimiter, UnitOfWorkFactory
 from app.domain.values import WhatsAppAddress, WhatsAppSender
 
 logger = logging.getLogger(__name__)
@@ -129,8 +129,8 @@ class ReplyHandler(Handler):
                 return msg.DISCARDED + await balance_line(self._advances, employee, expense.advance_id)
             case "exp_move":
                 expense = await self._expenses.get(employee, uuid.UUID(rest))
-                rows = advance_rows(await self._advances.choosable(employee.id), f"move:{expense.id}")
-                await self._sender.send_list(c.address, msg.MOVE_PROMPT, msg.ASSIGN_BUTTON, rows)
+                choosing = await self._advances.choosable(employee.id)
+                await send_advance_list(self._sender, c.address, msg.MOVE_PROMPT, advance_rows(choosing, f"move:{expense.id}"))
                 return None
             case "move":
                 expense_id, _, target = rest.partition(":")
@@ -177,10 +177,15 @@ async def ask_advance(
 ) -> None:
     """Un gasto sin anticipo no se confirma: en vez del error, la lista para elegirlo y seguir."""
     rows = advance_rows(await advances.choosable(employee.id), f"pick:{expense_id}")
+    await send_advance_list(sender, to, msg.PICK_ADVANCE_PROMPT, rows)
+
+
+async def send_advance_list(sender: MessageSender, to: WhatsAppAddress, prompt: str, rows: list[ListRow]) -> None:
+    """La lista para elegir anticipo; si ninguno está en curso (solo hay viajes futuros), se dice eso."""
     if rows:
-        await sender.send_list(to, msg.PICK_ADVANCE_PROMPT, msg.ASSIGN_BUTTON, rows)
+        await sender.send_list(to, prompt, msg.ASSIGN_BUTTON, rows)
     else:
-        await sender.send_text(to, msg.NO_OPEN_ADVANCES)
+        await sender.send_text(to, msg.NO_ADVANCE_IN_PROGRESS)
 
 
 async def balance_line(advances: AdvanceService, employee: Employee, advance_id: uuid.UUID | None) -> str:

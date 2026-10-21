@@ -416,9 +416,8 @@ def advance_for_date(advances: list[Advance], day: date | None, days_before: int
 
 def choosable(advances: list[Advance], today: Callable[[Advance], date]) -> list[Advance]:
     """Entre qué anticipos elige el usuario a dónde va un gasto: los viajes en curso o ya terminados por
-    legalizar, no los que todavía no empiezan. Si solo tiene futuros, esos, para que el gasto tenga a dónde ir."""
-    started = [a for a in advances if a.start_date is None or a.start_date <= today(a)]
-    return started or advances
+    legalizar, nunca los que todavía no empiezan (si solo hay de esos, no hay ninguno en curso)."""
+    return [a for a in advances if a.start_date is None or a.start_date <= today(a)]
 
 
 # Meta solo permite mensajes libres hasta 24 h después del último mensaje del usuario; después, plantilla.
