@@ -3,9 +3,9 @@ import { useAccionEmpleado, useCompanias, useEmpleados, useGuardarEmpleado } fro
 import type { Empleado, Rol, TipoPersonal } from '@viaticos/contracts';
 import { KeyRound, Search, ShieldOff, UserCheck, UserPlus, UserX, Users } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { etiqueta } from '../../i18n';
+import { etiqueta, t } from '../../i18n';
 import { mensajeDeError } from '../../lib/errores';
 import { useValorDiferido } from '../../lib/use-valor-diferido';
 import { Boton } from '../../ui/boton';
@@ -24,7 +24,7 @@ const esquema = z.object({
   full_name: z.string().trim().min(2, 'validation.minLength'),
   email: z.string().trim().email('validation.email'),
   role: z.enum(['employee', 'approver', 'accountant', 'treasury', 'management', 'admin']),
-  company_id: z.string().min(1, 'validation.required'),
+  company_ids: z.array(z.string()).min(1, 'validation.companias'),
   approver_id: z.string(),
   phone: z.string().trim(),
   staff_type: z.string(),
@@ -40,7 +40,17 @@ export function Empleados() {
   const buscar = useValorDiferido(busqueda, 300);
   const [rol, setRol] = useState<Rol | ''>('');
   const [estado, setEstado] = useState<Estado>('activos');
-  const empleados = useEmpleados({ search: buscar || undefined, role: rol || undefined, active: ACTIVO[estado], limit: 200 });
+  const [compania, setCompania] = useState('');
+  const companias = useCompanias();
+  const variasCompanias = (companias.data ?? []).length > 1;
+  const empleados = useEmpleados({
+    search: buscar || undefined,
+    role: rol || undefined,
+    active: ACTIVO[estado],
+    company_id: compania || undefined,
+    limit: 200,
+  });
+  const nombreCompania = (id: string) => companias.data?.find((c) => c.id === id)?.name ?? '—';
   const aprobadores = useEmpleados({ limit: 200 });
   const [abierto, setAbierto] = useState<string | 'nuevo' | null>(null);
   const [claveTemporal, setClaveTemporal] = useState<{ email: string; clave: string } | null>(null);
@@ -91,6 +101,20 @@ export function Empleados() {
             </Seleccion>
           )}
         </Campo>
+        {variasCompanias && (
+          <Campo etiqueta="Compañía">
+            {(p) => (
+              <Seleccion {...p} className="w-auto" value={compania} onChange={(e) => setCompania(e.target.value)}>
+                <option value="">Todas</option>
+                {(companias.data ?? []).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Seleccion>
+            )}
+          </Campo>
+        )}
         <Campo etiqueta="Estado">
           {(p) => (
             <Seleccion {...p} className="w-auto" value={estado} onChange={(e) => setEstado(e.target.value as Estado)}>
@@ -107,12 +131,13 @@ export function Empleados() {
       <EstadoConsulta consulta={empleados}>
         {(pagina) =>
           pagina.data.length === 0 ? (
-            <EstadoVacio titulo={buscar || rol ? 'Nadie coincide con la búsqueda' : 'Todavía no hay usuarios'} icono={Users} />
+            <EstadoVacio titulo={buscar || rol || compania ? 'Nadie coincide con la búsqueda' : 'Todavía no hay usuarios'} icono={Users} />
           ) : (
             <Tabla
               columnas={[
                 'Nombre',
                 'Rol',
+                ...(variasCompanias ? [{ titulo: 'Compañías', secundaria: true }] : []),
                 { titulo: 'Jefe inmediato', secundaria: true },
                 { titulo: 'WhatsApp', secundaria: true },
                 { titulo: 'Acciones', oculta: true },
@@ -129,6 +154,7 @@ export function Empleados() {
                     <span className="block truncate text-slate-500">{e.email}</span>
                   </span>,
                   etiqueta('rol', e.role),
+                  ...(variasCompanias ? [<span className="text-slate-600">{e.company_ids.map(nombreCompania).join(', ') || '—'}</span>] : []),
                   <span className="text-slate-600">{nombre(e.approver_id) ?? '—'}</span>,
                   <Insignia tono={wa.tono}>{e.wa_link_status === 'pending' ? 'Por confirmar' : wa.texto}</Insignia>,
                   <Boton variante="secundario" tamano="pequeno" onClick={() => setAbierto(e.id)}>
@@ -246,13 +272,13 @@ function FormularioEmpleado({
 }) {
   const companias = useCompanias();
   const guardar = useGuardarEmpleado();
-  const { register, handleSubmit, formState, reset } = useForm<Datos>({
+  const { register, handleSubmit, formState, reset, control } = useForm<Datos>({
     resolver: zodResolver(esquema),
     defaultValues: {
       full_name: empleado?.full_name ?? '',
       email: empleado?.email ?? '',
       role: (empleado?.role === 'superadmin' ? 'employee' : empleado?.role) ?? 'employee',
-      company_id: empleado?.company_ids[0] ?? companias.data?.[0]?.id ?? '',
+      company_ids: empleado?.company_ids ?? (companias.data?.length === 1 ? [companias.data[0]!.id] : []),
       approver_id: empleado?.approver_id ?? '',
       phone: empleado?.phone ?? '',
       staff_type: empleado?.staff_type ?? '',
@@ -269,7 +295,7 @@ function FormularioEmpleado({
             full_name: d.full_name,
             email: d.email,
             role: d.role,
-            company_ids: [d.company_id],
+            company_ids: d.company_ids,
             approver_id: d.approver_id || null,
             phone: d.phone || null,
             staff_type: (d.staff_type || null) as TipoPersonal | null,
@@ -298,17 +324,39 @@ function FormularioEmpleado({
           </Seleccion>
         )}
       </Campo>
-      <Campo etiqueta="Compañía" error={e.company_id?.message}>
-        {(p) => (
-          <Seleccion {...p} {...register('company_id')}>
-            {(companias.data ?? []).map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </Seleccion>
-        )}
-      </Campo>
+      {/* Un usuario puede trabajar (y pedir anticipos) en varias compañías del grupo. */}
+      {(companias.data ?? []).length > 1 && (
+        <Controller
+          control={control}
+          name="company_ids"
+          render={({ field, fieldState }) => (
+            <fieldset className="space-y-2" aria-describedby={fieldState.error ? 'companias-error' : undefined}>
+              <legend className="text-sm font-semibold text-slate-700">Compañías</legend>
+              <p className="text-sm text-slate-500">Puede pedir anticipos en cada una de las que marques.</p>
+              <div className="space-y-1">
+                {(companias.data ?? []).map((c) => (
+                  <label key={c.id} className="flex min-h-11 items-center gap-3 rounded-lg px-1 text-sm text-slate-900 hover:bg-slate-50">
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-marca-600"
+                      checked={field.value.includes(c.id)}
+                      onChange={(ev) =>
+                        field.onChange(ev.target.checked ? [...field.value, c.id] : field.value.filter((id) => id !== c.id))
+                      }
+                    />
+                    {c.name}
+                  </label>
+                ))}
+              </div>
+              {fieldState.error?.message && (
+                <p id="companias-error" className="text-sm text-red-700">
+                  {t(fieldState.error.message)}
+                </p>
+              )}
+            </fieldset>
+          )}
+        />
+      )}
       <Campo etiqueta="Jefe inmediato (aprueba sus anticipos)">
         {(p) => (
           <Seleccion {...p} {...register('approver_id')}>

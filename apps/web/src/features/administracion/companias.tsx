@@ -1,11 +1,16 @@
 import { useCompanias, useGuardarCompania, useSesion } from '@viaticos/client-app';
 import type { Compania } from '@viaticos/contracts';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { mensajeDeError } from '../../lib/errores';
 import { opcionesDeMoneda } from '../../lib/monedas';
 import { Boton } from '../../ui/boton';
 import { Campo, Entrada, Seleccion } from '../../ui/campos';
-import { Alerta, Esqueleto, Insignia, Tarjeta } from '../../ui/superficies';
+import { EstadoConsulta } from '../../ui/estado-consulta';
+import { Seccion } from '../../ui/pagina';
+import { PanelLateral } from '../../ui/panel-lateral';
+import { Alerta, Esqueleto, Insignia } from '../../ui/superficies';
+import { Tabla } from '../../ui/tabla';
 
 type Datos = {
   name: string;
@@ -30,37 +35,57 @@ const vacia: Datos = { name: '', legal_name: '', tax_id: '', country: 'CO', curr
 export function Companias() {
   const companias = useCompanias();
   const [editando, setEditando] = useState<{ id?: string; datos: Datos } | null>(null);
-
-  if (companias.isPending) return <Esqueleto filas={2} />;
-  if (companias.isError) return <Alerta tono="peligro">{mensajeDeError(companias.error)}</Alerta>;
+  const cerrar = () => setEditando(null);
 
   return (
-    <div className="space-y-4">
-      <ul className="divide-y divide-slate-200 rounded-xl ring-1 ring-slate-200">
-        {companias.data.map((c) => (
-          <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-            <div>
-              <p className="font-medium">
-                {c.name} {!c.active && <Insignia>Inactiva</Insignia>}
-              </p>
-              <p className="text-sm text-slate-500">
-                {c.legal_name ?? '—'} · NIT {c.tax_id ?? '—'} · {c.country} · Moneda {c.currency}
-              </p>
-            </div>
-            <Boton variante="secundario" tamano="pequeno" onClick={() => setEditando({ id: c.id, datos: aDatos(c) })}>
-              Editar
-            </Boton>
-          </li>
-        ))}
-      </ul>
-      {editando ? (
-        <Formulario key={editando.id ?? 'nueva'} id={editando.id} inicial={editando.datos} alTerminar={() => setEditando(null)} />
-      ) : (
-        <Boton variante="secundario" onClick={() => setEditando({ datos: vacia })}>
+    <Seccion
+      titulo="Compañías"
+      {...(companias.data ? { contador: companias.data.length } : {})}
+      acciones={
+        <Boton variante="secundario" tamano="pequeno" onClick={() => setEditando({ datos: vacia })}>
+          <Plus aria-hidden />
           Nueva compañía
         </Boton>
-      )}
-    </div>
+      }
+    >
+      <EstadoConsulta consulta={companias} cargando={<Esqueleto filas={2} />}>
+        {(lista) => (
+          <Tabla
+            columnas={[
+              'Compañía',
+              { titulo: 'NIT', secundaria: true },
+              { titulo: 'País', secundaria: true },
+              'Moneda',
+              { titulo: 'Acciones', oculta: true },
+            ]}
+            claves={lista.map((c) => c.id)}
+            filas={lista.map((c) => [
+              <span className="block min-w-0">
+                <span className="flex items-center gap-2 font-semibold text-slate-900">
+                  {c.name}
+                  {!c.active && <Insignia tono="neutro">Inactiva</Insignia>}
+                </span>
+                <span className="block truncate text-slate-500">{c.legal_name ?? 'Sin razón social'}</span>
+              </span>,
+              c.tax_id ?? '—',
+              c.country,
+              c.currency,
+              <Boton variante="secundario" tamano="pequeno" onClick={() => setEditando({ id: c.id, datos: aDatos(c) })}>
+                Editar
+              </Boton>,
+            ])}
+          />
+        )}
+      </EstadoConsulta>
+      <PanelLateral
+        abierto={editando !== null}
+        titulo={editando?.id ? editando.datos.name || 'Compañía' : 'Nueva compañía'}
+        descripcion="La razón social y el NIT son los que deben ir en las facturas."
+        alCerrar={cerrar}
+      >
+        {editando && <Formulario key={editando.id ?? 'nueva'} id={editando.id} inicial={editando.datos} alTerminar={cerrar} />}
+      </PanelLateral>
+    </Seccion>
   );
 }
 
@@ -96,12 +121,11 @@ function Formulario({ id, inicial, alTerminar }: { id?: string; inicial: Datos; 
   }
 
   return (
-    <Tarjeta className="grid gap-4 sm:grid-cols-2">
-      <h3 className="font-semibold sm:col-span-2">{id ? 'Editar compañía' : 'Nueva compañía'}</h3>
+    <div className="space-y-4">
       <Campo etiqueta="Nombre">{(p) => <Entrada {...p} value={datos.name} onChange={(e) => cambiar('name', e.target.value)} />}</Campo>
       <Campo etiqueta="Razón social">{(p) => <Entrada {...p} value={datos.legal_name} onChange={(e) => cambiar('legal_name', e.target.value)} />}</Campo>
       <Campo etiqueta="NIT">{(p) => <Entrada {...p} value={datos.tax_id} onChange={(e) => cambiar('tax_id', e.target.value)} />}</Campo>
-      <Campo etiqueta="País (código, ej. CO, MX, PA)">
+      <Campo etiqueta="País" ayuda="Código de dos letras: CO, MX, PA…">
         {(p) => <Entrada {...p} value={datos.country} maxLength={2} onChange={(e) => cambiar('country', e.target.value)} />}
       </Campo>
       <Campo
@@ -129,19 +153,15 @@ function Formulario({ id, inicial, alTerminar }: { id?: string; inicial: Datos; 
           )}
         </Campo>
       )}
-      {guardar.isError && (
-        <div className="sm:col-span-2">
-          <Alerta tono="peligro">{mensajeDeError(guardar.error)}</Alerta>
-        </div>
-      )}
-      <div className="flex gap-2 sm:col-span-2">
+      {guardar.isError && <Alerta tono="peligro">{mensajeDeError(guardar.error)}</Alerta>}
+      <div className="flex gap-2">
         <Boton cargando={guardar.isPending} disabled={!datos.name.trim()} onClick={enviar}>
-          {id ? 'Guardar' : 'Crear compañía'}
+          {id ? 'Guardar cambios' : 'Crear compañía'}
         </Boton>
         <Boton variante="fantasma" onClick={alTerminar}>
           Cancelar
         </Boton>
       </div>
-    </Tarjeta>
+    </div>
   );
 }

@@ -7,6 +7,7 @@ export const es: Record<string, string> = {
   'validation.minLength': 'El texto es demasiado corto',
   'validation.endBeforeStart': 'La fecha de regreso no puede ser anterior a la de salida',
   'validation.codigoMfa': 'Escribe los 6 dígitos de la aplicación',
+  'validation.companias': 'Elige al menos una compañía',
   'validation.claveDistinta': 'Las contraseñas no coinciden',
 
   'rol.employee': 'Empleado',
