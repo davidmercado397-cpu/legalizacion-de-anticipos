@@ -2,6 +2,7 @@ import { ApiError } from '@viaticos/client-api';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { formatoFechaCalendario, formatoMomento, rangoFechas } from '../src/lib/formato';
 import { botonClases } from '../src/ui/boton';
 import { EstadoConsulta, type Consulta } from '../src/ui/estado-consulta';
 import { Alerta, EstadoVacio } from '../src/ui/superficies';
@@ -70,5 +71,13 @@ describe('superficies', () => {
   it('un enlace puede verse como botón sin copiar sus clases', () => {
     expect(botonClases({ variante: 'secundario', tamano: 'pequeno' })).toContain('ring-slate-300');
     expect(botonClases()).toContain('bg-navy-950');
+  });
+});
+
+describe('fechas', () => {
+  it('todas se muestran como dd/mm/aaaa, también las de un rango y las que llevan hora', () => {
+    expect(formatoFechaCalendario('2025-09-29')).toBe('29/09/2025');
+    expect(rangoFechas('2026-10-27', '2026-10-29')).toBe('27/10/2026 – 29/10/2026');
+    expect(formatoMomento('2026-10-21T15:11:00Z')).toMatch(/^21\/10\/2026, /);
   });
 });

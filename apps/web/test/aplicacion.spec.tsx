@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { RouterProvider, createMemoryHistory, createRootRoute, createRouter } from '@tanstack/react-router';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type Api, ApiError, type Perfil } from '@viaticos/client-api';
@@ -187,6 +188,30 @@ describe('EditorGasto', () => {
     expect(screen.getByText(/La lectura automática falló/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Descartar esta factura' }));
     expect(descartar).toHaveBeenCalledWith('g1');
+  });
+
+  it('al confirmar ofrece seguir con la siguiente factura por resolver', async () => {
+    const confirmar = vi.fn(async () => ({}));
+    const leida = gasto({ status: 'extracted', vendor_name: 'Panadería', document_type: 'pos_ticket' });
+    const conOtra = anticipo({
+      status: 'approved',
+      expenses: [leida, gasto({ id: 'g2', status: 'failed', vendor_name: 'Peaje Copacabana' })] as never,
+    });
+    const sesion = crearSesionStore();
+    sesion.getState().establecerUsuario(perfil({ id: 'u-ana', role: 'employee' }));
+    const raiz = createRootRoute({
+      component: () => (
+        <QueryClientProvider client={new QueryClient()}>
+          <ClienteProvider api={{ gastos: { confirmar } } as unknown as Api} sesion={sesion}>
+            <EditorGasto anticipo={conOtra} gasto={leida} />
+          </ClienteProvider>
+        </QueryClientProvider>
+      ),
+    });
+    render(<RouterProvider router={createRouter({ routeTree: raiz, history: createMemoryHistory() })} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Está bien: confirmar' }));
+    expect(confirmar).toHaveBeenCalledWith('g1', expect.objectContaining({ advance_id: 'a1' }));
+    expect(await screen.findByRole('link', { name: /Siguiente: Peaje Copacabana/ })).toHaveAttribute('href', '/anticipos/a1/gastos/g2');
   });
 
   it('a quien no es el dueño no le ofrece descartar', () => {

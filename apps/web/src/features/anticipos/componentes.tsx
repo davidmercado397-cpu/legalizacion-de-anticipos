@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import type { Anticipo, AnticipoResumen, EstadoAnticipo, Saldo } from '@viaticos/contracts';
 import { etiqueta } from '../../i18n';
-import { formatoDinero, rangoFechas } from '../../lib/formato';
+import { formatoDinero, formatoFechaCalendario, rangoFechas } from '../../lib/formato';
 import { Alerta, EstadoVacio, Insignia } from '../../ui/superficies';
 
 const TONO: Record<EstadoAnticipo, 'neutro' | 'info' | 'exito' | 'aviso' | 'peligro'> = {
@@ -40,7 +40,7 @@ export function ResumenSaldo({ saldo }: { saldo: Saldo }) {
       {saldo.functional && (
         <p className="col-span-3 text-xs text-slate-500">
           Por legalizar en {saldo.functional.currency}: {formatoDinero(saldo.functional.pending, saldo.functional.currency)} (tasa{' '}
-          {Number(saldo.functional.rate).toLocaleString('es-CO')} del {saldo.functional.rate_date})
+          {Number(saldo.functional.rate).toLocaleString('es-CO')} del {formatoFechaCalendario(saldo.functional.rate_date)})
         </p>
       )}
     </dl>

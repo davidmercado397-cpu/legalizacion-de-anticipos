@@ -22,16 +22,13 @@ export function formatoDinero(valor: string | number | null | undefined, moneda:
   return formato.format(Number(valor));
 }
 
-const formatoFecha = new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
-const formatoFechaCortaIntl = new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short', timeZone: 'UTC' });
-const formatoFechaHora = new Intl.DateTimeFormat(LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
+// Un solo formato de fecha en toda la web: dd/mm/aaaa, el de Colombia y el de los mensajes de WhatsApp.
+const formatoFecha = new Intl.DateTimeFormat(LOCALE, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+const formatoFechaHora = new Intl.DateTimeFormat(LOCALE, { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
-/** Fecha de negocio YYYY-MM-DD, sin corrimiento por zona horaria. */
+/** Fecha de negocio YYYY-MM-DD como "29/09/2025", sin corrimiento por zona horaria. */
 export const formatoFechaCalendario = (iso: string | null | undefined) => (iso ? formatoFecha.format(new Date(`${iso}T00:00:00Z`)) : '—');
-/** "27 oct": para tablas y cifras, donde el año ya se sabe por el contexto. */
-export const formatoFechaCorta = (iso: string | null | undefined) =>
-  iso ? formatoFechaCortaIntl.format(new Date(`${iso}T00:00:00Z`)) : '—';
-/** Instante con offset (la API lo manda en la zona de la compañía). */
+/** Instante con offset (la API lo manda en la zona de la compañía): "29/09/2025, 3:11 p. m.". */
 export const formatoMomento = (iso: string | null | undefined) => (iso ? formatoFechaHora.format(new Date(iso)) : '—');
 
 export const rangoFechas = (inicio: string | null | undefined, fin: string | null | undefined) =>

@@ -4,7 +4,7 @@ import { Send } from 'lucide-react';
 import { useId, useState } from 'react';
 import { etiqueta } from '../../i18n';
 import { mensajeDeError } from '../../lib/errores';
-import { formatoDinero } from '../../lib/formato';
+import { formatoDinero, formatoFechaCalendario } from '../../lib/formato';
 import { puede } from '../../lib/roles';
 import { Boton } from '../../ui/boton';
 import { AreaTexto, Campo, Entrada, Seleccion } from '../../ui/campos';
@@ -308,7 +308,7 @@ function FormularioDevolucion({ anticipo, alTerminar }: { anticipo: AnticipoDeta
                       setMarcas(siguiente);
                     }}
                   />
-                  {g.vendor_name ?? 'Sin proveedor'} · {g.invoice_date ?? 'sin fecha'}
+                  {g.vendor_name ?? 'Sin proveedor'} · {g.invoice_date ? formatoFechaCalendario(g.invoice_date) : 'sin fecha'}
                 </label>
                 {marcado && (
                   <Entrada

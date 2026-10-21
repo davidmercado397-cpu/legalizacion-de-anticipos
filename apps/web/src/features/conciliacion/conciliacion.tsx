@@ -459,7 +459,7 @@ function Enlazar({
         <option value="">Elegir factura…</option>
         {libres.map((g) => (
           <option key={g.id} value={g.id}>
-            {g.vendor_name ?? 'Sin proveedor'} · {g.invoice_date ?? '—'} · {formatoDinero(g.total, g.currency)}
+            {g.vendor_name ?? 'Sin proveedor'} · {formatoFechaCalendario(g.invoice_date)} · {formatoDinero(g.total, g.currency)}
           </option>
         ))}
       </Seleccion>

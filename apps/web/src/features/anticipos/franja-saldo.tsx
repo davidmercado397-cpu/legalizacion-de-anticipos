@@ -2,7 +2,7 @@ import type { AnticipoDetalle } from '@viaticos/contracts';
 import type { ReactNode } from 'react';
 import { etiqueta } from '../../i18n';
 import { cx } from '../../lib/cx';
-import { formatoDinero, formatoFechaCalendario, formatoFechaCorta } from '../../lib/formato';
+import { formatoDinero, formatoFechaCalendario } from '../../lib/formato';
 
 const DIA = 86_400_000;
 
@@ -59,7 +59,7 @@ export function FranjaSaldo({ anticipo }: { anticipo: AnticipoDetalle }) {
           `${formatoDinero(saldo.functional.pending, saldo.functional.currency)} con la tasa ${Number(saldo.functional.rate).toLocaleString('es-CO')} del ${formatoFechaCalendario(saldo.functional.rate_date)}`}
       </Cifra>
       {plazo !== null && (
-        <Cifra titulo="Plazo para legalizar" valor={formatoFechaCorta(anticipo.legalization_due)} peligro={plazo < 0}>
+        <Cifra titulo="Plazo para legalizar" valor={formatoFechaCalendario(anticipo.legalization_due)} peligro={plazo < 0}>
           {plazo < 0
             ? `Venció hace ${-plazo} ${plazo === -1 ? 'día' : 'días'}`
             : plazo === 0

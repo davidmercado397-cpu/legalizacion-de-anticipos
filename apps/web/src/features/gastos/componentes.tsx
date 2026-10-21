@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import type { EstadoGasto, Gasto } from '@viaticos/contracts';
 import { etiqueta } from '../../i18n';
-import { formatoDinero, formatoFechaCorta } from '../../lib/formato';
+import { formatoDinero, formatoFechaCalendario } from '../../lib/formato';
 import { ReceiptText } from 'lucide-react';
 import { botonClases } from '../../ui/boton';
 import { EstadoVacio, Insignia } from '../../ui/superficies';
@@ -33,7 +33,7 @@ export const hallazgos = (gasto: Gasto): Hallazgo[] => gasto.policy_findings as 
 const ABIERTOS: EstadoGasto[] = ['received', 'processing', 'extracted', 'failed', 'unreadable'];
 
 /** Qué falta para dar por buena una factura y el botón que lo resuelve; `null` si ya está. */
-function pendienteDe(g: Gasto): { texto: string; accion: string | null } | null {
+export function pendienteDe(g: Gasto): { texto: string; accion: string | null } | null {
   if (g.return_note && !g.return_resolved_at) return { texto: `Contabilidad pide: “${g.return_note}”`, accion: 'Corregir' };
   switch (g.status) {
     case 'received':
@@ -82,7 +82,7 @@ export function ListaGastos({ anticipoId, gastos, totalLegalizado }: { anticipoI
                   <div className="min-w-0 flex-1 basis-48">
                     <p className="truncate font-semibold text-slate-900">
                       {g.vendor_name ?? (pendiente.accion ? 'Sin proveedor' : 'Leyendo…')}
-                      {g.invoice_date && <span className="font-normal text-slate-500"> · {formatoFechaCorta(g.invoice_date)}</span>}
+                      {g.invoice_date && <span className="font-normal text-slate-500"> · {formatoFechaCalendario(g.invoice_date)}</span>}
                     </p>
                     <p className={devuelta ? 'text-sm text-red-700' : 'text-sm text-slate-600'}>{pendiente.texto}</p>
                   </div>
@@ -117,7 +117,7 @@ export function ListaGastos({ anticipoId, gastos, totalLegalizado }: { anticipoI
             filas={listos.map((g) => {
               const alertas = hallazgos(g).filter((h) => h.action !== 'warn').length;
               return [
-                <span className="whitespace-nowrap text-slate-500">{formatoFechaCorta(g.invoice_date)}</span>,
+                <span className="whitespace-nowrap text-slate-500">{formatoFechaCalendario(g.invoice_date)}</span>,
                 <span className="flex flex-wrap items-center gap-2">
                   <Link {...enlace(g)} className="font-semibold text-slate-900 hover:underline">
                     {g.vendor_name ?? 'Sin proveedor'}

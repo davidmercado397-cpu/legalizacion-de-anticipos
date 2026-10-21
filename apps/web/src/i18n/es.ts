@@ -93,6 +93,11 @@ export const es: Record<string, string> = {
   'medio.cash': 'Efectivo',
   'medio.transfer': 'Transferencia',
 
+  'origen.whatsapp': 'Llegó por WhatsApp',
+  'origen.app': 'Subida en la web',
+  'origen.bank': 'Del extracto del banco',
+  'origen.withdrawal_fee': 'Comisión de un retiro',
+
   'revision.not_required': 'Sin hallazgos',
   'revision.pending': 'Por revisar',
   'revision.accepted': 'Aceptado',
