@@ -91,6 +91,14 @@ python -m scripts.seed_users
 
 Pide una contraseña para todos (no acepta `Viaticos2026*`, que está publicada en el repositorio) y cada usuario la cambia en su primer ingreso. Si se corre otra vez, solo agrega lo que falte.
 
+**Compañías del grupo Forsa** (Forsa, Cimbraf en MXN, Compañía de Importaciones en USD y las demás en COP), después de que exista un administrador:
+
+```bash
+python -m scripts.seed_companies
+```
+
+Solo crea las que falten por NIT. El país y la moneda se corrigen después en Administración → Compañías.
+
 ## 6. Antes de usarlo con datos reales
 
 - **Respaldos:** programe el respaldo diario de la base (desde Coolify si su versión lo ofrece para el servicio `db`, o con `apps/api/scripts/backup_db.sh`) y pruebe restaurar uno (`apps/api/scripts/restore_drill.sh`).
