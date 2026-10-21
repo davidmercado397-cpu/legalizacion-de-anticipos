@@ -7,6 +7,8 @@ export interface Columna {
   numerica?: boolean;
   /** El encabezado solo existe para el lector de pantalla (p. ej. la columna de acciones). */
   oculta?: boolean;
+  /** Dato secundario: no se muestra en pantallas angostas. */
+  secundaria?: boolean;
 }
 
 interface TablaProps {
@@ -23,7 +25,11 @@ interface TablaProps {
 export function Tabla({ columnas, filas, claves, pie, className }: TablaProps) {
   const cols = columnas.map((c) => (typeof c === 'string' ? { titulo: c } : c));
   const celda = (i: number) =>
-    cx('px-3 py-3 first:pl-0 last:pr-0', cols[i]?.numerica && 'whitespace-nowrap text-right tabular-nums');
+    cx(
+      'px-3 py-3 first:pl-0 last:pr-0',
+      cols[i]?.numerica && 'whitespace-nowrap text-right tabular-nums',
+      cols[i]?.secundaria && 'hidden sm:table-cell',
+    );
   return (
     <div className={cx('overflow-x-auto', className)}>
       <table className="w-full text-left text-sm">

@@ -6,6 +6,7 @@ import { formatoDinero, formatoFechaCalendario, formatoMomento } from '../../lib
 import { puede } from '../../lib/roles';
 import { Boton } from '../../ui/boton';
 import { Campo, Entrada, Seleccion } from '../../ui/campos';
+import { Seccion } from '../../ui/pagina';
 import { Alerta, Insignia, Tarjeta } from '../../ui/superficies';
 
 type Gasto = AnticipoDetalle['expenses'][number];
@@ -28,8 +29,7 @@ export function SeccionConciliacion({ anticipo }: { anticipo: AnticipoDetalle })
 
   const sinCargo = anticipo.expenses.filter((g) => g.bank_status === 'no_charge');
   return (
-    <section className="space-y-3" aria-label="Conciliación con el extracto">
-      <h2 className="text-lg font-semibold">Extracto de la tarjeta</h2>
+    <Seccion titulo="Extracto de la tarjeta">
       {extractos.isError && <Alerta tono="peligro">{mensajeDeError(extractos.error)}</Alerta>}
       {lista.map((e) => (
         <VistaExtracto key={e.id} extracto={e} anticipo={anticipo} decide={contable && enviada(anticipo)} />
@@ -47,7 +47,7 @@ export function SeccionConciliacion({ anticipo }: { anticipo: AnticipoDetalle })
       )}
       {tesoreria && enviada(anticipo) && <CargarExtracto anticipo={anticipo} primero={lista.length === 0} />}
       {!tesoreria && lista.length === 0 && <p className="text-sm text-slate-500">Tesorería aún no ha cargado el extracto.</p>}
-    </section>
+    </Seccion>
   );
 }
 
@@ -111,7 +111,7 @@ function CargarExtracto({ anticipo, primero }: { anticipo: AnticipoDetalle; prim
       <div>
         <h3 className="font-semibold">Cargar el extracto</h3>
         <p className="text-sm text-slate-600">
-          Excel o CSV de la banca en línea (el sistema propone cómo leer las columnas y usted lo revisa), o el PDF del banco, que lee la IA.
+          Excel o CSV de la banca en línea (el sistema propone cómo leer las columnas y tú lo revisas), o el PDF del banco, que lee la IA.
         </p>
       </div>
       <input

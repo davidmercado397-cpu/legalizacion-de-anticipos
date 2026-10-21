@@ -1,6 +1,7 @@
 import { useAccionAnticipo, useSesion, useSugerenciasDevolucion } from '@viaticos/client-app';
 import type { AnticipoDetalle, MetodoDesembolso, MetodoLiquidacion } from '@viaticos/contracts';
-import { useState } from 'react';
+import { Send } from 'lucide-react';
+import { useId, useState } from 'react';
 import { etiqueta } from '../../i18n';
 import { mensajeDeError } from '../../lib/errores';
 import { formatoDinero } from '../../lib/formato';
@@ -26,6 +27,7 @@ export function PanelAcciones({ anticipo }: { anticipo: AnticipoDetalle }) {
   const revisa = !propio && contable;
   const tesoreria = puede(usuario, 'tesoreria');
   const s = anticipo.status;
+  const idMotivo = useId();
 
   const botones: React.ReactNode[] = [];
   if (s === 'requested' && propio)
@@ -43,9 +45,22 @@ export function PanelAcciones({ anticipo }: { anticipo: AnticipoDetalle }) {
         Rechazar
       </Boton>,
     );
+  // La API no deja enviar con facturas sin confirmar: el botón lo dice antes de que lo intente.
+  const sinConfirmar = anticipo.expenses.filter((g) => ['received', 'processing', 'extracted'].includes(g.status)).length;
+  const motivo =
+    s === 'approved' && propio && sinConfirmar > 0
+      ? `Primero confirma ${sinConfirmar === 1 ? 'la factura pendiente' : `las ${sinConfirmar} facturas pendientes`}`
+      : null;
   if (s === 'approved' && propio)
     botones.push(
-      <Boton key="enviar" cargando={accion.isPending} onClick={() => accion.mutate({ tipo: 'enviar' })}>
+      <Boton
+        key="enviar"
+        cargando={accion.isPending}
+        disabled={motivo !== null}
+        aria-describedby={motivo ? idMotivo : undefined}
+        onClick={() => accion.mutate({ tipo: 'enviar' })}
+      >
+        <Send aria-hidden />
         Enviar legalización a revisión
       </Boton>,
     );
@@ -92,7 +107,12 @@ export function PanelAcciones({ anticipo }: { anticipo: AnticipoDetalle }) {
     );
   else if (['approved', 'in_review'].includes(s) && contable && anticipo.erp_advance_status !== 'sent')
     botones.push(
-      <Boton key="siesa-anticipo" variante="secundario" cargando={accion.isPending} onClick={() => accion.mutate({ tipo: 'siesa_anticipo' })}>
+      <Boton
+        key="siesa-anticipo"
+        variante="secundario"
+        cargando={accion.isPending}
+        onClick={() => accion.mutate({ tipo: 'siesa_anticipo' })}
+      >
         Reintentar envío a Siesa
       </Boton>,
     );
@@ -100,60 +120,78 @@ export function PanelAcciones({ anticipo }: { anticipo: AnticipoDetalle }) {
   if (botones.length === 0 && !accion.isError) return null;
 
   return (
-    <Tarjeta className="space-y-3">
-      <div className="flex flex-wrap gap-2">{botones}</div>
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        {botones}
+        {motivo && (
+          <p id={idMotivo} className="text-sm text-slate-600">
+            {motivo}
+          </p>
+        )}
+      </div>
       {accion.isError && <Alerta tono="peligro">{mensajeDeError(accion.error)}</Alerta>}
-      {abierto === 'rechazar' && (
-        <FormularioNota
-          titulo="Motivo del rechazo"
-          opcional
-          accion="Rechazar"
-          cargando={accion.isPending}
-          alEnviar={(nota) => accion.mutate({ tipo: 'rechazar', nota: nota || null }, { onSuccess: () => setAbierto(null) })}
-          alCancelar={() => setAbierto(null)}
-        />
+      {abierto && (
+        <Tarjeta>
+          {abierto === 'rechazar' && (
+            <FormularioNota
+              titulo="Motivo del rechazo"
+              opcional
+              accion="Rechazar"
+              cargando={accion.isPending}
+              alEnviar={(nota) => accion.mutate({ tipo: 'rechazar', nota: nota || null }, { onSuccess: () => setAbierto(null) })}
+              alCancelar={() => setAbierto(null)}
+            />
+          )}
+          {(abierto === 'anular' || abierto === 'reabrir') && (
+            <FormularioNota
+              titulo={abierto === 'anular' ? 'Por qué se anula (p. ej. viaje cancelado)' : 'Por qué se reabre'}
+              accion={abierto === 'anular' ? 'Anular' : 'Reabrir'}
+              cargando={accion.isPending}
+              alEnviar={(nota) => accion.mutate({ tipo: abierto, nota }, { onSuccess: () => setAbierto(null) })}
+              alCancelar={() => setAbierto(null)}
+            />
+          )}
+          {abierto === 'devolver' && <FormularioDevolucion anticipo={anticipo} alTerminar={() => setAbierto(null)} />}
+          {abierto === 'desembolsar' && (
+            <FormularioTesoreria
+              titulo="Desembolso"
+              opciones={['transfer', 'cash', 'card'] satisfies MetodoDesembolso[]}
+              grupo="desembolso"
+              cargando={accion.isPending}
+              entrega={
+                anticipo.settlement_currency ? { moneda: anticipo.settlement_currency, estimado: anticipo.settlement_amount } : undefined
+              }
+              alEnviar={(method, reference, amount) =>
+                accion.mutate(
+                  { tipo: 'desembolsar', datos: { method: method as MetodoDesembolso, reference, amount } },
+                  { onSuccess: () => setAbierto(null) },
+                )
+              }
+              alCancelar={() => setAbierto(null)}
+            />
+          )}
+          {abierto === 'liquidar' && (
+            <FormularioTesoreria
+              titulo="Liquidación de la diferencia"
+              opciones={
+                (anticipo.settlement_status === 'refund_pending'
+                  ? ['refund', 'payroll_deduction']
+                  : ['payment']) satisfies MetodoLiquidacion[]
+              }
+              grupo="metodoLiquidacion"
+              cargando={accion.isPending}
+              alEnviar={(method, reference) =>
+                accion.mutate(
+                  { tipo: 'liquidar', datos: { method: method as MetodoLiquidacion, reference } },
+                  { onSuccess: () => setAbierto(null) },
+                )
+              }
+              alCancelar={() => setAbierto(null)}
+            />
+          )}
+        </Tarjeta>
       )}
-      {(abierto === 'anular' || abierto === 'reabrir') && (
-        <FormularioNota
-          titulo={abierto === 'anular' ? 'Por qué se anula (p. ej. viaje cancelado)' : 'Por qué se reabre'}
-          accion={abierto === 'anular' ? 'Anular' : 'Reabrir'}
-          cargando={accion.isPending}
-          alEnviar={(nota) => accion.mutate({ tipo: abierto, nota }, { onSuccess: () => setAbierto(null) })}
-          alCancelar={() => setAbierto(null)}
-        />
-      )}
-      {abierto === 'devolver' && <FormularioDevolucion anticipo={anticipo} alTerminar={() => setAbierto(null)} />}
-      {abierto === 'desembolsar' && (
-        <FormularioTesoreria
-          titulo="Desembolso"
-          opciones={['transfer', 'cash', 'card'] satisfies MetodoDesembolso[]}
-          grupo="desembolso"
-          cargando={accion.isPending}
-          entrega={anticipo.settlement_currency ? { moneda: anticipo.settlement_currency, estimado: anticipo.settlement_amount } : undefined}
-          alEnviar={(method, reference, amount) =>
-            accion.mutate(
-              { tipo: 'desembolsar', datos: { method: method as MetodoDesembolso, reference, amount } },
-              { onSuccess: () => setAbierto(null) },
-            )
-          }
-          alCancelar={() => setAbierto(null)}
-        />
-      )}
-      {abierto === 'liquidar' && (
-        <FormularioTesoreria
-          titulo="Liquidación de la diferencia"
-          opciones={
-            (anticipo.settlement_status === 'refund_pending' ? ['refund', 'payroll_deduction'] : ['payment']) satisfies MetodoLiquidacion[]
-          }
-          grupo="metodoLiquidacion"
-          cargando={accion.isPending}
-          alEnviar={(method, reference) =>
-            accion.mutate({ tipo: 'liquidar', datos: { method: method as MetodoLiquidacion, reference } }, { onSuccess: () => setAbierto(null) })
-          }
-          alCancelar={() => setAbierto(null)}
-        />
-      )}
-    </Tarjeta>
+    </div>
   );
 }
 
@@ -168,7 +206,7 @@ function FormularioNota(props: {
   const [nota, setNota] = useState('');
   const valida = props.opcional || nota.trim().length >= 3;
   return (
-    <div className="space-y-2 border-t border-slate-200 pt-3">
+    <div className="space-y-2">
       <Campo etiqueta={props.titulo}>{(p) => <AreaTexto {...p} value={nota} onChange={(e) => setNota(e.target.value)} />}</Campo>
       <div className="flex gap-2">
         <Boton disabled={!valida} cargando={props.cargando} onClick={() => props.alEnviar(nota.trim())}>
@@ -196,7 +234,7 @@ function FormularioTesoreria(props: {
   const [referencia, setReferencia] = useState('');
   const [valor, setValor] = useState('');
   return (
-    <div className="grid gap-3 border-t border-slate-200 pt-3 sm:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-2">
       <h3 className="font-semibold sm:col-span-2">{props.titulo}</h3>
       <Campo etiqueta="Medio">
         {(p) => (
@@ -210,19 +248,24 @@ function FormularioTesoreria(props: {
         )}
       </Campo>
       <Campo etiqueta="Referencia (opcional)">
-        {(p) => <Entrada {...p} value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Comprobante, consignación…" />}
+        {(p) => (
+          <Entrada {...p} value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Comprobante, consignación…" />
+        )}
       </Campo>
       {props.entrega && (
         <Campo
           etiqueta={`Valor entregado (${props.entrega.moneda})`}
           className="sm:col-span-2"
-          ayuda={`Vacío = se calcula con la tasa de hoy${props.entrega.estimado ? ` (al pedirlo se estimó en ${formatoDinero(props.entrega.estimado, props.entrega.moneda)})` : ''}. Escríbalo si entregó otro valor.`}
+          ayuda={`Vacío = se calcula con la tasa de hoy${props.entrega.estimado ? ` (al pedirlo se estimó en ${formatoDinero(props.entrega.estimado, props.entrega.moneda)})` : ''}. Escríbelo si entregaste otro valor.`}
         >
           {(p) => <Entrada {...p} inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} />}
         </Campo>
       )}
       <div className="flex gap-2 sm:col-span-2">
-        <Boton cargando={props.cargando} onClick={() => props.alEnviar(metodo, referencia.trim() || null, valor.trim().replace(',', '.') || null)}>
+        <Boton
+          cargando={props.cargando}
+          onClick={() => props.alEnviar(metodo, referencia.trim() || null, valor.trim().replace(',', '.') || null)}
+        >
           Registrar
         </Boton>
         <Boton variante="fantasma" onClick={props.alCancelar}>
@@ -243,8 +286,10 @@ function FormularioDevolucion({ anticipo, alTerminar }: { anticipo: AnticipoDeta
   const confirmados = anticipo.expenses.filter((g) => g.status === 'confirmed');
 
   return (
-    <div className="space-y-3 border-t border-slate-200 pt-3">
-      <Campo etiqueta="Comentario general (opcional)">{(p) => <AreaTexto {...p} value={nota} onChange={(e) => setNota(e.target.value)} />}</Campo>
+    <div className="space-y-3">
+      <Campo etiqueta="Comentario general (opcional)">
+        {(p) => <AreaTexto {...p} value={nota} onChange={(e) => setNota(e.target.value)} />}
+      </Campo>
       {confirmados.length > 0 && (
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium text-slate-700">Gastos que debe corregir</legend>

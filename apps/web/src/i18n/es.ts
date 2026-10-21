@@ -57,7 +57,7 @@ export const es: Record<string, string> = {
   'gasto.confirmed': 'Confirmado',
   'gasto.discarded': 'Descartado',
   'gasto.unreadable': 'No se pudo leer',
-  'gasto.failed': 'Complete los datos a mano',
+  'gasto.failed': 'Completa los datos a mano',
 
   'documento.electronic_invoice': 'Factura electrónica',
   'documento.pos_ticket': 'Tiquete POS',

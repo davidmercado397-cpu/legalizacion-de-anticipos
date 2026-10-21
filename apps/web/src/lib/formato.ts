@@ -11,17 +11,26 @@ export function formatoDinero(valor: string | number | null | undefined, moneda:
   let formato = formatosMoneda.get(moneda);
   if (!formato) {
     const decimales = SIN_DECIMALES.has(moneda) ? 0 : 2;
-    formato = new Intl.NumberFormat(LOCALE, { style: 'currency', currency: moneda, minimumFractionDigits: decimales, maximumFractionDigits: decimales });
+    formato = new Intl.NumberFormat(LOCALE, {
+      style: 'currency',
+      currency: moneda,
+      minimumFractionDigits: decimales,
+      maximumFractionDigits: decimales,
+    });
     formatosMoneda.set(moneda, formato);
   }
   return formato.format(Number(valor));
 }
 
 const formatoFecha = new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const formatoFechaCortaIntl = new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short', timeZone: 'UTC' });
 const formatoFechaHora = new Intl.DateTimeFormat(LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
 
 /** Fecha de negocio YYYY-MM-DD, sin corrimiento por zona horaria. */
 export const formatoFechaCalendario = (iso: string | null | undefined) => (iso ? formatoFecha.format(new Date(`${iso}T00:00:00Z`)) : '—');
+/** "27 oct": para tablas y cifras, donde el año ya se sabe por el contexto. */
+export const formatoFechaCorta = (iso: string | null | undefined) =>
+  iso ? formatoFechaCortaIntl.format(new Date(`${iso}T00:00:00Z`)) : '—';
 /** Instante con offset (la API lo manda en la zona de la compañía). */
 export const formatoMomento = (iso: string | null | undefined) => (iso ? formatoFechaHora.format(new Date(iso)) : '—');
 

@@ -1,5 +1,6 @@
 import { useRetiro, useSesion } from '@viaticos/client-app';
 import type { AnticipoDetalle, Retiro } from '@viaticos/contracts';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { mensajeDeError } from '../../lib/errores';
 import { formatoDinero, formatoFechaCalendario } from '../../lib/formato';
@@ -7,6 +8,7 @@ import { opcionesDeMoneda } from '../../lib/monedas';
 import { puede } from '../../lib/roles';
 import { Boton } from '../../ui/boton';
 import { Campo, Entrada, Seleccion } from '../../ui/campos';
+import { Seccion } from '../../ui/pagina';
 import { Alerta, Insignia, Tarjeta } from '../../ui/superficies';
 
 const decimal = (texto: string) => texto.trim().replace(',', '.');
@@ -29,24 +31,28 @@ export function SeccionRetiros({ anticipo }: { anticipo: AnticipoDetalle }) {
   if (!visible) return null;
 
   return (
-    <section className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold text-slate-700">Retiros en efectivo</h2>
-        {propio && abierto && !nuevo && (
-          <Boton variante="secundario" onClick={() => setNuevo(true)}>
+    <Seccion
+      titulo="Retiros en efectivo"
+      acciones={
+        propio &&
+        abierto &&
+        !nuevo && (
+          <Boton variante="secundario" tamano="pequeno" onClick={() => setNuevo(true)}>
+            <Plus aria-hidden />
             Registrar retiro
           </Boton>
-        )}
-      </div>
-      <p className="text-sm text-slate-600">
-        Cada retiro es una bolsa con su tasa. Las facturas que pague en efectivo en esa moneda la van gastando en orden, y se
+        )
+      }
+    >
+      <p className="max-w-prose text-sm text-slate-600">
+        Cada retiro es una bolsa con su tasa. Las facturas que pagues en efectivo en esa moneda la van gastando en orden, y se
         legalizan en {moneda} con la tasa del retiro del que salieron.
       </p>
       {nuevo && <FormularioRetiro anticipo={anticipo} alTerminar={() => setNuevo(false)} />}
       {anticipo.withdrawals.map((r) => (
         <TarjetaRetiro key={r.id} anticipo={anticipo} retiro={r} editaViajero={propio && abierto} editaTesoreria={tesoreria} />
       ))}
-    </section>
+    </Seccion>
   );
 }
 

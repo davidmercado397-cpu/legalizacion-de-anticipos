@@ -1,3 +1,4 @@
+import { Upload } from 'lucide-react';
 import { useSubirGasto } from '@viaticos/client-app';
 import { type DragEvent, useRef, useState } from 'react';
 import { cx } from '../../lib/cx';
@@ -75,7 +76,7 @@ export function SubirFactura({ anticipoId }: { anticipoId: string }) {
     <div className="space-y-2">
       <div
         className={cx(
-          'flex flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-5 text-center transition-colors',
+          'flex flex-col items-center gap-2 rounded-xl border border-dashed px-4 py-5 text-center transition-colors',
           encima ? 'border-marca-600 bg-marca-50' : 'border-slate-300 bg-white',
         )}
         onDragOver={(e) => {
@@ -88,8 +89,8 @@ export function SubirFactura({ anticipoId }: { anticipoId: string }) {
         onDrop={alSoltar}
       >
         <p className="text-sm text-slate-700">
-          <span className="hidden sm:inline">Arrastre aquí las fotos o PDF de sus facturas, o elíjalos.</span>
-          <span className="sm:hidden">Tome la foto o elija las fotos o PDF de sus facturas.</span>
+          <span className="hidden sm:inline">Arrastra aquí las fotos o PDF de tus facturas, o elígelos.</span>
+          <span className="sm:hidden">Toma la foto o elige las fotos o PDF de tus facturas.</span>
         </p>
         <input
           ref={entrada}
@@ -100,14 +101,15 @@ export function SubirFactura({ anticipoId }: { anticipoId: string }) {
           aria-label="Fotos o PDF de las facturas"
           onChange={(e) => void sinRechazo(alElegir)(e.target.files)}
         />
-        <Boton cargando={avance !== null} onClick={() => entrada.current?.click()}>
+        <Boton variante="secundario" cargando={avance !== null} onClick={() => entrada.current?.click()}>
+          <Upload aria-hidden />
           {avance ? `Subiendo ${avance.hechos + 1} de ${avance.total}…` : 'Agregar facturas'}
         </Boton>
-        <p className="text-xs text-slate-500">JPG, PNG, WebP o PDF · una factura por archivo · puede elegir varios a la vez</p>
+        <p className="text-xs text-slate-500">JPG, PNG, WebP o PDF · una factura por archivo · puedes elegir varios a la vez</p>
       </div>
       {subidos > 0 && (
         <Alerta tono="exito">
-          {subidos === 1 ? 'Se subió 1 factura.' : `Se subieron ${subidos} facturas.`} Revise los datos de cada una abajo y confírmelos.
+          {subidos === 1 ? 'Se subió 1 factura.' : `Se subieron ${subidos} facturas.`} Revisa los datos de cada una abajo y confírmalos.
         </Alerta>
       )}
       {fallidos.length > 0 && (

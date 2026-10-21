@@ -65,6 +65,14 @@ describe('PanelAcciones', () => {
     expect(screen.getByRole('button', { name: 'Rechazar' })).toBeInTheDocument();
   });
 
+  it('no deja enviar la legalización con facturas sin confirmar y dice por qué', () => {
+    const conPendiente = anticipo({ employee_id: 'u-ana', status: 'approved', expenses: [{ id: 'g1', status: 'extracted' }] as never });
+    montar(<PanelAcciones anticipo={conPendiente} />, perfil({ id: 'u-ana', role: 'employee' }));
+    const enviar = screen.getByRole('button', { name: 'Enviar legalización a revisión' });
+    expect(enviar).toBeDisabled();
+    expect(enviar).toHaveAccessibleDescription('Primero confirma la factura pendiente');
+  });
+
   it('a quien la pidió solo le deja cancelarla (nadie aprueba lo suyo)', () => {
     montar(<PanelAcciones anticipo={anticipo()} />, perfil({ id: 'u-ana', role: 'approver' }));
     expect(screen.getByRole('button', { name: 'Cancelar solicitud' })).toBeInTheDocument();
