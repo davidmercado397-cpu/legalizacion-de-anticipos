@@ -4,7 +4,7 @@ import { useCategorias, useConfirmarGasto, useCorregirGasto, useDescartarGasto, 
 import type { AnticipoDetalle, Gasto, GastoDetalle, MedioDePago, TipoDocumento } from '@viaticos/contracts';
 import { ArrowRight, Check, Trash2 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { etiqueta } from '../../i18n';
 import { mensajeDeError } from '../../lib/errores';
 import { formatoFechaCalendario } from '../../lib/formato';
@@ -35,9 +35,9 @@ export function FormularioGasto({ anticipo, gasto, siguiente }: { anticipo: Anti
   const confirmar = useConfirmarGasto();
   const descartar = useDescartarGasto();
   const original = aFormulario(gasto);
-  const { register, handleSubmit, formState, reset, watch } = useForm<Datos>({ resolver: zodResolver(esquema), values: original });
+  const { register, handleSubmit, formState, reset, control } = useForm<Datos>({ resolver: zodResolver(esquema), values: original });
   const [firmado, setFirmado] = useState(gasto.receipt_signed);
-  const esRecibo = watch('document_type') === 'cash_receipt';
+  const esRecibo = useWatch({ control, name: 'document_type' }) === 'cash_receipt';
   const [justificacion, setJustificacion] = useState(gasto.justification ?? '');
   const [convertido, setConvertido] = useState('');
   // Si declara la firma, ese hallazgo desaparece al confirmar y no pide justificación.

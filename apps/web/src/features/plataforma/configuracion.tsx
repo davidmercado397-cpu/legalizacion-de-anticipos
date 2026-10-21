@@ -1,9 +1,8 @@
-import { ApiError } from '@viaticos/client-api';
 import { useCambiarConfiguracion, useConfiguracion } from '@viaticos/client-app';
 import type { Configuracion } from '@viaticos/contracts';
 import { Check, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { mensajeDeError } from '../../lib/errores';
+import { erroresDeCampo, mensajeDeError } from '../../lib/errores';
 import { formatoMomento } from '../../lib/formato';
 import { Boton } from '../../ui/boton';
 import { cx } from '../../lib/cx';
@@ -57,7 +56,7 @@ export function ConfiguracionSistema() {
   const [buscar, setBuscar] = useState('');
   const [errorLocal, setErrorLocal] = useState<string | null>(null);
 
-  const filas = configuracion.data ?? [];
+  const filas = useMemo(() => configuracion.data ?? [], [configuracion.data]);
   const porLlave = useMemo(() => new Map(filas.map((c) => [c.key, c])), [filas]);
   const cambiadas = Object.entries(borrador).filter(([llave, texto]) => {
     const c = porLlave.get(llave);
@@ -65,7 +64,7 @@ export function ConfiguracionSistema() {
   });
   const visibles = filas.filter((c) => !buscar || `${c.key} ${c.description}`.toLowerCase().includes(buscar.toLowerCase()));
   const areas = [...new Set(visibles.map((c) => c.key.split('.')[0]!))];
-  const errores = guardar.error ? ApiError.desde(guardar.error).erroresCampo : {};
+  const errores = erroresDeCampo(guardar.error);
 
   const enviar = () => {
     setErrorLocal(null);

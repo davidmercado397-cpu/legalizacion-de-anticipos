@@ -1,5 +1,5 @@
 import { useConfigurarReglasAprobacion, useReglasAprobacion } from '@viaticos/client-app';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { mensajeDeError } from '../../lib/errores';
 import { Boton } from '../../ui/boton';
 import { Campo, Entrada } from '../../ui/campos';
@@ -11,17 +11,23 @@ const MONEDAS = ['COP', 'USD'] as const;
 export function ReglasAprobacion({ companiaId }: { companiaId: string }) {
   const reglas = useReglasAprobacion(companiaId);
   const guardar = useConfigurarReglasAprobacion(companiaId);
-  const [tolerancia, setTolerancia] = useState('');
-  const [umbrales, setUmbrales] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    if (!reglas.data) return;
-    setTolerancia(String(Number(reglas.data.tolerance_pct)));
-    setUmbrales(Object.fromEntries(Object.entries(reglas.data.thresholds ?? {}).map(([m, v]) => [m, String(Number(v))])));
-  }, [reglas.data]);
-
   if (reglas.isPending) return <Cargando />;
   if (reglas.isError) return <Alerta tono="peligro">{mensajeDeError(reglas.error)}</Alerta>;
+  // Los campos nacen de lo guardado; una versión nueva (tras guardar) los vuelve a llenar.
+  return <EditorReglas key={reglas.dataUpdatedAt} reglas={reglas.data} guardar={guardar} />;
+}
+
+function EditorReglas({
+  reglas,
+  guardar,
+}: {
+  reglas: NonNullable<ReturnType<typeof useReglasAprobacion>['data']>;
+  guardar: ReturnType<typeof useConfigurarReglasAprobacion>;
+}) {
+  const [tolerancia, setTolerancia] = useState(String(Number(reglas.tolerance_pct)));
+  const [umbrales, setUmbrales] = useState<Record<string, string>>(
+    Object.fromEntries(Object.entries(reglas.thresholds ?? {}).map(([m, v]) => [m, String(Number(v))])),
+  );
 
   return (
     <div className="space-y-4 rounded-xl bg-white p-4 ring-1 ring-slate-200">

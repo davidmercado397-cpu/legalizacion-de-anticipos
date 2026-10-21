@@ -12,6 +12,7 @@
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm --filter @viaticos/web lint",
     "docker:dev": "docker compose up --build --watch",
     "docker:bajar": "docker compose down",
     "docker:reiniciar-datos": "docker compose down -v"

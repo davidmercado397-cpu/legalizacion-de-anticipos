@@ -1,13 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from '@tanstack/react-router';
-import { ApiError } from '@viaticos/client-api';
 import { useCategorias, useCompanias, usePresupuesto, useSesion, useSolicitarAnticipo } from '@viaticos/client-app';
 import type { Anticipo, Presupuesto } from '@viaticos/contracts';
 import { useEffect } from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { etiqueta } from '../../i18n';
-import { mensajeDeError } from '../../lib/errores';
+import { codigoDeError, mensajeDeError } from '../../lib/errores';
 import { formatoDinero } from '../../lib/formato';
 import { opcionesDeMoneda } from '../../lib/monedas';
 import { Boton } from '../../ui/boton';
@@ -92,7 +91,7 @@ export function FormularioSolicitud({ alCrear }: { alCrear: (anticipo: Anticipo)
   }, [calculado]); // eslint-disable-line react-hooks/exhaustive-deps
   const distinto = !!calculado && valor !== '' && Number(valor.replace(',', '.')) !== Number(calculado.total);
   // Si escala al jefe directivo (decisión 4.3) la API pide justificación aunque el valor sea el sugerido.
-  const escala = solicitar.error instanceof ApiError && solicitar.error.codigo === 'escalation_justification_required';
+  const escala = codigoDeError(solicitar.error) === 'escalation_justification_required';
 
   return (
     <form

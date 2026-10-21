@@ -1,6 +1,6 @@
 import { useConfigurarReglas, useReglas } from '@viaticos/client-app';
 import type { ReglaPolitica, ReglaPoliticaNueva } from '@viaticos/contracts';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { etiqueta } from '../../i18n';
 import { mensajeDeError } from '../../lib/errores';
 import { Boton } from '../../ui/boton';
@@ -20,11 +20,14 @@ function desdeTexto(original: unknown, texto: string): unknown {
 export function ReglasPolitica({ companiaId }: { companiaId: string }) {
   const reglas = useReglas(companiaId);
   const guardar = useConfigurarReglas(companiaId);
-  const [borrador, setBorrador] = useState<ReglaPolitica[]>([]);
-  useEffect(() => setBorrador(reglas.data ?? []), [reglas.data]);
-
   if (reglas.isPending) return <Cargando />;
   if (reglas.isError) return <Alerta tono="peligro">{mensajeDeError(reglas.error)}</Alerta>;
+  // El borrador nace de lo guardado; cuando llega una versión nueva (p. ej. tras guardar) el editor empieza de ella.
+  return <EditorReglas key={reglas.dataUpdatedAt} reglas={reglas.data} guardar={guardar} />;
+}
+
+function EditorReglas({ reglas, guardar }: { reglas: ReglaPolitica[]; guardar: ReturnType<typeof useConfigurarReglas> }) {
+  const [borrador, setBorrador] = useState<ReglaPolitica[]>(reglas);
 
   const cambiar = (i: number, cambios: Partial<ReglaPolitica>) => setBorrador((b) => b.map((r, j) => (j === i ? { ...r, ...cambios } : r)));
 

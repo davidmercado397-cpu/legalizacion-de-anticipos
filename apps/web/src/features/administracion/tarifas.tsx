@@ -1,4 +1,3 @@
-import { ApiError } from '@viaticos/client-api';
 import {
   useCategorias,
   useCrearTarifa,
@@ -11,7 +10,7 @@ import {
 import type { Tarifa, TipoPersonal, UnidadTarifa, ZonaViaje } from '@viaticos/contracts';
 import { useRef, useState } from 'react';
 import { etiqueta } from '../../i18n';
-import { mensajeDeError } from '../../lib/errores';
+import { detallesDeError, mensajeDeError } from '../../lib/errores';
 import { formatoDinero, formatoFechaCalendario } from '../../lib/formato';
 import { Boton } from '../../ui/boton';
 import { Campo, Entrada, Seleccion } from '../../ui/campos';
@@ -362,8 +361,7 @@ type Problema = { row: number; field: string; issue: string };
 function ImportarExcel({ companiaId }: { companiaId: string }) {
   const importar = useImportarTarifas(companiaId);
   const selector = useRef<HTMLInputElement>(null);
-  const error = importar.error ? ApiError.desde(importar.error) : null;
-  const problemas = (error?.detalles ?? []).filter((d): d is Problema => typeof d.row === 'number');
+  const problemas = detallesDeError(importar.error).filter((d): d is Problema => typeof d.row === 'number');
 
   return (
     <section className="space-y-3">
@@ -391,8 +389,8 @@ function ImportarExcel({ companiaId }: { companiaId: string }) {
         Elegir archivo y cargar
       </Boton>
       {importar.isSuccess && <Alerta tono="exito">Se cargaron {importar.data} tarifas.</Alerta>}
-      {error && (
-        <Alerta tono="peligro" titulo={error.message}>
+      {importar.isError && (
+        <Alerta tono="peligro" titulo={mensajeDeError(importar.error)}>
           {problemas.length > 0 && (
             <ul className="mt-1 list-disc pl-5">
               {problemas.slice(0, 50).map((p, i) => (

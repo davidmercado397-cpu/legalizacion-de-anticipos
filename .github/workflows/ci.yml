@@ -117,6 +117,7 @@ jobs:
       - name: Los tipos del contrato están generados desde el OpenAPI versionado
         run: pnpm --filter @viaticos/contracts generar && git diff --exit-code packages/contracts/src/openapi.d.ts
       - run: pnpm typecheck
+      - run: pnpm lint
       - run: pnpm test
       - run: pnpm build
 

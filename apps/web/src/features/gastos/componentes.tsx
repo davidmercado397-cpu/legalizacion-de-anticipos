@@ -30,8 +30,6 @@ export interface Hallazgo {
 
 export const hallazgos = (gasto: Gasto): Hallazgo[] => gasto.policy_findings as Hallazgo[];
 
-const ABIERTOS: EstadoGasto[] = ['received', 'processing', 'extracted', 'failed', 'unreadable'];
-
 /** Qué falta para dar por buena una factura y el botón que lo resuelve; `null` si ya está. */
 export function pendienteDe(g: Gasto): { texto: string; accion: string | null } | null {
   if (g.return_note && !g.return_resolved_at) return { texto: `Contabilidad pide: “${g.return_note}”`, accion: 'Corregir' };
