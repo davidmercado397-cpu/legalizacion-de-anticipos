@@ -8,10 +8,8 @@ export const Route = createFileRoute('/_app/contabilidad/aprendizaje')({ compone
 function Aprendizaje() {
   const eleccion = useCompaniaElegida();
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <SelectorCompania eleccion={eleccion} />
-      </div>
+    <div className="space-y-8">
+      <SelectorCompania eleccion={eleccion} />
       <GestionAprendizaje companiaId={eleccion.id} />
     </div>
   );

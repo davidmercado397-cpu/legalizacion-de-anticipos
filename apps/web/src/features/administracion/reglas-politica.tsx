@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { etiqueta } from '../../i18n';
 import { mensajeDeError } from '../../lib/errores';
 import { Boton } from '../../ui/boton';
-import { Entrada, Seleccion } from '../../ui/campos';
-import { Alerta, Cargando, Insignia } from '../../ui/superficies';
+import { Campo, Entrada, Interruptor, Seleccion } from '../../ui/campos';
+import { Alerta, Esqueleto, Insignia } from '../../ui/superficies';
 
 const ACCIONES = ['warn', 'require_justification', 'review', 'block'] as const;
 
@@ -20,7 +20,7 @@ function desdeTexto(original: unknown, texto: string): unknown {
 export function ReglasPolitica({ companiaId }: { companiaId: string }) {
   const reglas = useReglas(companiaId);
   const guardar = useConfigurarReglas(companiaId);
-  if (reglas.isPending) return <Cargando />;
+  if (reglas.isPending) return <Esqueleto filas={6} />;
   if (reglas.isError) return <Alerta tono="peligro">{mensajeDeError(reglas.error)}</Alerta>;
   // El borrador nace de lo guardado; cuando llega una versión nueva (p. ej. tras guardar) el editor empieza de ella.
   return <EditorReglas key={reglas.dataUpdatedAt} reglas={reglas.data} guardar={guardar} />;
@@ -32,22 +32,24 @@ function EditorReglas({ reglas, guardar }: { reglas: ReglaPolitica[]; guardar: R
   const cambiar = (i: number, cambios: Partial<ReglaPolitica>) => setBorrador((b) => b.map((r, j) => (j === i ? { ...r, ...cambios } : r)));
 
   return (
-    <div className="space-y-3">
-      <ul className="divide-y divide-slate-200 rounded-xl bg-white ring-1 ring-slate-200">
+    <div className="space-y-6">
+      <ul className="divide-y divide-slate-100">
         {borrador.map((regla, i) => (
-          <li key={regla.rule_type} className="space-y-2 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="font-medium">
+          <li key={regla.rule_type} className="space-y-3 py-5 first:pt-0">
+            <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+              <div className="min-w-0 flex-1 basis-72">
+                <p className="flex flex-wrap items-center gap-2 font-semibold text-slate-900">
                   {etiqueta('regla', regla.rule_type)} {regla.customized && <Insignia tono="info">Personalizada</Insignia>}
                 </p>
-                <p className="text-sm text-slate-500">{regla.description}</p>
+                <p className="text-sm text-slate-600">{regla.description}</p>
               </div>
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={regla.active} onChange={(e) => cambiar(i, { active: e.target.checked })} />
-                  Activa
-                </label>
+              <div className="flex flex-wrap items-center gap-3">
+                <Interruptor
+                  aria-label={`${etiqueta('regla', regla.rule_type)} activa`}
+                  activo={regla.active}
+                  alCambiar={(activa) => cambiar(i, { active: activa })}
+                  textos={['Inactiva', 'Activa']}
+                />
                 <Seleccion
                   aria-label={`Acción de ${etiqueta('regla', regla.rule_type)}`}
                   className="w-auto"
@@ -63,15 +65,17 @@ function EditorReglas({ reglas, guardar }: { reglas: ReglaPolitica[]; guardar: R
               </div>
             </div>
             {Object.keys(regla.params).length > 0 && (
-              <div className="grid gap-2 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-3">
                 {Object.entries(regla.params).map(([clave, valor]) => (
-                  <label key={clave} className="text-sm">
-                    <span className="text-slate-500">{etiqueta('parametro', clave)}</span>
-                    <Entrada
-                      value={aTexto(valor)}
-                      onChange={(e) => cambiar(i, { params: { ...regla.params, [clave]: desdeTexto(valor, e.target.value) } })}
-                    />
-                  </label>
+                  <Campo key={clave} etiqueta={etiqueta('parametro', clave)}>
+                    {(p) => (
+                      <Entrada
+                        {...p}
+                        value={aTexto(valor)}
+                        onChange={(e) => cambiar(i, { params: { ...regla.params, [clave]: desdeTexto(valor, e.target.value) } })}
+                      />
+                    )}
+                  </Campo>
                 ))}
               </div>
             )}

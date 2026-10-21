@@ -3,24 +3,24 @@ import { ReglasAprobacion } from '../../../features/administracion/reglas-aproba
 import { ReglasPolitica } from '../../../features/administracion/reglas-politica';
 import { SelectorCompania } from '../../../features/administracion/selector-compania';
 import { useCompaniaElegida } from '../../../lib/use-compania';
+import { Seccion } from '../../../ui/pagina';
 
 export const Route = createFileRoute('/_app/contabilidad/politica')({ component: Politica });
 
 function Politica() {
   const eleccion = useCompaniaElegida();
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-semibold text-slate-700">Reglas de la política de gastos</h2>
-          <SelectorCompania eleccion={eleccion} />
-        </div>
-        {eleccion.id && <ReglasPolitica companiaId={eleccion.id} />}
-      </section>
-      <section className="space-y-3">
-        <h2 className="font-semibold text-slate-700">Escalamiento al jefe directivo</h2>
-        {eleccion.id && <ReglasAprobacion companiaId={eleccion.id} />}
-      </section>
+    <div className="space-y-12">
+      <SelectorCompania eleccion={eleccion} />
+      <Seccion titulo="Reglas de la política de gastos">
+        <p className="-mt-1 max-w-prose text-sm text-slate-600">
+          Qué revisa el sistema en cada factura y qué hace si la regla se cumple: avisar, pedir justificación, mandarla a revisión o bloquearla.
+        </p>
+        {eleccion.id && <ReglasPolitica key={eleccion.id} companiaId={eleccion.id} />}
+      </Seccion>
+      <Seccion titulo="Escalamiento al jefe directivo">
+        {eleccion.id && <ReglasAprobacion key={eleccion.id} companiaId={eleccion.id} />}
+      </Seccion>
     </div>
   );
 }

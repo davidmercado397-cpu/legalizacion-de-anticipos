@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { mensajeDeError } from '../../lib/errores';
 import { Boton } from '../../ui/boton';
 import { Campo, Entrada } from '../../ui/campos';
-import { Alerta, Cargando } from '../../ui/superficies';
+import { Alerta, Esqueleto } from '../../ui/superficies';
 
 const MONEDAS = ['COP', 'USD'] as const;
 
@@ -11,7 +11,7 @@ const MONEDAS = ['COP', 'USD'] as const;
 export function ReglasAprobacion({ companiaId }: { companiaId: string }) {
   const reglas = useReglasAprobacion(companiaId);
   const guardar = useConfigurarReglasAprobacion(companiaId);
-  if (reglas.isPending) return <Cargando />;
+  if (reglas.isPending) return <Esqueleto filas={2} />;
   if (reglas.isError) return <Alerta tono="peligro">{mensajeDeError(reglas.error)}</Alerta>;
   // Los campos nacen de lo guardado; una versión nueva (tras guardar) los vuelve a llenar.
   return <EditorReglas key={reglas.dataUpdatedAt} reglas={reglas.data} guardar={guardar} />;
@@ -30,8 +30,8 @@ function EditorReglas({
   );
 
   return (
-    <div className="space-y-4 rounded-xl bg-white p-4 ring-1 ring-slate-200">
-      <p className="text-sm text-slate-600">
+    <div className="space-y-5">
+      <p className="max-w-prose text-sm text-slate-600">
         La solicitud la aprueba el jefe inmediato. También necesita al jefe directivo, que puede aprobarla sin esperar, si supera el presupuesto
         calculado en más de la tolerancia o si supera el monto total de su moneda. Vacío = sin límite por monto.
       </p>

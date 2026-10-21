@@ -89,3 +89,13 @@ export function Interruptor({
     </button>
   );
 }
+
+/** Un grupo de campos con su título: un formulario largo se recorre por partes. */
+export function Grupo({ titulo, className, children }: { titulo: string; className?: string; children: ReactNode }) {
+  return (
+    <fieldset className={cx('space-y-4', className)}>
+      <legend className="text-sm font-bold text-slate-900">{titulo}</legend>
+      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
+    </fieldset>
+  );
+}

@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { useCategorias, useConfirmarGasto, useCorregirGasto, useDescartarGasto, useSesion } from '@viaticos/client-app';
 import type { AnticipoDetalle, Gasto, GastoDetalle, MedioDePago, TipoDocumento } from '@viaticos/contracts';
 import { ArrowRight, Check, Trash2 } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { etiqueta } from '../../i18n';
 import { mensajeDeError } from '../../lib/errores';
@@ -11,22 +11,12 @@ import { formatoFechaCalendario } from '../../lib/formato';
 import { opcionesDeMoneda } from '../../lib/monedas';
 import { sinRechazo } from '../../lib/sin-rechazo';
 import { Boton, botonClases } from '../../ui/boton';
-import { AreaTexto, Campo, Entrada, Seleccion } from '../../ui/campos';
+import { AreaTexto, Campo, Entrada, Grupo, Seleccion } from '../../ui/campos';
 import { Alerta } from '../../ui/superficies';
 import { hallazgos } from './componentes';
 import { aFormulario, cambios, esquema, type Datos } from './editor-esquema';
 
 const MONTO = 'text-right tabular-nums';
-
-/** Un grupo de campos con su título: la factura se revisa por partes, no como una lista de 14 campos. */
-export function Grupo({ titulo, children }: { titulo: string; children: ReactNode }) {
-  return (
-    <fieldset className="space-y-4">
-      <legend className="text-sm font-bold text-slate-900">{titulo}</legend>
-      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
-    </fieldset>
-  );
-}
 
 export function FormularioGasto({ anticipo, gasto, siguiente }: { anticipo: AnticipoDetalle; gasto: GastoDetalle; siguiente?: Gasto }) {
   const usuario = useSesion((s) => s.usuario);
