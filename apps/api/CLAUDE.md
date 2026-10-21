@@ -105,6 +105,8 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
   libre: si escribe mientras una factura espera su anticipo, `MenuHandler` le vuelve a mostrar la lista. Las listas
   solo traen anticipos abiertos ya en curso (`choosable`: sin los viajes que no han empezado); si no queda ninguno, el bot
   dice que no hay un anticipo en curso (`NO_ADVANCE_IN_PROGRESS`).
+  La asignación automática (`ExpenseProcessor._auto_assign`) usa el mismo criterio: un viaje que no ha empezado nunca
+  recibe una factura solo, aunque sea el único anticipo abierto.
 - 3b, menú (`whatsapp_menu.py`, `MenuHandler`): saludo al empezar la conversación, palabras clave
   (`whatsapp.keywords`), despedida que cierra la sesión, opciones por rol (Mis anticipos, Saldo,
   Pendientes, Mis gastos, Enviar legalización, Por aprobar con `AdvanceService.decision_queue`) y

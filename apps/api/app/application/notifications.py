@@ -101,7 +101,8 @@ class ExpenseNotifier:
             )
             await self._safe(send_reply(self._sender, address, expense_detail(view)))
         unassigned = [e for e in expenses if e.status == ExpenseStatus.EXTRACTED and e.advance_id is None]
-        if unassigned and len(advances) > 1:
+        # Sin asignar quedan cuando hay varios anticipos en curso y la fecha no decide, o ninguno en curso.
+        if unassigned:
             what = "este gasto" if len(unassigned) == 1 else f"estos {len(unassigned)} gastos"
             rows = advance_rows(choosing, f"assign:{batch_id}")
             if rows:

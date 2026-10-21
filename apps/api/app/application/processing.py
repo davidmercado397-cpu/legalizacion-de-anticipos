@@ -10,6 +10,7 @@ import hashlib
 import logging
 import uuid
 
+from app.application.advances import choosable_advances
 from app.application.exchange import ExchangeRateService
 from app.application.expenses import file_key_for, thumbnail_key_for
 from app.application.learning import LearningService
@@ -203,13 +204,15 @@ class ExpenseProcessor:
         return True
 
     async def _auto_assign(self, uow: UnitOfWork, employee_id: uuid.UUID, expenses: list[Expense]) -> None:
-        """Con un solo anticipo abierto, o con varios si la fecha de la factura cae en uno solo, se asigna
-        solo (el usuario lo puede cambiar); si no, el aviso le pide que elija."""
+        """Con un solo anticipo en curso, o con varios si la fecha de la factura cae en uno solo, se asigna
+        solo (el usuario lo puede cambiar); si no, el aviso le pide que elija. Un viaje que todavía no
+        empieza nunca recibe facturas solo: si es lo único abierto, el aviso dice que no hay uno en curso."""
         open_advances = await uow.advances.list_open_for(employee_id)
-        margins = await self._date_margins(uow, expenses[0].company_id) if expenses and len(open_advances) > 1 else (0, 0)
+        in_progress = await choosable_advances(uow, open_advances, self._clock.now())
+        margins = await self._date_margins(uow, expenses[0].company_id) if expenses and len(in_progress) > 1 else (0, 0)
         for expense in expenses:
-            if expense.advance_id is None:
-                target = advance_for_date(open_advances, expense.invoice_date, *margins)
+            if expense.advance_id is None and in_progress:
+                target = advance_for_date(in_progress, expense.invoice_date, *margins)
                 if target is not None:
                     expense.assign_to(target)
             target = next((a for a in open_advances if a.id == expense.advance_id), None)

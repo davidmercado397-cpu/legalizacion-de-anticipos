@@ -272,3 +272,15 @@ async def test_with_only_future_trips_there_is_no_advance_in_progress_to_choose(
     detail = next(m for m in reversed(harness.wa.sent) if m.kind == "buttons")
     await juan.tap(detail.extra[0].id)  # Está bien
     assert juan.last("text").text == aviso
+
+
+async def test_a_single_future_trip_does_not_receive_invoices_on_its_own(harness: Harness) -> None:
+    company = await harness.add_company()
+    employee = await harness.add_employee(company, "juan@forsa.com", phone=PHONE)
+    emp_h = await harness.login(employee)
+    await harness.add_open_advance(employee, purpose="Cartagena", start_date=date(2027, 6, 1), end_date=date(2027, 6, 3))
+    juan = Chat(harness, PHONE)
+
+    await juan.photo(1)
+    assert juan.last("text").text.startswith("📅 No tienes un anticipo en curso")
+    assert (await _expense(harness, emp_h))["advance_id"] is None
