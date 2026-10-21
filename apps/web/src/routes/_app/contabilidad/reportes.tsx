@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { SelectorCompania } from '../../../features/administracion/selector-compania';
 import { Tablero } from '../../../features/reportes/tablero';
 import { useCompaniaElegida } from '../../../lib/use-compania';
-import { Entrada, Seleccion } from '../../../ui/campos';
+import { Campo, Entrada, Seleccion } from '../../../ui/campos';
+import { Alerta } from '../../../ui/superficies';
 
 export const Route = createFileRoute('/_app/contabilidad/reportes')({ component: Reportes });
 
@@ -38,37 +39,50 @@ function Reportes() {
   const periodo = { ...fechas, ...(eleccion.companias.length > 1 && eleccion.id ? { company_id: eleccion.id } : {}) };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end gap-2">
-        <Seleccion aria-label="Periodo" className="w-auto" value={preset} onChange={(e) => elegir(e.target.value)}>
-          <option value="mes">Este mes</option>
-          <option value="mes_anterior">Mes anterior</option>
-          <option value="90_dias">Últimos 90 días</option>
-          <option value="anio">Este año</option>
-          <option value="otro">Otro rango</option>
-        </Seleccion>
-        <Entrada
-          aria-label="Desde"
-          type="date"
-          className="w-auto"
-          value={fechas.start}
-          onChange={(e) => {
-            setPreset('otro');
-            setFechas({ ...fechas, start: e.target.value });
-          }}
-        />
-        <Entrada
-          aria-label="Hasta"
-          type="date"
-          className="w-auto"
-          value={fechas.end}
-          onChange={(e) => {
-            setPreset('otro');
-            setFechas({ ...fechas, end: e.target.value });
-          }}
-        />
+    <div className="space-y-10">
+      <div className="flex flex-wrap items-end gap-3">
+        <Campo etiqueta="Periodo">
+          {(p) => (
+            <Seleccion {...p} className="w-auto" value={preset} onChange={(e) => elegir(e.target.value)}>
+              <option value="mes">Este mes</option>
+              <option value="mes_anterior">Mes anterior</option>
+              <option value="90_dias">Últimos 90 días</option>
+              <option value="anio">Este año</option>
+              <option value="otro">Otro rango</option>
+            </Seleccion>
+          )}
+        </Campo>
+        <Campo etiqueta="Desde">
+          {(p) => (
+            <Entrada
+              {...p}
+              type="date"
+              className="w-auto"
+              value={fechas.start}
+              onChange={(e) => {
+                setPreset('otro');
+                setFechas({ ...fechas, start: e.target.value });
+              }}
+            />
+          )}
+        </Campo>
+        <Campo etiqueta="Hasta">
+          {(p) => (
+            <Entrada
+              {...p}
+              type="date"
+              className="w-auto"
+              value={fechas.end}
+              onChange={(e) => {
+                setPreset('otro');
+                setFechas({ ...fechas, end: e.target.value });
+              }}
+            />
+          )}
+        </Campo>
         <SelectorCompania eleccion={eleccion} />
       </div>
+      {fechas.start > fechas.end && <Alerta tono="aviso">La fecha inicial es posterior a la final: corrige el rango.</Alerta>}
       {fechas.start && fechas.end && fechas.start <= fechas.end && <Tablero periodo={periodo} moneda={moneda} companiaId={eleccion.id} />}
     </div>
   );

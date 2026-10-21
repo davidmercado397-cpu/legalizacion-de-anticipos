@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { mensajeDeError } from '../../lib/errores';
 import { Entrada } from '../../ui/campos';
 import { Alerta, Cargando, Insignia, Tarjeta } from '../../ui/superficies';
-import { Columnas, Indicador } from '../reportes/graficos';
+import { Cifra, Cifras } from '../../ui/cifras';
+import { Columnas } from '../reportes/graficos';
 
 const usd = (valor: string | number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(Number(valor));
@@ -31,11 +32,11 @@ export function CostosIa() {
         <Entrada aria-label="Desde el mes" type="month" className="w-auto" value={desde || c.from_month} onChange={(e) => setDesde(e.target.value)} />
         <Entrada aria-label="Hasta el mes" type="month" className="w-auto" value={hasta || c.to_month} onChange={(e) => setHasta(e.target.value)} />
       </div>
-      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <Indicador titulo="Costo del periodo" valor={usd(c.totals.cost_usd)} detalle={`${nombreMes(c.from_month)} – ${nombreMes(c.to_month)}`} />
-        <Indicador titulo="Llamadas al modelo" valor={compacto(c.totals.calls)} detalle="incluye escalamientos y respaldos" />
-        <Indicador titulo="Tokens" valor={compacto(c.totals.prompt_tokens + c.totals.completion_tokens)} detalle={tokens(c.totals)} />
-      </dl>
+      <Cifras columnas={3}>
+        <Cifra titulo="Costo del periodo" valor={usd(c.totals.cost_usd)}>{`${nombreMes(c.from_month)} – ${nombreMes(c.to_month)}`}</Cifra>
+        <Cifra titulo="Llamadas al modelo" valor={compacto(c.totals.calls)}>incluye escalamientos y respaldos</Cifra>
+        <Cifra titulo="Tokens" valor={compacto(c.totals.prompt_tokens + c.totals.completion_tokens)}>{tokens(c.totals)}</Cifra>
+      </Cifras>
       <Tarjeta>
         <h2 className="mb-3 font-semibold text-slate-700">Costo por mes (USD)</h2>
         <Columnas

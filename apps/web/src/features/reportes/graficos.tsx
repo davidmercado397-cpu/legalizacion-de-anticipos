@@ -1,20 +1,6 @@
 import { useState } from 'react';
 import { cx } from '../../lib/cx';
 
-/** Un número con su etiqueta. El valor va en la tinta del texto; `alerta` solo agrega una marca, nunca color al número. */
-export function Indicador({ titulo, valor, detalle, alerta = false }: { titulo: string; valor: string; detalle?: string; alerta?: boolean }) {
-  return (
-    <div className="rounded-xl bg-white p-4 ring-1 ring-slate-200">
-      <dt className="flex items-center gap-1.5 text-sm text-slate-500">
-        {alerta && <span aria-label="Requiere atención" className="size-2 rounded-full bg-amber-500" />}
-        {titulo}
-      </dt>
-      <dd className="mt-1 text-2xl font-semibold text-slate-900">{valor}</dd>
-      {detalle && <dd className="text-xs text-slate-500">{detalle}</dd>}
-    </div>
-  );
-}
-
 export interface Barra {
   etiqueta: string;
   valor: number;
@@ -110,6 +96,44 @@ export function Columnas({ filas, etiqueta, alto = 160 }: { filas: Barra[]; etiq
         ))}
       </div>
       <p className="h-4 text-xs text-slate-500">{activa !== null && filas[activa]?.detalle}</p>
+    </div>
+  );
+}
+
+export interface Tramo {
+  etiqueta: string;
+  valor: number;
+  texto: string;
+  /** Clase de fondo del segmento: el tono dice qué tan grave es, la etiqueta lo dice en palabras. */
+  color: string;
+}
+
+/**
+ * Partes de un todo en una sola barra apilada, con 2px de separación entre segmentos y la leyenda siempre visible
+ * (etiqueta, punto y valor): la identidad nunca depende solo del color.
+ */
+export function BarraApilada({ tramos, etiqueta }: { tramos: Tramo[]; etiqueta: string }) {
+  const total = tramos.reduce((s, t) => s + t.valor, 0);
+  if (total <= 0) return null;
+  const pct = (v: number) => Math.round((v / total) * 100);
+  return (
+    <div className="space-y-3">
+      <div role="img" aria-label={`${etiqueta}: ${tramos.map((t) => `${t.etiqueta} ${pct(t.valor)} %`).join(', ')}`} className="flex h-3 gap-0.5">
+        {tramos
+          .filter((t) => t.valor > 0)
+          .map((t) => (
+            <span key={t.etiqueta} title={`${t.etiqueta}: ${t.texto}`} className={cx('h-full first:rounded-l last:rounded-r', t.color)} style={{ width: `${(t.valor / total) * 100}%` }} />
+          ))}
+      </div>
+      <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+        {tramos.map((t) => (
+          <li key={t.etiqueta} className="flex items-center gap-2">
+            <span className={cx('size-2.5 rounded-full', t.color)} aria-hidden />
+            <span className="text-slate-600">{t.etiqueta}</span>
+            <span className="font-semibold tabular-nums text-slate-900">{t.texto}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

@@ -57,7 +57,7 @@ export function Seccion({
 }) {
   return (
     <section className={cx('space-y-4', className)}>
-      <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-slate-900 pb-1.5">
+      <div className="flex min-h-9 flex-wrap items-end justify-between gap-3 border-b border-slate-900 pb-1.5">
         <h2 className="text-lg font-bold tracking-tight text-slate-900">
           {titulo}
           {contador !== undefined && <span className="ml-2 font-semibold text-slate-500">{contador}</span>}

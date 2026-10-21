@@ -7,6 +7,7 @@ import { botonClases } from '../src/ui/boton';
 import { EstadoConsulta, type Consulta } from '../src/ui/estado-consulta';
 import { Alerta, EstadoVacio } from '../src/ui/superficies';
 import { Tabla } from '../src/ui/tabla';
+import { BarraApilada } from '../src/features/reportes/graficos';
 
 const consulta = <T,>(cambios: Partial<Consulta<T>>): Consulta<T> => ({
   isPending: false,
@@ -79,5 +80,22 @@ describe('fechas', () => {
     expect(formatoFechaCalendario('2025-09-29')).toBe('29/09/2025');
     expect(rangoFechas('2026-10-27', '2026-10-29')).toBe('27/10/2026 – 29/10/2026');
     expect(formatoMomento('2026-10-21T15:11:00Z')).toMatch(/^21\/10\/2026, /);
+  });
+});
+
+describe('BarraApilada', () => {
+  it('la leyenda nombra cada tramo con su valor y la barra se describe en porcentajes', () => {
+    render(
+      <BarraApilada
+        etiqueta="Saldos por antigüedad"
+        tramos={[
+          { etiqueta: '0–15 días', valor: 270000, texto: '$ 270.000', color: 'bg-marca-200' },
+          { etiqueta: 'Más de 30 días', valor: 1070000, texto: '$ 1.070.000', color: 'bg-red-600' },
+        ]}
+      />,
+    );
+    expect(screen.getByRole('img')).toHaveAccessibleName('Saldos por antigüedad: 0–15 días 20 %, Más de 30 días 80 %');
+    expect(screen.getByText('Más de 30 días')).toBeInTheDocument();
+    expect(screen.getByText('$ 1.070.000')).toBeInTheDocument();
   });
 });

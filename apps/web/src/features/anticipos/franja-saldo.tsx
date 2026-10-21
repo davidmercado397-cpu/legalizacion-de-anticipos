@@ -1,8 +1,7 @@
 import type { AnticipoDetalle } from '@viaticos/contracts';
-import type { ReactNode } from 'react';
 import { etiqueta } from '../../i18n';
-import { cx } from '../../lib/cx';
 import { formatoDinero, formatoFechaCalendario } from '../../lib/formato';
+import { Cifra, Cifras } from '../../ui/cifras';
 
 const DIA = 86_400_000;
 
@@ -13,16 +12,6 @@ function diasHasta(iso: string): number {
   return Math.round((Date.parse(`${iso}T00:00:00Z`) - inicio) / DIA);
 }
 
-function Cifra({ titulo, valor, peligro, children }: { titulo: string; valor: string; peligro?: boolean; children?: ReactNode }) {
-  return (
-    <div className="space-y-1 bg-white p-4">
-      <dt className="text-sm text-slate-600">{titulo}</dt>
-      <dd className={cx('text-xl font-bold tracking-tight tabular-nums', peligro ? 'text-red-700' : 'text-slate-900')}>{valor}</dd>
-      {children && <dd className="text-xs text-slate-500">{children}</dd>}
-    </div>
-  );
-}
-
 /** Aprobado, legalizado, lo que falta y el plazo, cada cifra con el dato que la explica. */
 export function FranjaSaldo({ anticipo }: { anticipo: AnticipoDetalle }) {
   const { balance: saldo } = anticipo;
@@ -31,12 +20,7 @@ export function FranjaSaldo({ anticipo }: { anticipo: AnticipoDetalle }) {
   const plazo = anticipo.status === 'approved' && anticipo.legalization_due ? diasHasta(anticipo.legalization_due) : null;
 
   return (
-    <dl
-      className={cx(
-        'grid gap-px overflow-hidden rounded-xl bg-slate-200 ring-1 ring-slate-200',
-        plazo === null ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2 lg:grid-cols-4',
-      )}
-    >
+    <Cifras columnas={plazo === null ? 3 : 4}>
       <Cifra titulo="Aprobado" valor={formatoDinero(saldo.amount, saldo.currency)}>
         {anticipo.disbursed_at
           ? `Entregado por ${etiqueta('desembolso', anticipo.disbursement_method).toLowerCase()}`
@@ -67,6 +51,6 @@ export function FranjaSaldo({ anticipo }: { anticipo: AnticipoDetalle }) {
               : `Quedan ${plazo} ${plazo === 1 ? 'día' : 'días'}`}
         </Cifra>
       )}
-    </dl>
+    </Cifras>
   );
 }
