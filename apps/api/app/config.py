@@ -33,10 +33,11 @@ class Settings(BaseSettings):
     LOGIN_MAX_ATTEMPTS: int = 5
     LOGIN_LOCK_MINUTES: int = 5
     LINK_CODE_TTL_MINUTES: int = 15
-    # Doble factor: obligatorio para estos roles; la llave cifra la semilla TOTP en la BD.
+    # Doble factor: obligatorio para estos roles; la llave cifra la semilla TOTP en la BD. Vacío por decisión de
+    # Forsa (26/10): nadie está obligado por ahora; para exigirlo: admin,accountant,treasury,superadmin.
     # Generar con: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     MFA_ENCRYPTION_KEY: str = ""
-    MFA_REQUIRED_ROLES: str = "admin,accountant,treasury,superadmin"
+    MFA_REQUIRED_ROLES: str = ""
     MFA_ISSUER: str = "nextv.ia"  # nombre con el que aparece en la app de autenticación
     MFA_CHALLENGE_TTL_SECONDS: int = 300
     FLOW_TOKEN_TTL_MINUTES: int = 30  # vigencia de un formulario (WhatsApp Flow) abierto

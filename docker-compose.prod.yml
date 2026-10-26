@@ -35,7 +35,7 @@ services:
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
       JWT_SECRET: ${JWT_SECRET:?}
       MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?}
-      MFA_REQUIRED_ROLES: ${MFA_REQUIRED_ROLES:-admin,accountant,treasury,superadmin}
+      MFA_REQUIRED_ROLES: ${MFA_REQUIRED_ROLES:-}
       # Sin R2 la app arranca, pero subir facturas responde que el almacenamiento no está configurado.
       R2_ENDPOINT_URL: ${R2_ENDPOINT_URL:-}
       R2_BUCKET: ${R2_BUCKET:-}

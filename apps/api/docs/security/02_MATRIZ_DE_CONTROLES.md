@@ -9,7 +9,7 @@ ejecuta en cada cambio en CI) o reporte en `evidence/`. Referencias:
 - **ISO:** controles del Anexo A de ISO/IEC 27001:2022. Es una **alineación**: NextByte no tiene
   certificación ISO 27001 (ver brechas en `00_RESUMEN_EJECUTIVO.md`).
 
-Estados: ✅ implementado · 🟡 parcial · 📅 planificado · — no aplica.
+Estados: ✅ implementado · 🟡 parcial · 📅 planificado · ⏸️ implementado y apagado por decisión del cliente · — no aplica.
 
 ## Identidad y autenticación
 
@@ -18,7 +18,7 @@ Estados: ✅ implementado · 🟡 parcial · 📅 planificado · — no aplica.
 | A1 | Contraseñas con Argon2id, longitud mínima 10 | V2.1, V2.4 | 8.5 | ✅ | `app/adapters/outbound/security/passwords.py`; `PASSWORD_MIN_LENGTH` en `app/config.py` |
 | A2 | Bloqueo tras 5 intentos fallidos (5 minutos) | V2.2.1 | 8.5 | ✅ | `tests/security/test_authentication.py::test_wrong_password_locks_the_account` |
 | A3 | Respuesta idéntica para correo inexistente y contraseña errada (sin enumeración de usuarios) | V2.2, V3 | 8.5 | ✅ | `test_unknown_email_and_wrong_password_look_the_same` |
-| A4 | MFA TOTP obligatorio para admin, contabilidad y superadmin; sin MFA activo la API responde 403 `mfa_setup_required` | V2.7, V2.8 | 5.17, 8.5 | ✅ | `app/application/mfa.py`; `tests/security/test_mfa.py::test_privileged_roles_must_enable_mfa_before_using_the_api` |
+| A4 | MFA TOTP obligatorio para los roles de `MFA_REQUIRED_ROLES`; sin MFA activo la API responde 403 `mfa_setup_required`. **Apagado por decisión de Forsa (26/10):** la lista está vacía; se enciende con `admin,accountant,treasury,superadmin` | V2.7, V2.8 | 5.17, 8.5 | ⏸️ | `app/application/mfa.py`; `tests/security/test_mfa.py::test_privileged_roles_must_enable_mfa_before_using_the_api` |
 | A5 | Login en dos pasos: el token de reto MFA no sirve como token de acceso y viceversa | V3.5 | 8.5 | ✅ | `app/adapters/outbound/security/tokens.py` (claim `typ`); `test_mfa_token_and_access_token_are_not_interchangeable` |
 | A6 | Un código TOTP no se puede reutilizar (anti-repetición) | V2.8.4 | 8.5 | ✅ | `test_login_with_mfa_needs_a_valid_unused_code` |
 | A7 | Semilla MFA cifrada (Fernet) con llave fuera de la BD; códigos de recuperación de un solo uso guardados como HMAC | V2.8, V6.2 | 8.24 | ✅ | `app/adapters/outbound/security/mfa.py`; `MFA_ENCRYPTION_KEY` (fail-fast en `app/config.py`) |

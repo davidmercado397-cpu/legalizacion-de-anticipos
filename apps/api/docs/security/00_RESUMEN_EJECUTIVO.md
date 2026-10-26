@@ -19,7 +19,7 @@ Donde algo todavía no existe, se dice, con su plan de cierre.
 
 | Riesgo | Control | Dónde se verifica |
 |---|---|---|
-| Robo de la cuenta de un administrador o de contabilidad | MFA obligatorio (TOTP) para administradores, contabilidad y el operador de NextByte; contraseñas Argon2id; bloqueo tras 5 intentos; sesiones de 15 minutos con revocación inmediata | Matriz, controles A1–A9 y S1–S4 |
+| Robo de la cuenta de un administrador o de contabilidad | MFA (TOTP) para administradores, contabilidad y el operador de NextByte (implementado; por decisión de Forsa del 26/10 aún no es obligatorio); contraseñas Argon2id; bloqueo tras 5 intentos; sesiones de 15 minutos con revocación inmediata | Matriz, controles A1–A9 y S1–S4 |
 | Un empleado ve gastos de otro, o una compañía ve los de otra | Permisos por rol y por registro. Lo ajeno responde "no encontrado", sin confirmar que existe | C1–C2, con prueba automática |
 | Fraude interno | Nadie aprueba lo suyo, tampoco por WhatsApp. Auditoría **inmutable**: ni la aplicación ni alguien con sus credenciales puede editarla o borrarla | C3, L1–L2 |
 | El proveedor (NextByte) accede a los datos de Forsa | El rol de operador de NextByte solo gestiona la configuración técnica. **No ve gastos, anticipos ni datos personales** | C4, con prueba automática |

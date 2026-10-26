@@ -57,7 +57,7 @@ Sin ellas la aplicación funciona, pero subir una factura responde que el almace
 | Variable | Por defecto | Para qué |
 |---|---|---|
 | `APP_URL` | vacío | URL pública de la web; solo hace falta si otro dominio llama a la API (CORS) |
-| `MFA_REQUIRED_ROLES` | `admin,accountant,treasury,superadmin` | Roles que deben activar la verificación en dos pasos |
+| `MFA_REQUIRED_ROLES` | vacío (por ahora nadie; para exigirlo: `admin,accountant,treasury,superadmin`) | Roles que deben activar la verificación en dos pasos |
 | `WEB_CONCURRENCY` | `2` | Procesos de la API (uno por núcleo, aprox.) |
 | `LOG_LEVEL` | `INFO` | Detalle del log |
 | `FILES_ORIGIN` | `https://*.r2.cloudflarestorage.com` | Origen de las fotos firmadas que el navegador puede mostrar; cámbielo solo si usa otro almacenamiento S3 |

@@ -321,8 +321,9 @@ con el set de evaluación).
 - **Auth:** access token JWT de 15 min + refresh token rotativo (si se reutiliza uno viejo se revoca
   toda la sesión). Contraseñas Argon2id, bloqueo progresivo tras 5 intentos, contraseña temporal
   obligatoria de cambiar, revocación inmediata al desactivar o cambiar la contraseña.
-- **MFA (TOTP):** obligatorio para los roles de `MFA_REQUIRED_ROLES` (por defecto admin,
-  contabilidad y superadmin); mientras no lo activen, la API responde 403 `mfa_setup_required`.
+- **MFA (TOTP):** obligatorio para los roles de `MFA_REQUIRED_ROLES`; mientras no lo activen, la API
+  responde 403 `mfa_setup_required`. Por decisión de Forsa (26/10) la lista está vacía: nadie está
+  obligado, pero cualquiera puede activarlo. Para exigirlo: `admin,accountant,treasury,superadmin`.
   Login en dos pasos (`POST /auth/login` → `POST /auth/mfa`), códigos de un solo uso, semilla
   cifrada con `MFA_ENCRYPTION_KEY` y códigos de recuperación hasheados. Un admin puede reiniciar el
   MFA de otro usuario, nunca el suyo.

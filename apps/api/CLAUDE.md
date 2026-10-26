@@ -23,7 +23,8 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
 - Contrato de API (errores con código + mensaje en español, listados paginados, `X-Request-ID`).
 - Configuración del sistema llave-valor (`system_settings`, migración 0003) administrada por el rol
   `superadmin`; Redis para límites de peticiones y caché compartida entre workers.
-- Seguridad: MFA TOTP obligatorio para `MFA_REQUIRED_ROLES` (login en dos pasos, semilla cifrada
+- Seguridad: MFA TOTP obligatorio para `MFA_REQUIRED_ROLES` (vacía por decisión de Forsa del 26/10: nadie
+  está obligado; el mecanismo y sus pruebas siguen) (login en dos pasos, semilla cifrada
   con `MFA_ENCRYPTION_KEY`), auditoría inmutable (trigger + permisos, migración 0004), roles de BD
   separados (`gastos_app` sin DDL, `gastos_migrator` vía `MIGRATION_DATABASE_URL`), respaldos con
   prueba de restauración y expediente de seguridad para el cliente en `docs/security/`.
