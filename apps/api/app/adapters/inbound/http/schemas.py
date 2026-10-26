@@ -91,6 +91,11 @@ class CompanyIn(BaseModel):
     is_test: bool = False
     legal_name: str | None = Field(default=None, max_length=200, description="Razón social que debe ir en las facturas")
     timezone: str | None = Field(default=None, max_length=64, description="IANA; vacío = la del país")
+    currencies: list[str] | None = Field(
+        default=None,
+        max_length=20,
+        description="Monedas en que la compañía entrega y legaliza anticipos; siempre incluye `currency`. Vacío = solo esa",
+    )
 
 
 class CashCapIn(BaseModel):
@@ -115,6 +120,9 @@ class CompanyPatch(BaseModel):
     cash_international_cap: CashCapIn | None = Field(
         default=None, description="Tope del anticipo en efectivo en moneda extranjera; null lo elimina"
     )
+    currencies: list[str] | None = Field(
+        default=None, min_length=1, max_length=20, description="Reemplaza las monedas de la compañía; la local se agrega sola"
+    )
 
 
 class CompanyOut(Model):
@@ -128,6 +136,9 @@ class CompanyOut(Model):
     cash_international_cap: dict[str, str] | None
     approval_tolerance_pct: Decimal
     approval_thresholds: dict[str, str]
+    currencies: list[str] = Field(
+        description="Monedas en que entrega y legaliza anticipos (la primera es la local); en otra, se legaliza en la local"
+    )
     tax_id: str | None
     is_test: bool
     active: bool
@@ -402,6 +413,12 @@ class ApprovalRulesIO(BaseModel):
     )
 
 
+class DisbursementPartOut(Model):
+    method: DisbursementMethod
+    amount: Decimal
+    reference: str | None = None
+
+
 class AdvanceOut(Model):
     id: uuid.UUID
     employee_id: uuid.UUID
@@ -439,8 +456,7 @@ class AdvanceOut(Model):
     closed_by: uuid.UUID | None
     disbursed_at: datetime | None
     disbursed_by: uuid.UUID | None
-    disbursement_method: DisbursementMethod | None
-    disbursement_ref: str | None
+    disbursement_parts: list[DisbursementPartOut] = Field(description="Cómo entregó tesorería: tarjeta, efectivo, transferencia")
     settlement_currency: str | None = Field(
         description="Moneda en que se entrega y se legaliza si el anticipo se calculó en otra (la de la compañía)"
     )
@@ -594,17 +610,22 @@ class RequiredNoteIn(BaseModel):
     note: str = Field(min_length=3, max_length=1000)
 
 
-class DisburseIn(BaseModel):
+class DisbursementPartIn(BaseModel):
     method: DisbursementMethod
+    amount: Decimal = Field(gt=0, max_digits=16, decimal_places=2)
     reference: str | None = Field(default=None, max_length=120)
-    disbursed_at: datetime | None = Field(default=None, description="Vacío = ahora")
-    amount: Decimal | None = Field(
-        default=None,
-        gt=0,
-        max_digits=16,
-        decimal_places=2,
-        description="Calculado en otra moneda: lo entregado en la de la compañía. Vacío = con la tasa del día",
+
+
+class DisburseIn(BaseModel):
+    parts: list[DisbursementPartIn] = Field(
+        min_length=1,
+        max_length=3,
+        description=(
+            "Cómo se entrega (un método por parte), en la moneda en que se legaliza. Deben sumar lo aprobado; si el "
+            "anticipo se calculó en otra moneda, su total es lo entregado en la de la compañía"
+        ),
     )
+    disbursed_at: datetime | None = Field(default=None, description="Vacío = ahora")
 
 
 class WithdrawalIn(BaseModel):

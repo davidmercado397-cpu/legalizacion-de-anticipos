@@ -40,11 +40,13 @@ async def test_employee_hears_about_approval_rejection_disbursement_and_void(har
     assert approved.startswith("✅ Ana Pérez aprobó tu anticipo Cali por $200.000 COP.")
     assert "Pide tus facturas a nombre de *Forsa S.A.S.*, NIT 900123456-7." in approved
 
-    await harness.client.post(
-        f"/api/v1/advances/{first}/disburse", headers=await harness.login(treasurer), json={"method": "cash"}
-    )
+    # Pidió efectivo, pero tesorería entrega una parte en tarjeta.
+    parts = [{"method": "card", "amount": "150000"}, {"method": "cash", "amount": "50000"}]
+    await harness.client.post(f"/api/v1/advances/{first}/disburse", headers=await harness.login(treasurer), json={"parts": parts})
     await harness.drain()
-    assert juan.last("text").text == "💸 Tesorería te entregó el anticipo Cali ($200.000 COP)."
+    assert (
+        juan.last("text").text == "💸 Tesorería te entregó el anticipo Cali: $150.000 COP en tarjeta y $50.000 COP en efectivo."
+    )
     await harness.client.post(f"/api/v1/advances/{first}/void", headers=acc_h, json={"note": "Viaje cancelado"})
     await harness.drain()
     assert juan.last("text").text == "🚫 Contabilidad anuló tu anticipo Cali.\nMotivo: Viaje cancelado"

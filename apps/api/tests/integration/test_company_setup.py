@@ -105,6 +105,34 @@ async def test_unsupported_currency_on_an_advance_is_rejected(harness: Harness) 
     assert response.status_code == 422 and response.json()["error"]["code"] == "unsupported_currency"
 
 
+async def test_each_company_says_which_currencies_it_works_in(harness: Harness) -> None:
+    holding = await harness.add_company()
+    admin = await harness.add_employee(holding, "admin@forsa.com", Role.ADMIN)
+    admin_h = await harness.login(admin)
+    created = await harness.client.post(
+        "/api/v1/companies", headers=admin_h, json={"name": "Forsa Panamá", "country": "PA", "currency": "USD"}
+    )
+    assert created.json()["currencies"] == ["USD"]  # sin lista, solo la local
+    url = f"/api/v1/companies/{holding.id}"
+    assert (await harness.client.get(url, headers=admin_h)).json()["currencies"] == ["COP"]
+    unknown = await harness.client.patch(url, headers=admin_h, json={"currencies": ["JPY"]})
+    assert unknown.json()["error"]["code"] == "unsupported_currency"
+
+    employee = await harness.add_employee(holding, "juan@forsa.com", approver=admin)
+    emp_h = await harness.login(employee)
+    body = {"company_id": str(holding.id), "kind": "reloadable_card", "currency": "USD", "amount": "500", "purpose": "Miami"}
+    # Una moneda en que no trabaja: se entrega y se legaliza en pesos (decisión 9.2).
+    in_pesos = await harness.client.post("/api/v1/advances", headers=emp_h, json=body)
+    assert in_pesos.json()["settlement_currency"] == "COP"
+    # Si trabaja en dólares, el anticipo se aprueba, se entrega y se legaliza en dólares.
+    patched = await harness.client.patch(url, headers=admin_h, json={"currencies": ["usd"]})
+    assert patched.json()["currencies"] == ["COP", "USD"]  # la local siempre queda, primero
+    in_dollars = await harness.client.post("/api/v1/advances", headers=emp_h, json=body)
+    assert in_dollars.status_code == 201 and in_dollars.json()["settlement_currency"] is None
+    moved = await harness.client.patch(url, headers=admin_h, json={"currency": "USD"})
+    assert moved.json()["currencies"] == ["USD", "COP"]
+
+
 async def test_a_selfie_gets_a_clear_message_and_no_escalation(harness: Harness) -> None:
     company = await harness.add_company()
     await harness.add_open_advance(await harness.add_employee(company, "juan@forsa.com", phone=PHONE))

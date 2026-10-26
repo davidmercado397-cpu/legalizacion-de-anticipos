@@ -81,6 +81,12 @@ def _for_employee(
             )
             return Reply(_join(msg.NOTICE_CLOSED.format(**values), result)), msg.NOTICE_CLOSED_LINE.format(**values)
         case _:
+            values["parts"] = msg.joined(
+                [
+                    f"{msg.money(p.amount, advance.ledger_currency, fmt)} {msg.DISBURSEMENT_METHODS[p.method]}"
+                    for p in advance.disbursement
+                ]
+            )
             return Reply(msg.NOTICE_DISBURSED.format(**values)), msg.NOTICE_DISBURSED_LINE.format(**values)
 
 

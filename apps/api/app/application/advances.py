@@ -188,7 +188,7 @@ class AdvanceService:
             if reasons and justification is None:
                 raise ValidationError("Justification required", code="escalation_justification_required")
             if data.kind == AdvanceKind.CASH and currency != company.currency:
-                await self._check_cash_cap(uow, company, currency, amount)
+                await self._rates.check_cash_cap(uow, company, currency, amount)
             steps = await self._route(uow, actor, company.id, bool(reasons))
             advance = Advance(
                 employee_id=actor.id,
@@ -208,7 +208,7 @@ class AdvanceService:
                 approval_steps=steps,
                 escalation_reasons=reasons,
             )
-            if currency != company.currency:
+            if not company.works_in(currency):
                 await self._estimate_settlement(uow, advance, company)
             await uow.advances.add(advance)
             await uow.audit.add(
@@ -243,23 +243,6 @@ class AdvanceService:
             if (await uow.employees.find(flt, Page(1, 0))).total == 0:
                 raise ValidationError("Nobody can approve this trip", code="no_approver_available")
         return steps
-
-    async def _check_cash_cap(self, uow: UnitOfWork, company: Company, currency: str, amount: Decimal) -> None:
-        """El efectivo en moneda extranjera tiene un tope por compañía (p. ej. USD 200)."""
-        cap = company.cash_international_cap
-        if not cap:
-            return
-        cap_amount, cap_currency = Decimal(cap["amount"]), cap["currency"]
-        if currency == cap_currency:
-            in_cap_currency = amount
-        else:
-            today = local_date(self._clock.now(), company.timezone)
-            conversion = await self._rates.conversion(uow, currency, cap_currency, today)
-            if conversion is None:
-                raise ValidationError("No rate to verify the cash cap", code="cash_cap_unverifiable")
-            in_cap_currency = conversion.apply(amount)
-        if in_cap_currency > cap_amount:
-            raise ValidationError("Cash cap exceeded", code="cash_cap_exceeded", cap=msg.money(cap_amount, cap_currency))
 
     async def search(
         self,

@@ -66,7 +66,7 @@ async def test_cash_spent_abroad_takes_the_rate_of_each_withdrawal_in_order(harn
     detail = await _detail(harness, emp_h, advance_id)
     assert detail["settlement_currency"] == "COP" and Decimal(detail["settlement_amount"]) == Decimal("2400000.00")
     disbursed = await harness.client.post(
-        f"/api/v1/advances/{advance_id}/disburse", headers=treas_h, json={"method": "transfer", "amount": "2500000"}
+        f"/api/v1/advances/{advance_id}/disburse", headers=treas_h, json={"parts": [{"method": "transfer", "amount": "2500000"}]}
     )
     assert disbursed.status_code == 200 and Decimal(disbursed.json()["settlement_amount"]) == Decimal("2500000")
 
@@ -148,11 +148,13 @@ async def test_a_withdrawal_needs_a_rate_and_another_currency(harness: Harness) 
         json={"withdrawn_on": str(today), "currency": "COP", "amount": "100"},
     )
     assert same.status_code == 422 and same.json()["error"]["code"] == "withdrawal_same_currency"
-    # Sin tasa al pedirlo ni al desembolsar, tesorería tiene que escribir lo que entregó en pesos.
-    missing = await harness.client.post(f"/api/v1/advances/{advance_id}/disburse", headers=treas_h, json={"method": "cash"})
-    assert missing.status_code == 409 and missing.json()["error"]["code"] == "settlement_amount_required"
+    # Sin tasa al pedirlo, tesorería escribe lo que entregó en pesos (el total de las partes).
+    missing = await harness.client.post(f"/api/v1/advances/{advance_id}/disburse", headers=treas_h, json={"parts": []})
+    assert missing.status_code == 422
     given = await harness.client.post(
-        f"/api/v1/advances/{advance_id}/disburse", headers=treas_h, json={"method": "cash", "amount": "2450000"}
+        f"/api/v1/advances/{advance_id}/disburse",
+        headers=treas_h,
+        json={"parts": [{"method": "cash", "amount": "450000"}, {"method": "card", "amount": "2000000"}]},
     )
     assert given.status_code == 200 and given.json()["settlement_currency"] == "COP"
     assert Decimal(given.json()["settlement_rate"]) == Decimal("816.66666667")

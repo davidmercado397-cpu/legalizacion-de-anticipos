@@ -5,7 +5,7 @@ from app.domain.entities import Employee
 from app.domain.enums import Role
 from app.domain.ports import AuditFilter, Page
 from tests.conftest import PASSWORD, Harness
-from tests.fakes import make_jpeg
+from tests.fakes import FakeModelCatalog, make_jpeg
 
 
 async def _superadmin(harness: Harness) -> Employee:
@@ -54,6 +54,26 @@ async def test_a_model_change_applies_to_the_next_invoice_without_restarting(har
     await harness.client.post("/api/v1/expenses", headers=headers, files={"file": ("f.jpg", make_jpeg(), "image/jpeg")})
     await harness.drain()
     assert harness.extractor.calls[0].model == "google/nuevo"
+
+
+async def test_a_model_that_openrouter_does_not_offer_cannot_be_saved(harness: Harness) -> None:
+    super_h = await harness.login(await _superadmin(harness))
+    catalog = harness.container.runtime._catalog
+    assert isinstance(catalog, FakeModelCatalog)
+    catalog.models = {"google/gemini-3.8-flash", "anthropic/claude-opus-5.5"}
+    url = "/api/v1/settings"
+    before = (await harness.container.runtime.current()).ai_availability_fallbacks
+    typo = await harness.client.patch(url, headers=super_h, json={"values": {"ai.availability_fallbacks": ["anthropic/opus"]}})
+    assert typo.status_code == 422 and typo.json()["error"]["code"] == "unknown_ai_model"
+    assert "anthropic/opus" in typo.json()["error"]["message"]
+    assert (await harness.container.runtime.current()).ai_availability_fallbacks == before
+    ok = await harness.client.patch(
+        url, headers=super_h, json={"values": {"ai.availability_fallbacks": ["anthropic/claude-opus-5.5"]}}
+    )
+    assert ok.status_code == 200
+    # Si OpenRouter no responde, se guarda igual (queda en el log).
+    catalog.models = None
+    assert (await harness.client.patch(url, headers=super_h, json={"values": {"ai.primary_model": "x/y"}})).status_code == 200
 
 
 async def test_superadmin_has_no_access_to_forsa_data(harness: Harness) -> None:

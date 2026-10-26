@@ -29,7 +29,15 @@ from app.container import Container, Overrides
 from app.domain.entities import Advance, Company, Employee, blocked_concepts_from, categories_from
 from app.domain.enums import AdvanceKind, AdvanceStatus, Role, StaffType
 from app.main import create_app
-from tests.fakes import FakeErp, FakeExtractor, FakeRateProvider, FakeStatementExtractor, FakeStorage, FakeWhatsApp
+from tests.fakes import (
+    FakeErp,
+    FakeExtractor,
+    FakeModelCatalog,
+    FakeRateProvider,
+    FakeStatementExtractor,
+    FakeStorage,
+    FakeWhatsApp,
+)
 from tests.seed import database_sql, extensions_sql, seed_settings, setting_value
 
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "postgresql+asyncpg://gastos:gastos@localhost:5432/gastos_test")
@@ -219,6 +227,7 @@ async def harness(extractor: FakeExtractor, settings_overrides: dict[str, Any]) 
             redis=FakeRedis(),
             rate_providers=[FakeRateProvider({"COP": Decimal("4000")}), FakeRateProvider({"EUR": Decimal("0.9")}, "ecb")],
             statement_extractor=statement_reader,
+            model_catalog=FakeModelCatalog(),
         ),
         run_jobs=False,
     )

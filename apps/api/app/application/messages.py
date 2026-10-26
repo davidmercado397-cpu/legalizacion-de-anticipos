@@ -227,8 +227,9 @@ NOTICE_SETTLEMENT = {
     "refund_pending": "Te queda por reintegrar {amount}. Tesorería te dirá cómo hacerlo.",
     "payment_pending": "Gastaste {amount} más del anticipo: la compañía te los reembolsa.",
 }
-NOTICE_DISBURSED = "💸 Tesorería te entregó el anticipo {label} ({amount})."
-NOTICE_DISBURSED_LINE = "tesorería te entregó el anticipo {label} ({amount})"
+NOTICE_DISBURSED = "💸 Tesorería te entregó el anticipo {label}: {parts}."
+NOTICE_DISBURSED_LINE = "tesorería te entregó el anticipo {label}: {parts}"
+DISBURSEMENT_METHODS = {"card": "en tarjeta", "cash": "en efectivo", "transfer": "por transferencia"}
 BUTTON_SEE_MARKED = "↩️ Ver marcados"
 MARKED_PROMPT = "↩️ Estos gastos te los marcaron para revisar. Elige uno:"
 NO_MARKED = "No tienes gastos marcados por revisar 👍"
@@ -460,6 +461,8 @@ ERROR_MESSAGES: dict[str, ErrorText] = {
         "queda como reintegro."
     ),
     "advance_already_settled": "Esta legalización ya se liquidó (reintegro o pago registrado), así que no se puede reabrir.",
+    "invalid_disbursement_parts": "Cada parte de la entrega lleva un método distinto y un valor mayor que cero.",
+    "disbursement_total_mismatch": "Las partes de la entrega deben sumar lo aprobado del anticipo.",
     "advance_already_disbursed": "La entrega de este anticipo ya está registrada.",
     "invalid_settlement": lambda p: (
         f"No hay nada que liquidar de esa forma: el anticipo está {SETTLEMENT_STATUS_LABELS.get(p.get('status', ''), 'sin diferencia')}."
@@ -532,7 +535,6 @@ ERROR_MESSAGES: dict[str, ErrorText] = {
         "La factura está en {expense_currency} y el anticipo en {advance_currency}: indica el valor equivalente en "
         "{advance_currency}."
     ),
-    "settlement_amount_required": "No hay tasa de cambio del día: escribe cuánto se entregó en {currency}.",
     "withdrawal_rate_missing": "No hay tasa de cambio para ese día: escribe cuánto te debitó el banco en {currency}.",
     "withdrawal_same_currency": "Ese retiro está en la misma moneda del anticipo: no hace falta registrarlo.",
     "withdrawal_fee_expense": "Esta comisión es de un retiro: cámbiala o bórrala desde el retiro.",
@@ -564,6 +566,7 @@ ERROR_MESSAGES: dict[str, ErrorText] = {
     "invalid_spreadsheet": "No pudimos leer el archivo. Súbelo en formato Excel (.xlsx) con la plantilla de tarifas.",
     # Configuración del sistema (superadmin)
     "unknown_setting": "Estas llaves de configuración no existen: {keys}.",
+    "unknown_ai_model": "OpenRouter no tiene estos modelos: {models}. Revisa el nombre exacto en openrouter.ai/models.",
     "setting_missing": "Falta el parámetro de configuración {key}. Pide al administrador de la plataforma que lo cargue.",
     "setting_int": "{key} debe ser un número entero.",
     "setting_decimal": "{key} debe ser un número.",
@@ -632,6 +635,11 @@ VALIDATION_ISSUES = {
 
 def pending_expenses(count: int) -> str:
     return "el gasto pendiente" if count == 1 else f"los {count} gastos pendientes"
+
+
+def joined(items: list[str]) -> str:
+    """['a', 'b', 'c'] -> 'a, b y c'."""
+    return " y ".join([", ".join(items[:-1]), items[-1]]) if len(items) > 1 else "".join(items)
 
 
 def expenses_count(count: int) -> str:
@@ -752,6 +760,12 @@ BUDGET_UNIT_ALIASES = {
     "viaje": "per_trip",
     "por viaje": "per_trip",
     "per_trip": "per_trip",
+    "15 dias": "per_15_days",
+    "15 días": "per_15_days",
+    "por 15 dias": "per_15_days",
+    "por 15 días": "per_15_days",
+    "quincena": "per_15_days",
+    "per_15_days": "per_15_days",
 }
 BUDGET_IMPORT_ISSUES = {
     "unknown_zone": "La zona '{value}' no existe. Créala primero o revisa cómo está escrita.",

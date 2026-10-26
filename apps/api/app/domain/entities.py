@@ -46,7 +46,13 @@ from app.domain.enums import (
     UnreadableReason,
     WhatsAppLinkStatus,
 )
-from app.domain.errors import InvalidOperationError, JustificationRequiredError, PermissionDeniedError, PolicyBlockedError
+from app.domain.errors import (
+    InvalidOperationError,
+    JustificationRequiredError,
+    PermissionDeniedError,
+    PolicyBlockedError,
+    ValidationError,
+)
 from app.domain.values import InvoiceData, WhatsAppAddress
 
 
@@ -82,6 +88,9 @@ class Company:
     # Escalamiento al jefe directivo (decisiones 4.1 y 4.2); lo configura contabilidad.
     approval_tolerance_pct: Decimal = Decimal(10)  # sobre el presupuesto calculado
     approval_thresholds: dict[str, str] = field(default_factory=dict)  # moneda -> monto total que escala
+    # Monedas en que la compañía entrega y legaliza anticipos; la local siempre va primero. Un anticipo en otra
+    # moneda se entrega y se legaliza en la local (decisión 9.2).
+    currencies: list[str] = field(default_factory=list)
     active: bool = True
     id: uuid.UUID = field(default_factory=uuid.uuid4)
     created_at: datetime = field(default_factory=utcnow)
@@ -89,6 +98,13 @@ class Company:
     def __post_init__(self) -> None:
         self.country = self.country.upper()
         self.currency = self.currency.upper()
+        self.set_currencies(self.currencies)
+
+    def set_currencies(self, codes: list[str]) -> None:
+        self.currencies = list(dict.fromkeys([self.currency, *(c.upper() for c in codes)]))
+
+    def works_in(self, currency: str) -> bool:
+        return currency.upper() in (self.currencies or [self.currency])
 
     def deductibility_for(self, document_type: DocumentType | str | None) -> Deductibility:
         """Deducibilidad sugerida por tipo de documento (o por "foreign_invoice"); contabilidad puede
@@ -480,6 +496,22 @@ class ApproverDelegation:
 
 
 @dataclass(frozen=True)
+class DisbursementPart:
+    """Una parte de la entrega: tesorería reparte entre tarjeta, efectivo y transferencia como quiera."""
+
+    method: DisbursementMethod
+    amount: Decimal
+    reference: str | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"method": self.method.value, "amount": str(self.amount), "reference": self.reference}
+
+    @classmethod
+    def of(cls, data: dict[str, Any]) -> DisbursementPart:
+        return cls(DisbursementMethod(data["method"]), Decimal(str(data["amount"])), data.get("reference"))
+
+
+@dataclass(frozen=True)
 class AdvanceBalance:
     currency: str
     amount: Decimal  # valor aprobado
@@ -536,8 +568,7 @@ class Advance:
     # Tesorería
     disbursed_at: datetime | None = None
     disbursed_by: uuid.UUID | None = None
-    disbursement_method: DisbursementMethod | None = None
-    disbursement_ref: str | None = None
+    disbursement_parts: list[dict[str, Any]] = field(default_factory=list)  # DisbursementPart.as_dict()
     # Anticipo calculado en otra moneda (p. ej. BRL por el destino) que la compañía entrega y liquida en la suya:
     # la legalización va en `settlement_currency`. Estimado al pedirlo con la tasa del día; al desembolsar queda
     # lo que tesorería entregó. None = se legaliza en la moneda del anticipo (misma moneda que la compañía).
@@ -727,16 +758,34 @@ class Advance:
             raise InvalidOperationError("Settlement amount must be positive", code="negative_amount")
         self.settlement_amount, self.settlement_rate, self.settlement_rate_date = amount, rate, rate_date
 
-    def disburse(self, actor_id: uuid.UUID, method: DisbursementMethod, reference: str | None, when: datetime) -> None:
+    @property
+    def disbursement(self) -> list[DisbursementPart]:
+        return [DisbursementPart.of(p) for p in self.disbursement_parts]
+
+    @staticmethod
+    def check_parts(parts: list[DisbursementPart]) -> Decimal:
+        """Al menos una parte, cada una con valor y sin repetir método. Devuelve el total."""
+        methods = [p.method for p in parts]
+        if not parts or len(set(methods)) != len(methods) or any(p.amount <= 0 for p in parts):
+            raise ValidationError("Invalid disbursement parts", code="invalid_disbursement_parts")
+        return sum((p.amount for p in parts), Decimal(0))
+
+    def disburse(self, actor_id: uuid.UUID, parts: list[DisbursementPart], when: datetime) -> None:
+        """Tesorería elige cómo entrega, aunque se haya pedido de otra forma; las partes van en la moneda en que
+        se legaliza y suman lo entregado (el valor aprobado, o lo fijado en la moneda de la compañía)."""
         self._require(AdvanceStatus.APPROVED, "disburse")
         if self.disbursed_at is not None:
             raise InvalidOperationError("Already disbursed", code="advance_already_disbursed")
-        if self.settlement_currency is not None and self.settlement_amount is None:
-            raise InvalidOperationError(
-                "Settlement amount required", code="settlement_amount_required", currency=self.settlement_currency
+        total = self.check_parts(parts)
+        if total != self.ledger_amount:
+            raise ValidationError(
+                "Disbursement does not match the advance",
+                code="disbursement_total_mismatch",
+                total=total,
+                amount=self.ledger_amount,
             )
         self.disbursed_at, self.disbursed_by = when, actor_id
-        self.disbursement_method, self.disbursement_ref = method, reference
+        self.disbursement_parts = [p.as_dict() for p in parts]
 
     def settle(self, actor_id: uuid.UUID, method: SettlementMethod, reference: str | None, when: datetime) -> None:
         allowed = {

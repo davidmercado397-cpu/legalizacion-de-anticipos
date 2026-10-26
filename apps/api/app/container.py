@@ -19,7 +19,11 @@ from app.adapters.outbound.documents import PillowDocumentPreparer, ZxingQrDecod
 from app.adapters.outbound.excel import OpenpyxlWriter
 from app.adapters.outbound.exchange_rates import EcbProvider, TrmProvider
 from app.adapters.outbound.infra import AsyncTaskRunner, LimitsRateLimiter, RedisCacheVersions, RedisLock, SystemClock
-from app.adapters.outbound.openrouter import OpenRouterInvoiceExtractor, OpenRouterStatementExtractor
+from app.adapters.outbound.openrouter import (
+    OpenRouterInvoiceExtractor,
+    OpenRouterModelCatalog,
+    OpenRouterStatementExtractor,
+)
 from app.adapters.outbound.persistence.uow import UnitOfWorkFactory, create_engine
 from app.adapters.outbound.security.mfa import FernetCipher, PyotpTotp
 from app.adapters.outbound.security.passwords import Argon2PasswordHasher
@@ -76,6 +80,7 @@ from app.domain.ports import (
     InvoiceExtractor,
     MediaSource,
     MessageSender,
+    ModelCatalog,
     QrDecoder,
     RateLimiter,
     StatementExtractor,
@@ -102,6 +107,7 @@ class Overrides:
     rate_providers: list[ExchangeRateProvider] | None = None
     erp: ErpGateway | None = None
     statement_extractor: StatementExtractor | None = None
+    model_catalog: ModelCatalog | None = None
 
 
 @dataclass
@@ -200,7 +206,8 @@ def build_container(settings: Settings, overrides: Overrides | None = None) -> C
     totp = PyotpTotp(settings.MFA_ISSUER)
     cipher = FernetCipher(settings.MFA_ENCRYPTION_KEY)
     access = AccessPolicy(clock)
-    runtime = SettingsService(uow, access, clock, versions)
+    catalog = o.model_catalog or OpenRouterModelCatalog(http, settings.OPENROUTER_BASE_URL)
+    runtime = SettingsService(uow, access, clock, versions, catalog)
 
     storage: FileStorage
     if o.storage is not None:

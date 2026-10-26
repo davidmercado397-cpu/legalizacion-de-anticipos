@@ -75,9 +75,10 @@ async def test_each_step_belongs_to_its_role(harness: Harness) -> None:
 
     assert (await harness.client.post(f"{url}/approve", headers=tre_h)).status_code == 403
     assert (await harness.client.post(f"{url}/approve", headers=boss_h)).status_code == 200
-    assert (await harness.client.post(f"{url}/disburse", headers=boss_h, json={"method": "cash"})).status_code == 403
-    assert (await harness.client.post(f"{url}/disburse", headers=acc_h, json={"method": "cash"})).status_code == 403
-    assert (await harness.client.post(f"{url}/disburse", headers=tre_h, json={"method": "cash"})).status_code == 200
+    cash = {"parts": [{"method": "cash", "amount": "100000"}]}
+    assert (await harness.client.post(f"{url}/disburse", headers=boss_h, json=cash)).status_code == 403
+    assert (await harness.client.post(f"{url}/disburse", headers=acc_h, json=cash)).status_code == 403
+    assert (await harness.client.post(f"{url}/disburse", headers=tre_h, json=cash)).status_code == 200
     assert (await harness.client.post(f"{url}/submit", headers=emp_h)).status_code == 200
     for headers in (boss_h, tre_h):
         assert (await harness.client.post(f"{url}/close", headers=headers)).status_code == 403

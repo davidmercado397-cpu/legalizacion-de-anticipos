@@ -1659,9 +1659,11 @@ export interface components {
             disbursed_at: string | null;
             /** Disbursed By */
             disbursed_by: string | null;
-            disbursement_method: components["schemas"]["DisbursementMethod"] | null;
-            /** Disbursement Ref */
-            disbursement_ref: string | null;
+            /**
+             * Disbursement Parts
+             * @description Cómo entregó tesorería: tarjeta, efectivo, transferencia
+             */
+            disbursement_parts: components["schemas"]["DisbursementPartOut"][];
             employee: components["schemas"]["OwnerOut"];
             /**
              * Employee Id
@@ -1843,9 +1845,11 @@ export interface components {
             disbursed_at: string | null;
             /** Disbursed By */
             disbursed_by: string | null;
-            disbursement_method: components["schemas"]["DisbursementMethod"] | null;
-            /** Disbursement Ref */
-            disbursement_ref: string | null;
+            /**
+             * Disbursement Parts
+             * @description Cómo entregó tesorería: tarjeta, efectivo, transferencia
+             */
+            disbursement_parts: components["schemas"]["DisbursementPartOut"][];
             /**
              * Employee Id
              * Format: uuid
@@ -1977,9 +1981,11 @@ export interface components {
             disbursed_at: string | null;
             /** Disbursed By */
             disbursed_by: string | null;
-            disbursement_method: components["schemas"]["DisbursementMethod"] | null;
-            /** Disbursement Ref */
-            disbursement_ref: string | null;
+            /**
+             * Disbursement Parts
+             * @description Cómo entregó tesorería: tarjeta, efectivo, transferencia
+             */
+            disbursement_parts: components["schemas"]["DisbursementPartOut"][];
             /**
              * Employee Id
              * Format: uuid
@@ -2416,7 +2422,7 @@ export interface components {
          * BudgetUnit
          * @enum {string}
          */
-        BudgetUnit: "per_day" | "per_night" | "per_trip";
+        BudgetUnit: "per_day" | "per_night" | "per_trip" | "per_15_days";
         /** CashCapIn */
         CashCapIn: {
             /** Amount */
@@ -2509,6 +2515,11 @@ export interface components {
         CompanyIn: {
             /** Country */
             country: string;
+            /**
+             * Currencies
+             * @description Monedas en que la compañía entrega y legaliza anticipos; siempre incluye `currency`. Vacío = solo esa
+             */
+            currencies?: string[] | null;
             /** Currency */
             currency: string;
             /**
@@ -2547,6 +2558,11 @@ export interface components {
             } | null;
             /** Country */
             country: string;
+            /**
+             * Currencies
+             * @description Monedas en que entrega y legaliza anticipos (la primera es la local); en otra, se legaliza en la local
+             */
+            currencies: string[];
             /** Currency */
             currency: string;
             /** Deductibility */
@@ -2580,6 +2596,11 @@ export interface components {
             cash_international_cap?: components["schemas"]["CashCapIn"] | null;
             /** Country */
             country?: string | null;
+            /**
+             * Currencies
+             * @description Reemplaza las monedas de la compañía; la local se agrega sola
+             */
+            currencies?: string[] | null;
             /** Currency */
             currency?: string | null;
             /** Deductibility */
@@ -2720,24 +2741,37 @@ export interface components {
         /** DisburseIn */
         DisburseIn: {
             /**
-             * Amount
-             * @description Calculado en otra moneda: lo entregado en la de la compañía. Vacío = con la tasa del día
-             */
-            amount?: number | string | null;
-            /**
              * Disbursed At
              * @description Vacío = ahora
              */
             disbursed_at?: string | null;
-            method: components["schemas"]["DisbursementMethod"];
-            /** Reference */
-            reference?: string | null;
+            /**
+             * Parts
+             * @description Cómo se entrega (un método por parte), en la moneda en que se legaliza. Deben sumar lo aprobado; si el anticipo se calculó en otra moneda, su total es lo entregado en la de la compañía
+             */
+            parts: components["schemas"]["DisbursementPartIn"][];
         };
         /**
          * DisbursementMethod
          * @enum {string}
          */
         DisbursementMethod: "cash" | "transfer" | "card";
+        /** DisbursementPartIn */
+        DisbursementPartIn: {
+            /** Amount */
+            amount: number | string;
+            method: components["schemas"]["DisbursementMethod"];
+            /** Reference */
+            reference?: string | null;
+        };
+        /** DisbursementPartOut */
+        DisbursementPartOut: {
+            /** Amount */
+            amount: string;
+            method: components["schemas"]["DisbursementMethod"];
+            /** Reference */
+            reference?: string | null;
+        };
         /**
          * DocumentType
          * @enum {string}

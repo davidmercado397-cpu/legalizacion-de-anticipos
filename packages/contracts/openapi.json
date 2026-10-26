@@ -248,26 +248,13 @@
             ],
             "title": "Disbursed By"
           },
-          "disbursement_method": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DisbursementMethod"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "disbursement_ref": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Disbursement Ref"
+          "disbursement_parts": {
+            "description": "Cómo entregó tesorería: tarjeta, efectivo, transferencia",
+            "items": {
+              "$ref": "#/components/schemas/DisbursementPartOut"
+            },
+            "title": "Disbursement Parts",
+            "type": "array"
           },
           "employee": {
             "$ref": "#/components/schemas/OwnerOut"
@@ -587,8 +574,7 @@
           "closed_by",
           "disbursed_at",
           "disbursed_by",
-          "disbursement_method",
-          "disbursement_ref",
+          "disbursement_parts",
           "settlement_currency",
           "settlement_amount",
           "settlement_rate",
@@ -927,26 +913,13 @@
             ],
             "title": "Disbursed By"
           },
-          "disbursement_method": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DisbursementMethod"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "disbursement_ref": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Disbursement Ref"
+          "disbursement_parts": {
+            "description": "Cómo entregó tesorería: tarjeta, efectivo, transferencia",
+            "items": {
+              "$ref": "#/components/schemas/DisbursementPartOut"
+            },
+            "title": "Disbursement Parts",
+            "type": "array"
           },
           "employee_id": {
             "format": "uuid",
@@ -1252,8 +1225,7 @@
           "closed_by",
           "disbursed_at",
           "disbursed_by",
-          "disbursement_method",
-          "disbursement_ref",
+          "disbursement_parts",
           "settlement_currency",
           "settlement_amount",
           "settlement_rate",
@@ -1459,26 +1431,13 @@
             ],
             "title": "Disbursed By"
           },
-          "disbursement_method": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DisbursementMethod"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "disbursement_ref": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Disbursement Ref"
+          "disbursement_parts": {
+            "description": "Cómo entregó tesorería: tarjeta, efectivo, transferencia",
+            "items": {
+              "$ref": "#/components/schemas/DisbursementPartOut"
+            },
+            "title": "Disbursement Parts",
+            "type": "array"
           },
           "employee_id": {
             "format": "uuid",
@@ -1780,8 +1739,7 @@
           "closed_by",
           "disbursed_at",
           "disbursed_by",
-          "disbursement_method",
-          "disbursement_ref",
+          "disbursement_parts",
           "settlement_currency",
           "settlement_amount",
           "settlement_rate",
@@ -2725,7 +2683,8 @@
         "enum": [
           "per_day",
           "per_night",
-          "per_trip"
+          "per_trip",
+          "per_15_days"
         ],
         "title": "BudgetUnit",
         "type": "string"
@@ -3003,6 +2962,22 @@
             "title": "Country",
             "type": "string"
           },
+          "currencies": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Monedas en que la compañía entrega y legaliza anticipos; siempre incluye `currency`. Vacío = solo esa",
+            "title": "Currencies"
+          },
           "currency": {
             "maxLength": 3,
             "minLength": 3,
@@ -3103,6 +3078,14 @@
             "title": "Country",
             "type": "string"
           },
+          "currencies": {
+            "description": "Monedas en que entrega y legaliza anticipos (la primera es la local); en otra, se legaliza en la local",
+            "items": {
+              "type": "string"
+            },
+            "title": "Currencies",
+            "type": "array"
+          },
           "currency": {
             "title": "Currency",
             "type": "string"
@@ -3179,6 +3162,7 @@
           "cash_international_cap",
           "approval_tolerance_pct",
           "approval_thresholds",
+          "currencies",
           "tax_id",
           "is_test",
           "active",
@@ -3224,6 +3208,23 @@
               }
             ],
             "title": "Country"
+          },
+          "currencies": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 20,
+                "minItems": 1,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Reemplaza las monedas de la compañía; la local se agrega sola",
+            "title": "Currencies"
           },
           "currency": {
             "anyOf": [
@@ -3599,23 +3600,6 @@
       },
       "DisburseIn": {
         "properties": {
-          "amount": {
-            "anyOf": [
-              {
-                "exclusiveMinimum": 0.0,
-                "type": "number"
-              },
-              {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Calculado en otra moneda: lo entregado en la de la compañía. Vacío = con la tasa del día",
-            "title": "Amount"
-          },
           "disbursed_at": {
             "anyOf": [
               {
@@ -3628,6 +3612,47 @@
             ],
             "description": "Vacío = ahora",
             "title": "Disbursed At"
+          },
+          "parts": {
+            "description": "Cómo se entrega (un método por parte), en la moneda en que se legaliza. Deben sumar lo aprobado; si el anticipo se calculó en otra moneda, su total es lo entregado en la de la compañía",
+            "items": {
+              "$ref": "#/components/schemas/DisbursementPartIn"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Parts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "parts"
+        ],
+        "title": "DisburseIn",
+        "type": "object"
+      },
+      "DisbursementMethod": {
+        "enum": [
+          "cash",
+          "transfer",
+          "card"
+        ],
+        "title": "DisbursementMethod",
+        "type": "string"
+      },
+      "DisbursementPartIn": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Amount"
           },
           "method": {
             "$ref": "#/components/schemas/DisbursementMethod"
@@ -3646,19 +3671,40 @@
           }
         },
         "required": [
-          "method"
+          "method",
+          "amount"
         ],
-        "title": "DisburseIn",
+        "title": "DisbursementPartIn",
         "type": "object"
       },
-      "DisbursementMethod": {
-        "enum": [
-          "cash",
-          "transfer",
-          "card"
+      "DisbursementPartOut": {
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "method": {
+            "$ref": "#/components/schemas/DisbursementMethod"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          }
+        },
+        "required": [
+          "method",
+          "amount"
         ],
-        "title": "DisbursementMethod",
-        "type": "string"
+        "title": "DisbursementPartOut",
+        "type": "object"
       },
       "DocumentType": {
         "enum": [

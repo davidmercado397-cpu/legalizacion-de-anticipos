@@ -41,6 +41,7 @@ class CompanyData:
     is_test: bool = False
     legal_name: str | None = None
     timezone: str | None = None  # None = la del país (defaults.countries)
+    currencies: list[str] | None = None  # en qué monedas trabaja; None = solo la local
 
 
 def _check_codes(country: str | None, timezone: str | None) -> None:
@@ -61,6 +62,8 @@ class CompanyService:
         _check_codes(data.country, data.timezone)
         defaults = await self._settings.current()
         check_currency(data.currency, defaults.supported_currencies)
+        for code in data.currencies or []:
+            check_currency(code, defaults.supported_currencies)
         country = defaults.country_defaults.get(data.country.upper())
         if country is None and data.timezone is None:
             raise ValidationError("Unknown country", code="unknown_country", country=data.country.upper())
@@ -75,6 +78,7 @@ class CompanyService:
             legal_name=data.legal_name,
             timezone=data.timezone or (country or {})["timezone"],
             exchange_rate_policy=ExchangeRatePolicy(defaults.exchange_rate_policy_default),
+            currencies=list(data.currencies or []),
         )
         async with self._uow() as uow:
             await uow.companies.add(company)
@@ -128,6 +132,8 @@ class CompanyService:
         _check_codes(changes.get("country"), changes.get("timezone"))
         supported = (await self._settings.current()).supported_currencies
         check_currency(changes.get("currency"), supported)
+        for code in changes.get("currencies") or []:
+            check_currency(code, supported)
         if changes.get("deductibility") is not None:
             for doc_type, value in changes["deductibility"].items():
                 if doc_type not in DocumentType._value2member_map_ or value not in Deductibility._value2member_map_:
@@ -140,6 +146,8 @@ class CompanyService:
                 if name in changes and changes[name] is not None:
                     value = changes[name]
                     setattr(company, name, value.upper() if name in ("country", "currency") else value)
+            # La lista nueva reemplaza la anterior; cambiar la moneda local la deja habilitada.
+            company.set_currencies(changes["currencies"] if changes.get("currencies") is not None else company.currencies)
             if "cash_international_cap" in changes:
                 company.cash_international_cap = _cash_cap(changes["cash_international_cap"], supported)
             await uow.audit.add(AuditEntry("company_updated", "company", str(company.id), actor.id, data=changes))

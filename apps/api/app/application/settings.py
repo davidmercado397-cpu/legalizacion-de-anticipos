@@ -14,7 +14,7 @@ from app.application.cache import SharedCache
 from app.domain.entities import AuditEntry, Employee
 from app.domain.errors import ValidationError
 from app.domain.permissions import Permission
-from app.domain.ports import CacheVersions, Clock, UnitOfWorkFactory
+from app.domain.ports import CacheVersions, Clock, ModelCatalog, UnitOfWorkFactory
 from app.domain.settings import SettingMissingError, SystemSetting
 
 
@@ -99,8 +99,23 @@ def check_currency(code: str | None, supported: list[str]) -> None:
         )
 
 
+MODEL_KEYS = ("ai.primary_model", "ai.lite_model", "ai.fallback_model", "ai.availability_fallbacks")
+
+
+def _as_list(value: Any) -> list[str]:
+    return [str(v) for v in value] if isinstance(value, list) else [str(value)]
+
+
 class SettingsService:
-    def __init__(self, uow: UnitOfWorkFactory, access: AccessPolicy, clock: Clock, versions: CacheVersions) -> None:
+    def __init__(
+        self,
+        uow: UnitOfWorkFactory,
+        access: AccessPolicy,
+        clock: Clock,
+        versions: CacheVersions,
+        catalog: ModelCatalog | None = None,
+    ) -> None:
+        self._catalog = catalog
         self._uow = uow
         self._access = access
         self._clock = clock
@@ -119,6 +134,16 @@ class SettingsService:
             present = {row.key for row in await uow.settings.all()}
         return [key for key in RuntimeSettings.setting_keys() if key not in present]
 
+    async def _check_models(self, values: dict[str, Any]) -> None:
+        """Un modelo que OpenRouter no tiene hace fallar toda la lectura: no se deja guardar."""
+        wanted = [m for key in MODEL_KEYS if key in values for m in _as_list(values[key]) if m]
+        if not wanted or self._catalog is None:
+            return
+        available = await self._catalog.available_models()
+        missing = [m for m in wanted if available is not None and m not in available]
+        if missing:
+            raise ValidationError("Unknown AI model", code="unknown_ai_model", models=", ".join(missing))
+
     async def describe(self, actor: Employee) -> list[SystemSetting]:
         self._access.require(actor, Permission.SETTINGS_MANAGE)
         async with self._uow() as uow:
@@ -136,6 +161,7 @@ class SettingsService:
             for key, raw in changes.items():
                 rows[key].change(raw, actor.id, now)
             after = {key: rows[key].value for key in changes}
+            await self._check_models(after)
             await uow.audit.add(AuditEntry("settings_updated", "system", None, actor.id, data={"before": before, "after": after}))
             await uow.commit()
         await self._cache.invalidate()

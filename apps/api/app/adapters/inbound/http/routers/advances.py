@@ -35,7 +35,7 @@ from app.adapters.inbound.http.schemas import (
 )
 from app.application.advances import AdvanceRequest, ReturnMark
 from app.container import Container
-from app.domain.entities import Advance
+from app.domain.entities import Advance, DisbursementPart
 from app.domain.enums import AdvanceStatus
 
 router = APIRouter(prefix="/advances", tags=["advances"])
@@ -187,7 +187,8 @@ async def reopen(advance_id: uuid.UUID, body: RequiredNoteIn, actor: CurrentEmpl
 
 @router.post("/{advance_id}/disburse", response_model=AdvanceOut, summary="Record that treasury delivered the money")
 async def disburse(advance_id: uuid.UUID, body: DisburseIn, actor: CurrentEmployee, container: ContainerDep) -> AdvanceOut:
-    advance = await container.treasury.disburse(actor, advance_id, body.method, body.reference, body.disbursed_at, body.amount)
+    parts = [DisbursementPart(p.method, p.amount, p.reference) for p in body.parts]
+    advance = await container.treasury.disburse(actor, advance_id, parts, body.disbursed_at)
     return await _out(container, advance)
 
 

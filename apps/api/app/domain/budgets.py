@@ -7,6 +7,7 @@ distintas, el anticipo va en dólares (decisión 4.8)."""
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -74,9 +75,14 @@ class LegRates:
 
 
 def trip_units(start: date, end: date) -> dict[BudgetUnit, int]:
-    """Un viaje del lunes al miércoles son 3 días y 2 noches."""
+    """Un viaje del lunes al miércoles son 3 días, 2 noches y 1 plan de 15 días (16 días ya son 2)."""
     days = (end - start).days + 1
-    return {BudgetUnit.PER_DAY: days, BudgetUnit.PER_NIGHT: max(days - 1, 0), BudgetUnit.PER_TRIP: 1}
+    return {
+        BudgetUnit.PER_DAY: days,
+        BudgetUnit.PER_NIGHT: max(days - 1, 0),
+        BudgetUnit.PER_TRIP: 1,
+        BudgetUnit.PER_15_DAYS: math.ceil(days / 15),
+    }
 
 
 def ordered_legs(legs: list[TripLeg]) -> list[TripLeg]:

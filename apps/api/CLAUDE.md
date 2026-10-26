@@ -154,6 +154,18 @@ capa determinística primero (QR fiscal DIAN/SAT/DGI, texto de PDF, verificacion
   (`reconciliation.match`). Un cruce confirmado legaliza el valor del banco (7.8); un cargo del viaje sin
   factura lo decide contabilidad (lo asume la empresa o se descuenta, 7.6); una factura con tarjeta sin
   cargo queda en alerta (7.7). Cerrar exige que no quede nada por decidir.
+- Calidad primero en la IA (migración 0025): `ai.routing = always_primary` (todo con `gemini-3.8-flash`),
+  alterno `anthropic/claude-opus-5.5` y aviso de demora a los 20 s, solo donde seguía el valor anterior. Un
+  modelo que OpenRouter no ofrece ya no se deja guardar (`unknown_ai_model`, puerto `ModelCatalog`,
+  `OpenRouterModelCatalog` con la lista pública; si no responde, se guarda y queda en el log).
+- Monedas, entrega y viáticos de Forsa (migración 0026, decisiones 9.7 a 9.9): `companies.currencies` dice en
+  qué monedas trabaja la compañía (la local siempre, primero; por defecto solo esa). Un anticipo en una de esas
+  monedas se entrega y se legaliza en ella; en otra, en la local (`settlement_*`). La entrega va en
+  `advances.disbursement_parts` (tarjeta, efectivo, transferencia; suman `ledger_amount`, y con
+  `settlement_currency` su total es lo entregado); el efectivo en moneda extranjera pasa por
+  `ExchangeRateService.check_cash_cap`, el mismo tope de la solicitud. Unidad `per_15_days` (internet, por
+  tramo), categoría `internet` y `meals` = "Alimentación y refrescos". La tabla de Forsa está en
+  `docs/tarifas/` (raíz) y `test_the_forsa_rate_table_loads_as_delivered` la carga tal cual.
 - **Pendiente:** el adaptador real de Siesa. Preguntas abiertas a Forsa: el tercero genérico de Panamá
   (`fiscal.generic_buyer_ids.PA` está vacío) y si los recibos de caja deben traer nombre e
   identificación de quien vende (`required_fields`). Plantillas que Forsa aprueba en Meta:

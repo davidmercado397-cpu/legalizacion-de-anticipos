@@ -170,14 +170,25 @@ async def test_treasury_disburses_and_settles_the_difference(harness: Harness) -
     assert [a["id"] for a in pending.json()["data"]] == [advance_id]
     assert pending.json()["data"][0]["employee_name"]  # los listados dicen de quién es cada anticipo
     # Desembolsa tesorería: ni el jefe ni contabilidad.
+    url = f"/api/v1/advances/{advance_id}/disburse"
+    all_cash = {"parts": [{"method": "cash", "amount": "500000"}]}
     for headers in (appr_h, acc_h):
-        denied = await harness.client.post(f"/api/v1/advances/{advance_id}/disburse", headers=headers, json={"method": "cash"})
-        assert denied.status_code == 403
-    paid = await harness.client.post(
-        f"/api/v1/advances/{advance_id}/disburse", headers=tre_h, json={"method": "transfer", "reference": "TRX-991"}
-    )
-    assert paid.json()["disbursement_method"] == "transfer" and paid.json()["disbursed_at"]
-    again = await harness.client.post(f"/api/v1/advances/{advance_id}/disburse", headers=tre_h, json={"method": "cash"})
+        assert (await harness.client.post(url, headers=headers, json=all_cash)).status_code == 403
+    # Tesorería reparte como quiera (se pidió en efectivo), pero las partes suman lo aprobado.
+    short = {"parts": [{"method": "card", "amount": "300000"}, {"method": "cash", "amount": "100000"}]}
+    assert (await harness.client.post(url, headers=tre_h, json=short)).json()["error"]["code"] == "disbursement_total_mismatch"
+    twice = {"parts": [{"method": "cash", "amount": "250000"}, {"method": "cash", "amount": "250000"}]}
+    assert (await harness.client.post(url, headers=tre_h, json=twice)).json()["error"]["code"] == "invalid_disbursement_parts"
+    split = {
+        "parts": [{"method": "transfer", "amount": "300000", "reference": "TRX-991"}, {"method": "cash", "amount": "200000"}]
+    }
+    paid = await harness.client.post(url, headers=tre_h, json=split)
+    assert paid.json()["disbursed_at"]
+    assert [(p["method"], Decimal(p["amount"]), p["reference"]) for p in paid.json()["disbursement_parts"]] == [
+        ("transfer", Decimal("300000"), "TRX-991"),
+        ("cash", Decimal("200000"), None),
+    ]
+    again = await harness.client.post(url, headers=tre_h, json=all_cash)
     assert again.json()["error"]["code"] == "advance_already_disbursed"
     balance = (await harness.client.get(f"/api/v1/advances/{advance_id}", headers=emp_h)).json()["balance"]
     assert Decimal(balance["disbursed"]) == Decimal("500000")

@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import logging
 from datetime import date, timedelta
+from decimal import Decimal
 
+from app.application import messages as msg
 from app.application.access import AccessPolicy
 from app.application.settings import SettingsService
 from app.domain.entities import Advance, AuditEntry, Company, Employee, Expense
-from app.domain.errors import ExternalServiceError
+from app.domain.errors import ExternalServiceError, ValidationError
 from app.domain.exchange import PIVOT, Conversion, Leg, combine, rate_day
 from app.domain.permissions import Permission
 from app.domain.ports import Clock, ExchangeRateProvider, UnitOfWork, UnitOfWorkFactory
@@ -96,3 +98,20 @@ class ExchangeRateService:
     async def to_functional(self, uow: UnitOfWork, advance: Advance, company: Company) -> Conversion | None:
         """Tasa del día para mostrar el saldo de un anticipo en otra moneda también en la de la compañía."""
         return await self.conversion(uow, advance.currency, company.currency, local_date(self._clock.now(), company.timezone))
+
+    async def check_cash_cap(self, uow: UnitOfWork, company: Company, currency: str, amount: Decimal) -> None:
+        """El efectivo en moneda extranjera tiene un tope por compañía (p. ej. USD 200), al pedirlo y al entregarlo."""
+        cap = company.cash_international_cap
+        if not cap:
+            return
+        cap_amount, cap_currency = Decimal(cap["amount"]), cap["currency"]
+        if currency == cap_currency:
+            in_cap_currency = amount
+        else:
+            today = local_date(self._clock.now(), company.timezone)
+            conversion = await self.conversion(uow, currency, cap_currency, today)
+            if conversion is None:
+                raise ValidationError("No rate to verify the cash cap", code="cash_cap_unverifiable")
+            in_cap_currency = conversion.apply(amount)
+        if in_cap_currency > cap_amount:
+            raise ValidationError("Cash cap exceeded", code="cash_cap_exceeded", cap=msg.money(cap_amount, cap_currency))

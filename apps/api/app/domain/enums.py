@@ -149,6 +149,7 @@ class BudgetUnit(StrEnum):
     PER_DAY = "per_day"  # alimentación, transporte local
     PER_NIGHT = "per_night"  # hospedaje
     PER_TRIP = "per_trip"  # tiquetes, traslados al aeropuerto
+    PER_15_DAYS = "per_15_days"  # plan de internet: uno por cada 15 días (en cada tramo, porque cambia el país)
 
 
 class DisbursementMethod(StrEnum):

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import io
+import json
 from datetime import date, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 from openpyxl import Workbook
 
@@ -11,6 +13,7 @@ from app.domain.enums import ExchangeRateSource, Role, StaffType
 from app.domain.time import local_date
 from tests.conftest import Harness
 
+TARIFAS = Path(__file__).resolve().parents[4] / "docs" / "tarifas"
 HEADER = ["Zona", "Tipo_personal", "Categoria", "Valor", "Moneda", "Unidad", "Desde", "Hasta"]
 
 
@@ -156,6 +159,21 @@ async def test_cash_in_foreign_currency_has_a_cap(harness: Harness) -> None:
         "/api/v1/advances", headers=emp_h, json={**base, "kind": "reloadable_card", "currency": "USD", "amount": "900"}
     )
     assert card.status_code == 201
+    # Si la compañía trabaja en dólares, tesorería entrega en dólares y puede dar parte en efectivo (pidió
+    # tarjeta), sin pasar el tope.
+    await harness.client.patch(f"/api/v1/companies/{company.id}", headers=admin_h, json={"currencies": ["USD"]})
+    in_dollars = await harness.client.post(
+        "/api/v1/advances", headers=emp_h, json={**base, "kind": "reloadable_card", "currency": "USD", "amount": "900"}
+    )
+    assert in_dollars.json()["settlement_currency"] is None
+    await harness.client.post(f"/api/v1/advances/{in_dollars.json()['id']}/approve", headers=admin_h)
+    treasurer = await harness.add_employee(company, "teso@forsa.com", Role.TREASURY)
+    url = f"/api/v1/advances/{in_dollars.json()['id']}/disburse"
+    treas_h = await harness.login(treasurer)
+    too_much = {"parts": [{"method": "cash", "amount": "300"}, {"method": "card", "amount": "600"}]}
+    assert (await harness.client.post(url, headers=treas_h, json=too_much)).json()["error"]["code"] == "cash_cap_exceeded"
+    split = {"parts": [{"method": "cash", "amount": "200"}, {"method": "card", "amount": "700"}]}
+    assert (await harness.client.post(url, headers=treas_h, json=split)).status_code == 200
     bad_cap = await harness.client.patch(
         f"/api/v1/companies/{company.id}", headers=admin_h, json={"cash_international_cap": {"amount": "200", "currency": "JPY"}}
     )
@@ -237,3 +255,35 @@ async def test_a_trip_with_two_destinations_in_two_currencies_goes_in_dollars(ha
         "/api/v1/advances", headers=emp_h, json={**base, "legs": unknown, "currency": "USD", "amount": "300"}
     )
     assert manual.status_code == 201 and manual.json()["budget_amount"] is None
+
+
+async def test_the_forsa_rate_table_loads_as_delivered(harness: Harness) -> None:
+    """El Excel y las zonas de docs/tarifas se cargan tal cual: alimentación con refrescos e internet cada 15 días."""
+    company = await harness.add_company()
+    accountant = await harness.add_employee(company, "conta@forsa.com", Role.ACCOUNTANT)
+    employee = await harness.add_employee(company, "juan@forsa.com", staff_type=StaffType.ADMINISTRATIVE)
+    acc_h, emp_h = await harness.login(accountant), await harness.login(employee)
+    for zone in json.loads((TARIFAS / "zonas.json").read_text(encoding="utf-8")):
+        created = await harness.client.post(f"/api/v1/companies/{company.id}/travel-zones", headers=acc_h, json=zone)
+        assert created.status_code == 201, created.text
+    imported = await harness.client.post(
+        f"/api/v1/companies/{company.id}/travel-rates/import",
+        headers=acc_h,
+        files={"file": ("tarifas.xlsx", (TARIFAS / "forsa_tarifas_viaje.xlsx").read_bytes())},
+    )
+    assert imported.status_code == 200, imported.text
+    assert imported.json()["imported"] == 68
+
+    trip = {
+        "company_id": str(company.id),
+        "destination": "Obra en São Paulo",
+        "start_date": "2026-11-03",
+        "end_date": "2026-11-05",
+    }
+    preview = (await harness.client.post("/api/v1/advances/budget-preview", headers=emp_h, json=trip)).json()
+    assert preview["currency"] == "BRL" and Decimal(preview["total"]) == Decimal("2039")
+    lines = {line["category"]: (line["units"], Decimal(line["rate"])) for line in preview["lines"]}
+    assert lines["meals"] == (3, Decimal("158")) and lines["internet"] == (1, Decimal("80"))
+    long_trip = {**trip, "destination": "Cali", "end_date": "2026-11-20"}  # Colombia no tiene internet
+    colombia = (await harness.client.post("/api/v1/advances/budget-preview", headers=emp_h, json=long_trip)).json()
+    assert colombia["currency"] == "COP" and "internet" not in {line["category"] for line in colombia["lines"]}

@@ -471,3 +471,21 @@ def _confidence(value: Any) -> float | None:
     if isinstance(value, bool) or not isinstance(value, int | float):
         return None
     return max(0.0, min(1.0, float(value)))
+
+
+class OpenRouterModelCatalog:
+    """Lista pública de modelos de OpenRouter (no requiere la clave). Un modelo mal escrito en la configuración
+    tumba toda la lectura, por eso se verifica al guardarla."""
+
+    def __init__(self, client: httpx.AsyncClient, base_url: str) -> None:
+        self._client = client
+        self._url = base_url.rstrip("/") + "/models"
+
+    async def available_models(self) -> set[str] | None:
+        try:
+            response = await self._client.get(self._url, timeout=10)
+            response.raise_for_status()
+            return {str(m["id"]) for m in response.json().get("data", []) if m.get("id")}
+        except (httpx.HTTPError, ValueError, KeyError, TypeError):
+            logger.warning("OpenRouter model list unavailable; the setting is saved without checking it", exc_info=True)
+            return None

@@ -23,8 +23,14 @@ def test_a_three_day_trip_has_two_nights() -> None:
         BudgetUnit.PER_DAY: 3,
         BudgetUnit.PER_NIGHT: 2,
         BudgetUnit.PER_TRIP: 1,
+        BudgetUnit.PER_15_DAYS: 1,
     }
     assert trip_units(date(2026, 10, 12), date(2026, 10, 12))[BudgetUnit.PER_NIGHT] == 0
+
+
+def test_internet_is_one_plan_every_fifteen_days() -> None:
+    assert trip_units(date(2026, 10, 1), date(2026, 10, 15))[BudgetUnit.PER_15_DAYS] == 1
+    assert trip_units(date(2026, 10, 1), date(2026, 10, 16))[BudgetUnit.PER_15_DAYS] == 2
 
 
 def test_budget_by_category_and_the_newest_rate_wins() -> None:

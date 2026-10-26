@@ -128,8 +128,8 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `NOTICE_RETURNED_LINE` | {approver} te devolvió la legalización de {label} para cambios |
 | `NOTICE_CLOSED` | ✅ {approver} aprobó tu legalización de {label}. |
 | `NOTICE_CLOSED_LINE` | {approver} aprobó tu legalización de {label} |
-| `NOTICE_DISBURSED` | 💸 Tesorería te entregó el anticipo {label} ({amount}). |
-| `NOTICE_DISBURSED_LINE` | tesorería te entregó el anticipo {label} ({amount}) |
+| `NOTICE_DISBURSED` | 💸 Tesorería te entregó el anticipo {label}: {parts}. |
+| `NOTICE_DISBURSED_LINE` | tesorería te entregó el anticipo {label}: {parts} |
 | `BUTTON_SEE_MARKED` | ↩️ Ver marcados |
 | `MARKED_PROMPT` | ↩️ Estos gastos te los marcaron para revisar. Elige uno: |
 | `NO_MARKED` | No tienes gastos marcados por revisar 👍 |
@@ -245,6 +245,8 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `note_required` | Escribe una nota con el motivo. |
 | `advance_has_expenses` | Este anticipo ya tiene gastos aplicados, así que no se puede anular. Legalízalo y ciérralo: la diferencia queda como reintegro. |
 | `advance_already_settled` | Esta legalización ya se liquidó (reintegro o pago registrado), así que no se puede reabrir. |
+| `invalid_disbursement_parts` | Cada parte de la entrega lleva un método distinto y un valor mayor que cero. |
+| `disbursement_total_mismatch` | Las partes de la entrega deben sumar lo aprobado del anticipo. |
 | `advance_already_disbursed` | La entrega de este anticipo ya está registrada. |
 | `invalid_settlement` | No hay nada que liquidar de esa forma: el anticipo está sin diferencia. |
 | `invalid_delegation` | La suplencia debe ser entre dos personas distintas, el suplente debe ser un aprobador activo y la fecha final debe ser posterior a la inicial. |
@@ -295,7 +297,6 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `expense_not_confirmable` | Este gasto no se puede confirmar porque está in_review. |
 | `missing_total_currency` | Para confirmar el gasto falta el total o la moneda. |
 | `converted_amount_required` | La factura está en USD y el anticipo en COP: indica el valor equivalente en COP. |
-| `settlement_amount_required` | No se pudo completar la acción. |
 | `withdrawal_rate_missing` | No se pudo completar la acción. |
 | `withdrawal_same_currency` | Ese retiro está en la misma moneda del anticipo: no hace falta registrarlo. |
 | `withdrawal_fee_expense` | Esta comisión es de un retiro: cámbiala o bórrala desde el retiro. |
@@ -318,6 +319,7 @@ los cambios se hacen en `messages.py` y se vuelve a generar.
 | `budget_import_invalid` | El archivo no se cargó: hay 3 filas con problemas. Revisa el detalle, corrígelas y vuelve a subirlo. |
 | `invalid_spreadsheet` | No pudimos leer el archivo. Súbelo en formato Excel (.xlsx) con la plantilla de tarifas. |
 | `unknown_setting` | No se pudo completar la acción. |
+| `unknown_ai_model` | No se pudo completar la acción. |
 | `setting_missing` | No se pudo completar la acción. |
 | `setting_int` | No se pudo completar la acción. |
 | `setting_decimal` | No se pudo completar la acción. |

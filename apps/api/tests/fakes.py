@@ -192,6 +192,16 @@ def make_jpeg(qr_text: str | None = None, seed: int = 1, blurry: bool = False) -
 
 
 @dataclass
+class FakeModelCatalog:
+    """None = no se pudo consultar (se guarda sin verificar), como sin red en las pruebas."""
+
+    models: set[str] | None = None
+
+    async def available_models(self) -> set[str] | None:
+        return self.models
+
+
+@dataclass
 class FakeRateProvider:
     """Tasas fijas por moneda (1 USD = valor) para cada día pedido; `fail=True` simula la fuente caída."""
 

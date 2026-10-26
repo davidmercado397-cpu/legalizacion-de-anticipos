@@ -732,6 +732,12 @@ class CacheVersions(Protocol):
     async def bump(self, namespace: str) -> None: ...
 
 
+class ModelCatalog(Protocol):
+    async def available_models(self) -> set[str] | None:
+        """Modelos que el proveedor de IA ofrece hoy; None si no se pudo consultar."""
+        ...
+
+
 class ExchangeRateProvider(Protocol):
     async def fetch(self, start: date, end: date, quotes: list[str]) -> list[ExchangeRate]:
         """Tasas publicadas entre `start` y `end` (USD contra cada moneda de `quotes` que cubra la fuente)."""

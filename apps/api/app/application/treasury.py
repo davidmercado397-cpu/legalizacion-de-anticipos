@@ -11,7 +11,7 @@ from decimal import Decimal
 from app.application.access import AccessPolicy
 from app.application.advances import AdvanceEvents, AdvanceEventType
 from app.application.exchange import ExchangeRateService
-from app.domain.entities import Advance, ApproverDelegation, AuditEntry, Employee
+from app.domain.entities import Advance, ApproverDelegation, AuditEntry, DisbursementPart, Employee
 from app.domain.enums import DisbursementMethod, Role, SettlementMethod
 from app.domain.errors import NotFoundError, ValidationError
 from app.domain.permissions import Permission
@@ -30,40 +30,29 @@ class TreasuryService:
         self._clock = clock
 
     async def disburse(
-        self,
-        actor: Employee,
-        advance_id: uuid.UUID,
-        method: DisbursementMethod,
-        reference: str | None,
-        when: datetime | None,
-        amount: Decimal | None = None,
+        self, actor: Employee, advance_id: uuid.UUID, parts: list[DisbursementPart], when: datetime | None
     ) -> Advance:
-        """`amount`: lo entregado en la moneda de la compañía cuando el anticipo se calculó en otra. Sin él, se
-        calcula con la tasa del día del desembolso (decisión: calculado y editable por tesorería)."""
+        """Las partes van en la moneda en que se legaliza. Si el anticipo se calculó en otra moneda, su total es lo
+        que tesorería entregó en la de la compañía (decisión 9.3: estimado con la tasa del día y editable)."""
         when = when or self._clock.now()
+        parts = [DisbursementPart(p.method, p.amount, _ref(p.reference)) for p in parts]
         async with self._uow() as uow:
             advance = await self._advance(uow, actor, advance_id)
+            company = await uow.companies.get(advance.company_id)
+            assert company is not None
             if advance.settlement_currency is not None:
-                await self._settle_in_company_currency(uow, advance, amount, when)
-            advance.disburse(actor.id, method, _ref(reference), when)
-            data = {"method": method, "ref": reference, "amount": advance.ledger_amount, "currency": advance.ledger_currency}
+                total = Advance.check_parts(parts)
+                rate = (total / advance.amount).quantize(Decimal("0.00000001"))
+                advance.set_settlement(total, rate, local_date(when, company.timezone))
+            advance.disburse(actor.id, parts, when)
+            cash = sum((p.amount for p in parts if p.method == DisbursementMethod.CASH), Decimal(0))
+            if cash and advance.ledger_currency != company.currency:
+                await self._rates.check_cash_cap(uow, company, advance.ledger_currency, cash)
+            data = {"parts": advance.disbursement_parts, "currency": advance.ledger_currency}
             await uow.audit.add(AuditEntry("advance_disburse", "advance", str(advance.id), actor.id, data=data))
             await uow.commit()
         await self._events.emit(AdvanceEventType.DISBURSED, advance.id, actor.id)
         return advance
-
-    async def _settle_in_company_currency(
-        self, uow: UnitOfWork, advance: Advance, amount: Decimal | None, when: datetime
-    ) -> None:
-        company = await uow.companies.get(advance.company_id)
-        assert company is not None and advance.settlement_currency is not None
-        day = local_date(when, company.timezone)
-        if amount is not None:
-            advance.set_settlement(amount, (amount / advance.amount).quantize(Decimal("0.00000001")), day)
-            return
-        conversion = await self._rates.conversion(uow, advance.currency, advance.settlement_currency, day)
-        if conversion is not None:
-            advance.set_settlement(conversion.apply(advance.amount), conversion.rate, conversion.day)
 
     async def settle(
         self, actor: Employee, advance_id: uuid.UUID, method: SettlementMethod, reference: str | None, when: datetime | None
