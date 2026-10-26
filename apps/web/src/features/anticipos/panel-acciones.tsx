@@ -153,20 +153,10 @@ export function PanelAcciones({ anticipo }: { anticipo: AnticipoDetalle }) {
           )}
           {abierto === 'devolver' && <FormularioDevolucion anticipo={anticipo} alTerminar={() => setAbierto(null)} />}
           {abierto === 'desembolsar' && (
-            <FormularioTesoreria
-              titulo="Desembolso"
-              opciones={['transfer', 'cash', 'card'] satisfies MetodoDesembolso[]}
-              grupo="desembolso"
+            <FormularioDesembolso
+              anticipo={anticipo}
               cargando={accion.isPending}
-              entrega={
-                anticipo.settlement_currency ? { moneda: anticipo.settlement_currency, estimado: anticipo.settlement_amount } : undefined
-              }
-              alEnviar={(method, reference, amount) =>
-                accion.mutate(
-                  { tipo: 'desembolsar', datos: { method: method as MetodoDesembolso, reference, amount } },
-                  { onSuccess: () => setAbierto(null) },
-                )
-              }
+              alEnviar={(parts) => accion.mutate({ tipo: 'desembolsar', datos: { parts } }, { onSuccess: () => setAbierto(null) })}
               alCancelar={() => setAbierto(null)}
             />
           )}
@@ -220,19 +210,106 @@ function FormularioNota(props: {
   );
 }
 
+const METODOS: MetodoDesembolso[] = ['transfer', 'cash', 'card'];
+
+/** El medio que corresponde a lo que se pidió: ahí se propone todo el valor. */
+function metodoPedido(tipo: AnticipoDetalle['kind']): MetodoDesembolso {
+  return tipo === 'cash' ? 'cash' : 'card';
+}
+
+type ParteDesembolso = { method: MetodoDesembolso; amount: string; reference: string | null };
+
+/**
+ * Tesorería reparte la entrega entre transferencia, efectivo y tarjeta como quiera (decisión 9.8). Las partes
+ * van en la moneda en que se legaliza y suman lo aprobado; si se calculó en otra moneda, su total es lo entregado
+ * en la de la compañía (se propone el estimado con la tasa del día).
+ */
+function FormularioDesembolso(props: {
+  anticipo: AnticipoDetalle;
+  cargando: boolean;
+  alEnviar: (partes: ParteDesembolso[]) => void;
+  alCancelar: () => void;
+}) {
+  const { anticipo } = props;
+  const moneda = anticipo.balance.currency;
+  const libre = anticipo.settlement_currency !== null;
+  const objetivo = Number(anticipo.balance.amount);
+  const pedido = metodoPedido(anticipo.kind);
+  const [valores, setValores] = useState<Record<MetodoDesembolso, string>>(() => ({
+    transfer: '',
+    cash: '',
+    card: '',
+    [pedido]: objetivo > 0 ? String(objetivo) : '',
+  }));
+  const [referencias, setReferencias] = useState<Record<MetodoDesembolso, string>>({ transfer: '', cash: '', card: '' });
+  const numero = (texto: string) => Number(texto.trim().replace(',', '.')) || 0;
+  const partes = METODOS.filter((m) => numero(valores[m]) > 0).map((m) => ({
+    method: m,
+    amount: valores[m].trim().replace(',', '.'),
+    reference: referencias[m].trim() || null,
+  }));
+  const total = partes.reduce((suma, p) => suma + Number(p.amount), 0);
+  const diferencia = libre ? 0 : Math.round((objetivo - total) * 100) / 100;
+  const valido = partes.length > 0 && diferencia === 0;
+  return (
+    <div className="space-y-3">
+      <h3 className="font-semibold">Desembolso</h3>
+      <p className="text-sm text-slate-600">
+        {libre
+          ? `Se entrega en ${moneda}. Escribe lo que entregaste por cada medio${objetivo > 0 ? `; con la tasa de hoy se estimó en ${formatoDinero(objetivo, moneda)}` : ''}.`
+          : `Reparte ${formatoDinero(objetivo, moneda)} entre los medios que quieras, así se haya pedido de otra forma.`}
+      </p>
+      {METODOS.map((m) => (
+        <div key={m} className="grid gap-2 sm:grid-cols-2">
+          <Campo etiqueta={`${etiqueta('desembolso', m)} (${moneda})`}>
+            {(p) => (
+              <Entrada
+                {...p}
+                inputMode="decimal"
+                value={valores[m]}
+                onChange={(e) => setValores({ ...valores, [m]: e.target.value })}
+              />
+            )}
+          </Campo>
+          <Campo etiqueta="Referencia (opcional)">
+            {(p) => (
+              <Entrada
+                {...p}
+                value={referencias[m]}
+                onChange={(e) => setReferencias({ ...referencias, [m]: e.target.value })}
+                placeholder="Comprobante, consignación…"
+              />
+            )}
+          </Campo>
+        </div>
+      ))}
+      <p className={diferencia === 0 ? 'text-sm text-slate-700' : 'text-sm text-red-700'}>
+        Total: {formatoDinero(total, moneda)}
+        {diferencia > 0 && ` · faltan ${formatoDinero(diferencia, moneda)}`}
+        {diferencia < 0 && ` · sobran ${formatoDinero(-diferencia, moneda)}`}
+      </p>
+      <div className="flex gap-2">
+        <Boton disabled={!valido} cargando={props.cargando} onClick={() => props.alEnviar(partes)}>
+          Registrar
+        </Boton>
+        <Boton variante="fantasma" onClick={props.alCancelar}>
+          Cancelar
+        </Boton>
+      </div>
+    </div>
+  );
+}
+
 function FormularioTesoreria(props: {
   titulo: string;
   opciones: string[];
   grupo: string;
   cargando: boolean;
-  /** Anticipo calculado en otra moneda: lo entregado en la de la compañía (vacío = con la tasa de hoy). */
-  entrega?: { moneda: string; estimado: string | null };
-  alEnviar: (metodo: string, referencia: string | null, valor: string | null) => void;
+  alEnviar: (metodo: string, referencia: string | null) => void;
   alCancelar: () => void;
 }) {
   const [metodo, setMetodo] = useState(props.opciones[0] ?? '');
   const [referencia, setReferencia] = useState('');
-  const [valor, setValor] = useState('');
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <h3 className="font-semibold sm:col-span-2">{props.titulo}</h3>
@@ -252,20 +329,8 @@ function FormularioTesoreria(props: {
           <Entrada {...p} value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Comprobante, consignación…" />
         )}
       </Campo>
-      {props.entrega && (
-        <Campo
-          etiqueta={`Valor entregado (${props.entrega.moneda})`}
-          className="sm:col-span-2"
-          ayuda={`Vacío = se calcula con la tasa de hoy${props.entrega.estimado ? ` (al pedirlo se estimó en ${formatoDinero(props.entrega.estimado, props.entrega.moneda)})` : ''}. Escríbelo si entregaste otro valor.`}
-        >
-          {(p) => <Entrada {...p} inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} />}
-        </Campo>
-      )}
       <div className="flex gap-2 sm:col-span-2">
-        <Boton
-          cargando={props.cargando}
-          onClick={() => props.alEnviar(metodo, referencia.trim() || null, valor.trim().replace(',', '.') || null)}
-        >
+        <Boton cargando={props.cargando} onClick={() => props.alEnviar(metodo, referencia.trim() || null)}>
           Registrar
         </Boton>
         <Boton variante="fantasma" onClick={props.alCancelar}>

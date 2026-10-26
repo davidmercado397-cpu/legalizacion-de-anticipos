@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useAnticipo, useDescargarExcel, useSesion } from '@viaticos/client-app';
 import { CalendarDays, Download, type LucideIcon, UserRound, Wallet } from 'lucide-react';
-import { EstadoSiesa, InsigniaAnticipo } from '../../../features/anticipos/componentes';
+import { describirEntrega, EstadoSiesa, InsigniaAnticipo } from '../../../features/anticipos/componentes';
 import { FranjaSaldo } from '../../../features/anticipos/franja-saldo';
 import { LineaDeTiempo } from '../../../features/anticipos/linea-tiempo';
 import { PanelAcciones } from '../../../features/anticipos/panel-acciones';
@@ -137,9 +137,17 @@ function DetalleAnticipo() {
           {anticipo.disbursed_at && (
             <Seccion titulo="Desembolso">
               <p className="text-sm text-slate-700">
-                {formatoMomento(anticipo.disbursed_at)} por {etiqueta('desembolso', anticipo.disbursement_method).toLowerCase()}
-                {anticipo.disbursement_ref && ` (${anticipo.disbursement_ref})`}.
+                {formatoMomento(anticipo.disbursed_at)}: {describirEntrega(anticipo)}.
               </p>
+              {anticipo.disbursement_parts.some((p) => p.reference) && (
+                <p className="mt-1 text-sm text-slate-600">
+                  Referencias:{' '}
+                  {anticipo.disbursement_parts
+                    .filter((p) => p.reference)
+                    .map((p) => `${etiqueta('desembolso', p.method)} ${p.reference}`)
+                    .join(' · ')}
+                </p>
+              )}
             </Seccion>
           )}
           {(puede(usuario, 'contabilidad') || puede(usuario, 'tesoreria')) && anticipo.erp_advance_status && (

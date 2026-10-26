@@ -1,7 +1,7 @@
 import type { AnticipoDetalle } from '@viaticos/contracts';
-import { etiqueta } from '../../i18n';
 import { formatoDinero, formatoFechaCalendario } from '../../lib/formato';
 import { Cifra, Cifras } from '../../ui/cifras';
+import { describirEntrega } from './componentes';
 
 const DIA = 86_400_000;
 
@@ -23,7 +23,7 @@ export function FranjaSaldo({ anticipo }: { anticipo: AnticipoDetalle }) {
     <Cifras columnas={plazo === null ? 3 : 4}>
       <Cifra titulo="Aprobado" valor={formatoDinero(saldo.amount, saldo.currency)}>
         {anticipo.disbursed_at
-          ? `Entregado por ${etiqueta('desembolso', anticipo.disbursement_method).toLowerCase()}`
+          ? `Entregado: ${describirEntrega(anticipo)}`
           : anticipo.status === 'approved'
             ? 'Tesorería aún no lo entrega'
             : null}

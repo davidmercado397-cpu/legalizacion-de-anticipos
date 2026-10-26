@@ -71,6 +71,7 @@ export const es: Record<string, string> = {
   'unidad.per_day': 'por día',
   'unidad.per_night': 'por noche',
   'unidad.per_trip': 'por viaje',
+  'unidad.per_15_days': 'cada 15 días',
 
   'deducibilidad.deductible': 'Deducible',
   'deducibilidad.non_deductible': 'No deducible',

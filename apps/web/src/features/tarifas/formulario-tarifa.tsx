@@ -10,7 +10,7 @@ import { Campo, Entrada, Seleccion } from '../../ui/campos';
 import { Alerta } from '../../ui/superficies';
 
 const TIPOS: TipoPersonal[] = ['administrative', 'operational'];
-const UNIDADES: UnidadTarifa[] = ['per_day', 'per_night', 'per_trip'];
+const UNIDADES: UnidadTarifa[] = ['per_day', 'per_night', 'per_trip', 'per_15_days'];
 
 export function FormularioTarifa({
   companiaId,

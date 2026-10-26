@@ -18,6 +18,8 @@ type Datos = {
   tax_id: string;
   country: string;
   currency: string;
+  /** Otras monedas en que trabaja (la local siempre). */
+  currencies: string[];
   exchange_rate_policy: 'daily' | 'previous_month_close';
 };
 
@@ -26,11 +28,19 @@ const POLITICAS: Record<Datos['exchange_rate_policy'], string> = {
   previous_month_close: 'Cierre del mes anterior a la factura',
 };
 
-const vacia: Datos = { name: '', legal_name: '', tax_id: '', country: 'CO', currency: 'COP', exchange_rate_policy: 'daily' };
+const vacia: Datos = {
+  name: '',
+  legal_name: '',
+  tax_id: '',
+  country: 'CO',
+  currency: 'COP',
+  currencies: [],
+  exchange_rate_policy: 'daily',
+};
 
 /**
- * Compañías del grupo: la razón social y el NIT son los que deben ir en las facturas. La moneda es la local: en ella se
- * entregan y se legalizan los anticipos, aunque se calculen en la moneda del destino (decisiones 9.1 y 9.2).
+ * Compañías del grupo: la razón social y el NIT son los que deben ir en las facturas. Los anticipos se entregan y se
+ * legalizan en la moneda del destino si la compañía trabaja en ella; si no, en la local (decisiones 9.2 y 9.7).
  */
 export function Companias() {
   const companias = useCompanias();
@@ -55,7 +65,7 @@ export function Companias() {
               'Compañía',
               { titulo: 'NIT', secundaria: true },
               { titulo: 'País', secundaria: true },
-              'Moneda',
+              'Monedas',
               { titulo: 'Acciones', oculta: true },
             ]}
             claves={lista.map((c) => c.id)}
@@ -69,7 +79,7 @@ export function Companias() {
               </span>,
               c.tax_id ?? '—',
               c.country,
-              c.currency,
+              c.currencies.join(', '),
               <Boton variante="secundario" tamano="pequeno" onClick={() => setEditando({ id: c.id, datos: aDatos(c) })}>
                 Editar
               </Boton>,
@@ -96,6 +106,7 @@ function aDatos(c: Compania): Datos {
     tax_id: c.tax_id ?? '',
     country: c.country,
     currency: c.currency,
+    currencies: c.currencies.filter((m) => m !== c.currency),
     exchange_rate_policy: c.exchange_rate_policy,
   };
 }
@@ -104,7 +115,9 @@ function Formulario({ id, inicial, alTerminar }: { id?: string; inicial: Datos; 
   const usuario = useSesion((s) => s.usuario);
   const guardar = useGuardarCompania();
   const [datos, setDatos] = useState(inicial);
-  const cambiar = (campo: keyof Datos, valor: string) => setDatos({ ...datos, [campo]: valor });
+  const cambiar = (campo: Exclude<keyof Datos, 'currencies'>, valor: string) => setDatos({ ...datos, [campo]: valor });
+  const alternar = (moneda: string, marcada: boolean) =>
+    setDatos({ ...datos, currencies: marcada ? [...datos.currencies, moneda] : datos.currencies.filter((m) => m !== moneda) });
 
   function enviar() {
     const comunes = {
@@ -113,6 +126,7 @@ function Formulario({ id, inicial, alTerminar }: { id?: string; inicial: Datos; 
       tax_id: datos.tax_id.trim() || null,
       country: datos.country.trim().toUpperCase(),
       currency: datos.currency,
+      currencies: [datos.currency, ...datos.currencies.filter((m) => m !== datos.currency)],
     };
     guardar.mutate(
       id ? { id, datos: { ...comunes, exchange_rate_policy: datos.exchange_rate_policy } } : { datos: comunes },
@@ -140,6 +154,23 @@ function Formulario({ id, inicial, alTerminar }: { id?: string; inicial: Datos; 
           </Seleccion>
         )}
       </Campo>
+      <fieldset className="space-y-1">
+        <legend className="block text-sm font-semibold text-slate-700">Otras monedas en que trabaja</legend>
+        <p className="text-sm text-slate-500">
+          En estas también se aprueban, se entregan y se legalizan anticipos. Un anticipo en una moneda que no esté aquí
+          se entrega y se legaliza en la moneda local.
+        </p>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+          {opcionesDeMoneda(usuario)
+            .filter((m) => m !== datos.currency)
+            .map((m) => (
+              <label key={m} className="flex items-center gap-1.5 text-sm">
+                <input type="checkbox" checked={datos.currencies.includes(m)} onChange={(e) => alternar(m, e.target.checked)} />
+                {m}
+              </label>
+            ))}
+        </div>
+      </fieldset>
       {id && (
         <Campo etiqueta="Tasa para las facturas en otra moneda" ayuda="Las pagadas en efectivo con un retiro usan la tasa del retiro">
           {(p) => (

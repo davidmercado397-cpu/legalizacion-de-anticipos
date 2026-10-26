@@ -14,6 +14,15 @@ const TONO: Record<EstadoAnticipo, 'neutro' | 'info' | 'exito' | 'aviso' | 'peli
   voided: 'neutro',
 };
 
+/** "Transferencia $300.000 y efectivo $200.000": cómo repartió tesorería la entrega. */
+export function describirEntrega(anticipo: Pick<Anticipo, 'disbursement_parts' | 'currency' | 'settlement_currency'>): string {
+  const moneda = anticipo.settlement_currency ?? anticipo.currency;
+  const partes = anticipo.disbursement_parts.map(
+    (p) => `${etiqueta('desembolso', p.method).toLowerCase()} ${formatoDinero(p.amount, moneda)}`,
+  );
+  return partes.length > 1 ? `${partes.slice(0, -1).join(', ')} y ${partes[partes.length - 1]}` : (partes[0] ?? '');
+}
+
 export function InsigniaAnticipo({ estado }: { estado: EstadoAnticipo }) {
   return <Insignia tono={TONO[estado]}>{etiqueta('anticipo', estado)}</Insignia>;
 }
